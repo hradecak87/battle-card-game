@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { getAllTemplates } from '@/lib/cards/catalog'
 import { applyRank } from '@/lib/cards/combat'
 import { RANKS, Rank, UNIT_TYPES, UnitType } from '@/lib/cards/types'
+import { TradingCard } from '@/components/cards/TradingCard'
 
 const UNIT_TYPE_LABELS: Record<UnitType, string> = {
   archers: 'Lučištníci',
@@ -22,14 +23,6 @@ const RANK_LABELS: Record<Rank, string> = {
   rare: 'Rare',
   epic: 'Epic',
   legend: 'Legend',
-}
-
-const RANK_BADGE_CLASSES: Record<Rank, string> = {
-  common: 'bg-zinc-700 text-zinc-100',
-  uncommon: 'bg-emerald-700 text-emerald-50',
-  rare: 'bg-blue-700 text-blue-50',
-  epic: 'bg-purple-700 text-purple-50',
-  legend: 'bg-amber-600 text-amber-50',
 }
 
 type UnitTypeFilter = UnitType | 'all'
@@ -92,48 +85,12 @@ export default function CollectionPage() {
         </label>
       </div>
 
-      <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filtered.map((t) => {
-          const stats = applyRank(t.baseStats, t.rank)
-          return (
-            <li
-              key={t.id}
-              className="rounded-lg border border-zinc-700 bg-zinc-900 p-4 flex flex-col gap-2"
-            >
-              <div className="flex items-center justify-between">
-                <h2 className="font-semibold">{t.name}</h2>
-                <span
-                  className={`text-xs px-2 py-0.5 rounded-full ${RANK_BADGE_CLASSES[t.rank]}`}
-                >
-                  {RANK_LABELS[t.rank]}
-                </span>
-              </div>
-              <p className="text-xs text-zinc-400">{UNIT_TYPE_LABELS[t.unitType]}</p>
-              <p className="text-sm text-zinc-300 italic">{t.flavorText}</p>
-              <dl className="grid grid-cols-4 gap-2 text-center text-xs mt-2">
-                <div>
-                  <dt className="text-zinc-500">STR</dt>
-                  <dd className="font-mono font-semibold">{stats.str}</dd>
-                </div>
-                <div>
-                  <dt className="text-zinc-500">LNG</dt>
-                  <dd className="font-mono font-semibold">{stats.lng}</dd>
-                </div>
-                <div>
-                  <dt className="text-zinc-500">DEF</dt>
-                  <dd className="font-mono font-semibold">{stats.def}</dd>
-                </div>
-                <div>
-                  <dt className="text-zinc-500">HP</dt>
-                  <dd className="font-mono font-semibold">{stats.hp}</dd>
-                </div>
-              </dl>
-              <p className="text-xs text-zinc-500 mt-1">
-                {t.totalSupply === null ? 'Neomezeno' : `Existuje jen ${t.totalSupply}×`}
-              </p>
-            </li>
-          )
-        })}
+      <ul className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(170px,1fr))]">
+        {filtered.map((t) => (
+          <li key={t.id}>
+            <TradingCard template={t} stats={applyRank(t.baseStats, t.rank)} />
+          </li>
+        ))}
       </ul>
     </main>
   )
