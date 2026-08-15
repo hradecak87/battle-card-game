@@ -567,3 +567,97 @@ begin
   delete from card_instances where instance_id = card_instance_id;
 end;
 $$;
+
+-- ---------------------------------------------------------------------
+-- 10. Extend complete_kingdom_onboarding (§5) — redefines the function
+--     from 0001_players.sql so home-territory assignment + starter army
+--     happen atomically in the same transaction as the kingdom-name/
+--     coat-of-arms update. `create or replace` keeps the exact same
+--     signature so existing client call sites don't change.
+-- ---------------------------------------------------------------------
+create or replace function complete_kingdom_onboarding(new_kingdom_name text, new_coat_of_arms_id text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  trimmed_name text := trim(new_kingdom_name);
+  caller uuid := auth.uid();
+  home_id integer;
+  starter_templates text[];
+  tmpl_id text;
+begin
+  perform resolve_due_movements();
+
+  if not is_valid_coat_of_arms_id(new_coat_of_arms_id) then
+    raise exception 'invalid coat_of_arms_id: %', new_coat_of_arms_id;
+  end if;
+  if char_length(trimmed_name) < 3 or char_length(trimmed_name) > 30 then
+    raise exception 'kingdom_name must be 3-30 characters';
+  end if;
+
+  update players
+  set kingdom_name = trimmed_name,
+      coat_of_arms_id = new_coat_of_arms_id,
+      onboarding_completed = true
+  where id = caller
+    and onboarding_completed = false;
+
+  if not found then
+    raise exception 'onboarding already completed or player not found';
+  end if;
+
+  -- Home-territory assignment (§5), retried until a row-locked candidate
+  -- is actually still free (closes the concurrent-onboarding race).
+  for _ in 1..10 loop
+    select c.id into home_id
+    from (
+      select t.id, t.x, t.y
+      from territories t
+      where t.owner_id is null and t.claim_locked_by is null
+        and t.castle_rank is null and t.village_rank is null
+        and t.difficulty <= 2
+      order by (
+        select coalesce(min(greatest(abs(t.x - h.x), abs(t.y - h.y))), 999999)
+        from territories h where h.is_home
+      ) desc
+      limit 20
+    ) c
+    order by random()
+    limit 1;
+
+    if home_id is null then
+      raise exception 'no candidate home territory found';
+    end if;
+
+    perform id from territories
+    where id = home_id and owner_id is null and claim_locked_by is null
+    for update;
+    if found then
+      update territories set owner_id = caller, is_home = true where id = home_id;
+      exit;
+    end if;
+    home_id := null;
+  end loop;
+
+  if home_id is null then
+    raise exception 'failed to assign a home territory after retries';
+  end if;
+
+  -- Starter army (§5): 6 common-rank unit templates, a spread of unit
+  -- types, admin-minted and stationed at the new home tile.
+  select array_agg(id) into starter_templates
+  from (
+    select id from card_templates
+    where category = 'unit' and rank = 'common'
+    order by random()
+    limit 6
+  ) s;
+
+  foreach tmpl_id in array starter_templates loop
+    insert into card_instances (template_id, owner_id, stationed_territory_id, status)
+    values (tmpl_id, caller, home_id, 'stationed');
+  end loop;
+end;
+$$;

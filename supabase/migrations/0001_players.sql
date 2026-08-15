@@ -4,6 +4,11 @@
 -- user provisions one, apply with `supabase db push` (or paste into the
 -- SQL editor) as the first migration. This file is written and reviewed
 -- now so the data model is locked in and version-controlled ahead of time.
+--
+-- NOTE: `complete_kingdom_onboarding` defined below is later REDEFINED
+-- (via `create or replace`) in 0002_territories.sql (Territory Map spec
+-- §5) to atomically also assign a home territory + starter army. Apply
+-- 0002 immediately after this file — the version below is superseded.
 
 -- ---------------------------------------------------------------------
 -- 1. Nation enum (§2, §3) — rejects invalid values at the schema level,
