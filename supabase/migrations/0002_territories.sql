@@ -93,7 +93,7 @@ create table troop_movements (
 
 create table troop_movement_units (
   movement_id uuid not null references troop_movements(id) on delete cascade,
-  card_instance_id uuid not null references card_instances(id),
+  card_instance_id uuid not null references card_instances(instance_id),
   primary key (movement_id, card_instance_id)
 );
 
