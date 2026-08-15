@@ -71,30 +71,35 @@ can resume smoothly. Read this file first if context was lost.
    pointing at this file as the authoritative state snapshot to read first
    and update continuously.
 
+6. ✅ **catalog-content** — `scripts/generate-catalog-data.js` written (a
+   one-off, non-shipped content-authoring tool) with hand-curated Czech
+   honorific names for all 8 unit types × 5 ranks (10/8/6/4/3), a
+   deterministic seeded ±10% flavor-variance function, and index-spread
+   `totalSupply` assignment within each capped rank's range. Run via
+   `node scripts/generate-catalog-data.js`, producing
+   `lib/cards/catalog-data.json` (248 templates). One duplicate name
+   ("Ocelový hrom" used for both a knights-epic and a siegeEngines-rare
+   card) was found and fixed before finalizing.
+
+7. ✅ **catalog-loader** — `lib/cards/catalog.ts` written: loads
+   `catalog-data.json`, validates it synchronously at import time (total
+   count, per-type/per-rank counts, unique ids/names, totalSupply
+   null-vs-in-range, no negative baseStats), exposes `getAllTemplates()`,
+   `getTemplatesByType()`, `getTemplatesByRank()`, `getTemplateById()`.
+   `lib/cards/catalog.test.ts` written and passing (12/12): validates the
+   real data file, plus 4 malformed-fixture tests (wrong total count,
+   duplicate id, out-of-range totalSupply, negative baseStats) each
+   confirming the loader throws. Full suite: 24/24 tests passing across
+   both test files; `npx tsc --noEmit` clean.
+
 ## Immediate next steps (in order)
 
-1. Move to **catalog-content**: author `lib/cards/catalog-data.json` — 248
-   card templates (8 unit types × 31 variants: 10 common, 8 uncommon, 6 rare,
-   4 epic, 3 legend), following spec §6 naming pattern (common folk →
-   legendary named individuals), ±10% flavor variance baked into
-   `baseStats` per variant, `totalSupply` null for common/uncommon and a
-   fixed number in-range for rare/epic/legend, unique `id`
-   (`{unitType}-{rank}-{2-digit index}`) and unique `name`, short flavor text.
-   Example names already given in the spec for Archers — extend the same
-   pattern to the other 7 types.
-6. **catalog-loader**: `lib/cards/catalog.ts` — loads + validates
-   `catalog-data.json` at import time (throws synchronously on: wrong total
-   count, wrong per-rank/per-type counts, duplicate ids/names, invalid
-   totalSupply, negative baseStats), exposes `getAllTemplates()`,
-   `getTemplatesByType()`, `getTemplateById()`. Tests in
-   `lib/cards/catalog.test.ts` (real data validates; malformed fixtures throw
-   per violation type).
-7. **collection-page**: `app/collection/` — list/filter by unit type + rank,
+1. **collection-page**: `app/collection/` — list/filter by unit type + rank,
    shows effective stats (via `applyRank`) + flavor text + totalSupply.
-8. **arena-page**: `app/arena/` — pick 2 cards, run
+2. **arena-page**: `app/arena/` — pick 2 cards, run
    `resolveDuelWithBreakdown`, show step-by-step atk/dmg/ttk breakdown and
    winner.
-9. **final-verify**: `npm run build`, `npm test`, manual `npm run dev` smoke
+3. **final-verify**: `npm run build`, `npm test`, manual `npm run dev` smoke
    test of `/collection` and `/arena`.
 
 ## Key decisions/conventions to remember

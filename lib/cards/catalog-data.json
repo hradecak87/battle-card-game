@@ -1,0 +1,3474 @@
+[
+  {
+    "id": "archers-common-01",
+    "unitType": "archers",
+    "rank": "common",
+    "name": "Práčata",
+    "flavorText": "Práčata: řadoví lučištníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 1,
+      "lng": 8.7,
+      "def": 2.2,
+      "hp": 4
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "archers-common-02",
+    "unitType": "archers",
+    "rank": "common",
+    "name": "Venkovští lučištníci",
+    "flavorText": "Venkovští lučištníci: řadoví lučištníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 0.9,
+      "lng": 8.3,
+      "def": 2.1,
+      "hp": 4
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "archers-common-03",
+    "unitType": "archers",
+    "rank": "common",
+    "name": "Lesní hlídka",
+    "flavorText": "Lesní hlídka: řadoví lučištníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 1.1,
+      "lng": 7.9,
+      "def": 2,
+      "hp": 3.9
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "archers-common-04",
+    "unitType": "archers",
+    "rank": "common",
+    "name": "Ostrostřelci z vesnice",
+    "flavorText": "Ostrostřelci z vesnice: řadoví lučištníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 1,
+      "lng": 7.5,
+      "def": 1.9,
+      "hp": 3.8
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "archers-common-05",
+    "unitType": "archers",
+    "rank": "common",
+    "name": "Chlapci s tisovým lukem",
+    "flavorText": "Chlapci s tisovým lukem: řadoví lučištníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 1,
+      "lng": 8.7,
+      "def": 2.2,
+      "hp": 3.7
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "archers-common-06",
+    "unitType": "archers",
+    "rank": "common",
+    "name": "Pastýři šípů",
+    "flavorText": "Pastýři šípů: řadoví lučištníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 0.9,
+      "lng": 8.3,
+      "def": 2.1,
+      "hp": 3.6
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "archers-common-07",
+    "unitType": "archers",
+    "rank": "common",
+    "name": "Robotníci s prakem",
+    "flavorText": "Robotníci s prakem: řadoví lučištníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 1.1,
+      "lng": 8,
+      "def": 2,
+      "hp": 4.3
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "archers-common-08",
+    "unitType": "archers",
+    "rank": "common",
+    "name": "Hraniční hlídka",
+    "flavorText": "Hraniční hlídka: řadoví lučištníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 1,
+      "lng": 7.6,
+      "def": 1.9,
+      "hp": 4.2
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "archers-common-09",
+    "unitType": "archers",
+    "rank": "common",
+    "name": "Sběrači per",
+    "flavorText": "Sběrači per: řadoví lučištníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 1,
+      "lng": 8.8,
+      "def": 1.8,
+      "hp": 4.2
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "archers-common-10",
+    "unitType": "archers",
+    "rank": "common",
+    "name": "Mladí střelci",
+    "flavorText": "Mladí střelci: řadoví lučištníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 0.9,
+      "lng": 8.4,
+      "def": 2.1,
+      "hp": 3.9
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "archers-uncommon-01",
+    "unitType": "archers",
+    "rank": "uncommon",
+    "name": "Královští střelci",
+    "flavorText": "Královští střelci: zkušení lučištníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 1,
+      "lng": 8.7,
+      "def": 2.2,
+      "hp": 3.8
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "archers-uncommon-02",
+    "unitType": "archers",
+    "rank": "uncommon",
+    "name": "Yeomani",
+    "flavorText": "Yeomani: zkušení lučištníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 0.9,
+      "lng": 8.3,
+      "def": 2.1,
+      "hp": 3.7
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "archers-uncommon-03",
+    "unitType": "archers",
+    "rank": "uncommon",
+    "name": "Lovci jelenů",
+    "flavorText": "Lovci jelenů: zkušení lučištníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 1.1,
+      "lng": 7.9,
+      "def": 2,
+      "hp": 3.6
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "archers-uncommon-04",
+    "unitType": "archers",
+    "rank": "uncommon",
+    "name": "Ostrostřelci hradní stráže",
+    "flavorText": "Ostrostřelci hradní stráže: zkušení lučištníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 1,
+      "lng": 7.5,
+      "def": 1.9,
+      "hp": 4.3
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "archers-uncommon-05",
+    "unitType": "archers",
+    "rank": "uncommon",
+    "name": "Zálesáci",
+    "flavorText": "Zálesáci: zkušení lučištníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 1,
+      "lng": 8.7,
+      "def": 2.2,
+      "hp": 4.3
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "archers-uncommon-06",
+    "unitType": "archers",
+    "rank": "uncommon",
+    "name": "Bratrstvo šípu",
+    "flavorText": "Bratrstvo šípu: zkušení lučištníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 0.9,
+      "lng": 8.3,
+      "def": 2.1,
+      "hp": 4.2
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "archers-uncommon-07",
+    "unitType": "archers",
+    "rank": "uncommon",
+    "name": "Střelci Severní marky",
+    "flavorText": "Střelci Severní marky: zkušení lučištníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 1.1,
+      "lng": 8,
+      "def": 2,
+      "hp": 4.1
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "archers-uncommon-08",
+    "unitType": "archers",
+    "rank": "uncommon",
+    "name": "Lovci z Temného hvozdu",
+    "flavorText": "Lovci z Temného hvozdu: zkušení lučištníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 1,
+      "lng": 7.6,
+      "def": 1.9,
+      "hp": 4
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "archers-rare-01",
+    "unitType": "archers",
+    "rank": "rare",
+    "name": "Sokolí oko",
+    "flavorText": "Sokolí oko: elitní lučištníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 1,
+      "lng": 8.5,
+      "def": 2.1,
+      "hp": 4.2
+    },
+    "totalSupply": 20
+  },
+  {
+    "id": "archers-rare-02",
+    "unitType": "archers",
+    "rank": "rare",
+    "name": "Setníci šípů",
+    "flavorText": "Setníci šípů: elitní lučištníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 0.9,
+      "lng": 8.2,
+      "def": 2,
+      "hp": 4.1
+    },
+    "totalSupply": 26
+  },
+  {
+    "id": "archers-rare-03",
+    "unitType": "archers",
+    "rank": "rare",
+    "name": "Bratrstvo tisu",
+    "flavorText": "Bratrstvo tisu: elitní lučištníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 1.1,
+      "lng": 7.8,
+      "def": 1.9,
+      "hp": 4
+    },
+    "totalSupply": 32
+  },
+  {
+    "id": "archers-rare-04",
+    "unitType": "archers",
+    "rank": "rare",
+    "name": "Stříbrní lučištníci",
+    "flavorText": "Stříbrní lučištníci: elitní lučištníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 1,
+      "lng": 7.4,
+      "def": 1.9,
+      "hp": 3.9
+    },
+    "totalSupply": 38
+  },
+  {
+    "id": "archers-rare-05",
+    "unitType": "archers",
+    "rank": "rare",
+    "name": "Krkavčí zrak",
+    "flavorText": "Krkavčí zrak: elitní lučištníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 1,
+      "lng": 8.6,
+      "def": 2.2,
+      "hp": 3.8
+    },
+    "totalSupply": 44
+  },
+  {
+    "id": "archers-rare-06",
+    "unitType": "archers",
+    "rank": "rare",
+    "name": "Tichá smrt",
+    "flavorText": "Tichá smrt: elitní lučištníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 0.9,
+      "lng": 8.2,
+      "def": 2.1,
+      "hp": 3.8
+    },
+    "totalSupply": 50
+  },
+  {
+    "id": "archers-epic-01",
+    "unitType": "archers",
+    "rank": "epic",
+    "name": "Vlčí luk",
+    "flavorText": "Vlčí luk: legendami opředení lučištníci, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 1,
+      "lng": 8.7,
+      "def": 2.2,
+      "hp": 3.9
+    },
+    "totalSupply": 5
+  },
+  {
+    "id": "archers-epic-02",
+    "unitType": "archers",
+    "rank": "epic",
+    "name": "Stíny lesa",
+    "flavorText": "Stíny lesa: legendami opředení lučištníci, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 0.9,
+      "lng": 8.3,
+      "def": 2.1,
+      "hp": 3.8
+    },
+    "totalSupply": 8
+  },
+  {
+    "id": "archers-epic-03",
+    "unitType": "archers",
+    "rank": "epic",
+    "name": "Poslední salva",
+    "flavorText": "Poslední salva: legendami opředení lučištníci, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 1.1,
+      "lng": 7.9,
+      "def": 2,
+      "hp": 3.7
+    },
+    "totalSupply": 12
+  },
+  {
+    "id": "archers-epic-04",
+    "unitType": "archers",
+    "rank": "epic",
+    "name": "Oheň z nebes",
+    "flavorText": "Oheň z nebes: legendami opředení lučištníci, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 1,
+      "lng": 7.6,
+      "def": 1.9,
+      "hp": 3.6
+    },
+    "totalSupply": 15
+  },
+  {
+    "id": "archers-legend-01",
+    "unitType": "archers",
+    "rank": "legend",
+    "name": "Nejostřejší šípy",
+    "flavorText": "Nejostřejší šípy: jediní svého druhu — lučištníci, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 0.9,
+      "lng": 8.4,
+      "def": 2.1,
+      "hp": 3.7
+    },
+    "totalSupply": 1
+  },
+  {
+    "id": "archers-legend-02",
+    "unitType": "archers",
+    "rank": "legend",
+    "name": "Král střelců",
+    "flavorText": "Král střelců: jediní svého druhu — lučištníci, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 1.1,
+      "lng": 8,
+      "def": 2,
+      "hp": 3.6
+    },
+    "totalSupply": 3
+  },
+  {
+    "id": "archers-legend-03",
+    "unitType": "archers",
+    "rank": "legend",
+    "name": "Šíp osudu",
+    "flavorText": "Šíp osudu: jediní svého druhu — lučištníci, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 1,
+      "lng": 7.6,
+      "def": 1.9,
+      "hp": 4.3
+    },
+    "totalSupply": 5
+  },
+  {
+    "id": "crossbowmen-common-01",
+    "unitType": "crossbowmen",
+    "rank": "common",
+    "name": "Vesnická hlídka s kušemi",
+    "flavorText": "Vesnická hlídka s kušemi: řadoví kušištníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 1.1,
+      "lng": 6.9,
+      "def": 5,
+      "hp": 4.2
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "crossbowmen-common-02",
+    "unitType": "crossbowmen",
+    "rank": "common",
+    "name": "Ozbrojenci z celnice",
+    "flavorText": "Ozbrojenci z celnice: řadoví kušištníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 1,
+      "lng": 6.6,
+      "def": 4.7,
+      "hp": 4.2
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "crossbowmen-common-03",
+    "unitType": "crossbowmen",
+    "rank": "common",
+    "name": "Formani s kuší",
+    "flavorText": "Formani s kuší: řadoví kušištníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 1,
+      "lng": 7.7,
+      "def": 5.5,
+      "hp": 4.1
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "crossbowmen-common-04",
+    "unitType": "crossbowmen",
+    "rank": "common",
+    "name": "Strážci mostů",
+    "flavorText": "Strážci mostů: řadoví kušištníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 0.9,
+      "lng": 7.3,
+      "def": 5.3,
+      "hp": 4
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "crossbowmen-common-05",
+    "unitType": "crossbowmen",
+    "rank": "common",
+    "name": "Havíři s kuší",
+    "flavorText": "Havíři s kuší: řadoví kušištníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 1.1,
+      "lng": 7,
+      "def": 5,
+      "hp": 3.9
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "crossbowmen-common-06",
+    "unitType": "crossbowmen",
+    "rank": "common",
+    "name": "Pohraniční kušištníci",
+    "flavorText": "Pohraniční kušištníci: řadoví kušištníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 1,
+      "lng": 6.7,
+      "def": 4.8,
+      "hp": 3.8
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "crossbowmen-common-07",
+    "unitType": "crossbowmen",
+    "rank": "common",
+    "name": "Žoldnéři z bažin",
+    "flavorText": "Žoldnéři z bažin: řadoví kušištníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 1,
+      "lng": 6.3,
+      "def": 4.5,
+      "hp": 3.7
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "crossbowmen-common-08",
+    "unitType": "crossbowmen",
+    "rank": "common",
+    "name": "Městská hotovost",
+    "flavorText": "Městská hotovost: řadoví kušištníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 0.9,
+      "lng": 7.4,
+      "def": 5.3,
+      "hp": 3.7
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "crossbowmen-common-09",
+    "unitType": "crossbowmen",
+    "rank": "common",
+    "name": "Verbíři s kuší",
+    "flavorText": "Verbíři s kuší: řadoví kušištníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 0.9,
+      "lng": 7.1,
+      "def": 5.1,
+      "hp": 4.4
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "crossbowmen-common-10",
+    "unitType": "crossbowmen",
+    "rank": "common",
+    "name": "Obecní kušníci",
+    "flavorText": "Obecní kušníci: řadoví kušištníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 1,
+      "lng": 6.7,
+      "def": 4.8,
+      "hp": 4.1
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "crossbowmen-uncommon-01",
+    "unitType": "crossbowmen",
+    "rank": "uncommon",
+    "name": "Cechovní kušištníci",
+    "flavorText": "Cechovní kušištníci: zkušení kušištníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 1.1,
+      "lng": 7,
+      "def": 5,
+      "hp": 3.8
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "crossbowmen-uncommon-02",
+    "unitType": "crossbowmen",
+    "rank": "uncommon",
+    "name": "Pavézníci",
+    "flavorText": "Pavézníci: zkušení kušištníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 1,
+      "lng": 6.7,
+      "def": 4.8,
+      "hp": 3.7
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "crossbowmen-uncommon-03",
+    "unitType": "crossbowmen",
+    "rank": "uncommon",
+    "name": "Střelci z bašt",
+    "flavorText": "Střelci z bašt: zkušení kušištníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 1,
+      "lng": 6.4,
+      "def": 4.6,
+      "hp": 3.7
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "crossbowmen-uncommon-04",
+    "unitType": "crossbowmen",
+    "rank": "uncommon",
+    "name": "Žoldáci Severní marky",
+    "flavorText": "Žoldáci Severní marky: zkušení kušištníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 1,
+      "lng": 7.4,
+      "def": 5.3,
+      "hp": 4.4
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "crossbowmen-uncommon-05",
+    "unitType": "crossbowmen",
+    "rank": "uncommon",
+    "name": "Bratrstvo pavézy",
+    "flavorText": "Bratrstvo pavézy: zkušení kušištníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 0.9,
+      "lng": 7.1,
+      "def": 5.1,
+      "hp": 4.3
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "crossbowmen-uncommon-06",
+    "unitType": "crossbowmen",
+    "rank": "uncommon",
+    "name": "Hradní kušištníci",
+    "flavorText": "Hradní kušištníci: zkušení kušištníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 1.1,
+      "lng": 6.8,
+      "def": 4.8,
+      "hp": 4.2
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "crossbowmen-uncommon-07",
+    "unitType": "crossbowmen",
+    "rank": "uncommon",
+    "name": "Celní stráž",
+    "flavorText": "Celní stráž: zkušení kušištníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 1,
+      "lng": 6.4,
+      "def": 4.6,
+      "hp": 4.1
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "crossbowmen-uncommon-08",
+    "unitType": "crossbowmen",
+    "rank": "uncommon",
+    "name": "Karavanní doprovod",
+    "flavorText": "Karavanní doprovod: zkušení kušištníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 1,
+      "lng": 7.5,
+      "def": 5.4,
+      "hp": 4
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "crossbowmen-rare-01",
+    "unitType": "crossbowmen",
+    "rank": "rare",
+    "name": "Ocelové tětivy",
+    "flavorText": "Ocelové tětivy: elitní kušištníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 1,
+      "lng": 6.5,
+      "def": 4.6,
+      "hp": 3.8
+    },
+    "totalSupply": 20
+  },
+  {
+    "id": "crossbowmen-rare-02",
+    "unitType": "crossbowmen",
+    "rank": "rare",
+    "name": "Bratrstvo železné pavézy",
+    "flavorText": "Bratrstvo železné pavézy: elitní kušištníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 1,
+      "lng": 7.5,
+      "def": 5.4,
+      "hp": 3.7
+    },
+    "totalSupply": 26
+  },
+  {
+    "id": "crossbowmen-rare-03",
+    "unitType": "crossbowmen",
+    "rank": "rare",
+    "name": "Setníci kuše",
+    "flavorText": "Setníci kuše: elitní kušištníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 0.9,
+      "lng": 7.2,
+      "def": 5.2,
+      "hp": 3.6
+    },
+    "totalSupply": 32
+  },
+  {
+    "id": "crossbowmen-rare-04",
+    "unitType": "crossbowmen",
+    "rank": "rare",
+    "name": "Strážci brány",
+    "flavorText": "Strážci brány: elitní kušištníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 1.1,
+      "lng": 6.9,
+      "def": 4.9,
+      "hp": 4.3
+    },
+    "totalSupply": 38
+  },
+  {
+    "id": "crossbowmen-rare-05",
+    "unitType": "crossbowmen",
+    "rank": "rare",
+    "name": "Tichý svist",
+    "flavorText": "Tichý svist: elitní kušištníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 1,
+      "lng": 6.5,
+      "def": 4.7,
+      "hp": 4.3
+    },
+    "totalSupply": 44
+  },
+  {
+    "id": "crossbowmen-rare-06",
+    "unitType": "crossbowmen",
+    "rank": "rare",
+    "name": "Železný mrak",
+    "flavorText": "Železný mrak: elitní kušištníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 1,
+      "lng": 7.6,
+      "def": 5.4,
+      "hp": 4.2
+    },
+    "totalSupply": 50
+  },
+  {
+    "id": "crossbowmen-epic-01",
+    "unitType": "crossbowmen",
+    "rank": "epic",
+    "name": "Poslední bašta",
+    "flavorText": "Poslední bašta: legendami opředení kušištníci, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 1,
+      "lng": 6.6,
+      "def": 4.7,
+      "hp": 4.3
+    },
+    "totalSupply": 5
+  },
+  {
+    "id": "crossbowmen-epic-02",
+    "unitType": "crossbowmen",
+    "rank": "epic",
+    "name": "Kovová smrt",
+    "flavorText": "Kovová smrt: legendami opředení kušištníci, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 1,
+      "lng": 7.7,
+      "def": 4.5,
+      "hp": 4.2
+    },
+    "totalSupply": 8
+  },
+  {
+    "id": "crossbowmen-epic-03",
+    "unitType": "crossbowmen",
+    "rank": "epic",
+    "name": "Bouře šipek",
+    "flavorText": "Bouře šipek: legendami opředení kušištníci, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 0.9,
+      "lng": 7.3,
+      "def": 5.3,
+      "hp": 4.1
+    },
+    "totalSupply": 12
+  },
+  {
+    "id": "crossbowmen-epic-04",
+    "unitType": "crossbowmen",
+    "rank": "epic",
+    "name": "Ocelový soumrak",
+    "flavorText": "Ocelový soumrak: legendami opředení kušištníci, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 1.1,
+      "lng": 7,
+      "def": 5,
+      "hp": 4
+    },
+    "totalSupply": 15
+  },
+  {
+    "id": "crossbowmen-legend-01",
+    "unitType": "crossbowmen",
+    "rank": "legend",
+    "name": "Neprůstřelná stěna",
+    "flavorText": "Neprůstřelná stěna: jediní svého druhu — kušištníci, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 1,
+      "lng": 6.7,
+      "def": 4.8,
+      "hp": 3.9
+    },
+    "totalSupply": 1
+  },
+  {
+    "id": "crossbowmen-legend-02",
+    "unitType": "crossbowmen",
+    "rank": "legend",
+    "name": "Král pavéz",
+    "flavorText": "Král pavéz: jediní svého druhu — kušištníci, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 1,
+      "lng": 6.4,
+      "def": 4.6,
+      "hp": 3.8
+    },
+    "totalSupply": 3
+  },
+  {
+    "id": "crossbowmen-legend-03",
+    "unitType": "crossbowmen",
+    "rank": "legend",
+    "name": "Poslední salva oceli",
+    "flavorText": "Poslední salva oceli: jediní svého druhu — kušištníci, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 1,
+      "lng": 7.4,
+      "def": 5.3,
+      "hp": 3.7
+    },
+    "totalSupply": 5
+  },
+  {
+    "id": "spearmen-common-01",
+    "unitType": "spearmen",
+    "rank": "common",
+    "name": "Rolníci s kopím",
+    "flavorText": "Rolníci s kopím: řadoví kopiníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 4.3,
+      "lng": 1,
+      "def": 7,
+      "hp": 4.7
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "spearmen-common-02",
+    "unitType": "spearmen",
+    "rank": "common",
+    "name": "Vesnická domobrana",
+    "flavorText": "Vesnická domobrana: řadoví kopiníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 4.2,
+      "lng": 0.9,
+      "def": 6.6,
+      "hp": 4.6
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "spearmen-common-03",
+    "unitType": "spearmen",
+    "rank": "common",
+    "name": "Robotníci s oštěpem",
+    "flavorText": "Robotníci s oštěpem: řadoví kopiníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 4,
+      "lng": 1.1,
+      "def": 6.3,
+      "hp": 5.5
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "spearmen-common-04",
+    "unitType": "spearmen",
+    "rank": "common",
+    "name": "Ostraha stád",
+    "flavorText": "Ostraha stád: řadoví kopiníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 3.8,
+      "lng": 1.1,
+      "def": 7.4,
+      "hp": 5.4
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "spearmen-common-05",
+    "unitType": "spearmen",
+    "rank": "common",
+    "name": "Hraniční hlídka s kopím",
+    "flavorText": "Hraniční hlídka s kopím: řadoví kopiníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 4.4,
+      "lng": 1,
+      "def": 7,
+      "hp": 5.3
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "spearmen-common-06",
+    "unitType": "spearmen",
+    "rank": "common",
+    "name": "Mladí kopiníci",
+    "flavorText": "Mladí kopiníci: řadoví kopiníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 4.2,
+      "lng": 1,
+      "def": 6.7,
+      "hp": 5.2
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "spearmen-common-07",
+    "unitType": "spearmen",
+    "rank": "common",
+    "name": "Formani s oštěpem",
+    "flavorText": "Formani s oštěpem: řadoví kopiníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 4,
+      "lng": 0.9,
+      "def": 6.4,
+      "hp": 5.1
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "spearmen-common-08",
+    "unitType": "spearmen",
+    "rank": "common",
+    "name": "Sběrači daní s kopím",
+    "flavorText": "Sběrači daní s kopím: řadoví kopiníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 3.8,
+      "lng": 1.1,
+      "def": 7.4,
+      "hp": 5
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "spearmen-common-09",
+    "unitType": "spearmen",
+    "rank": "common",
+    "name": "Sedláci s vidlemi",
+    "flavorText": "Sedláci s vidlemi: řadoví kopiníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 3.6,
+      "lng": 1,
+      "def": 7.1,
+      "hp": 4.9
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "spearmen-common-10",
+    "unitType": "spearmen",
+    "rank": "common",
+    "name": "Nováčci setniny",
+    "flavorText": "Nováčci setniny: řadoví kopiníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 4.2,
+      "lng": 1,
+      "def": 6.7,
+      "hp": 4.6
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "spearmen-uncommon-01",
+    "unitType": "spearmen",
+    "rank": "uncommon",
+    "name": "Královská pěší garda",
+    "flavorText": "Královská pěší garda: zkušení kopiníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 4,
+      "lng": 0.9,
+      "def": 6.4,
+      "hp": 4.9
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "spearmen-uncommon-02",
+    "unitType": "spearmen",
+    "rank": "uncommon",
+    "name": "Bratrstvo kopí",
+    "flavorText": "Bratrstvo kopí: zkušení kopiníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 3.9,
+      "lng": 1.1,
+      "def": 7.5,
+      "hp": 4.8
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "spearmen-uncommon-03",
+    "unitType": "spearmen",
+    "rank": "uncommon",
+    "name": "Hradní kopiníci",
+    "flavorText": "Hradní kopiníci: zkušení kopiníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 3.7,
+      "lng": 1,
+      "def": 7.2,
+      "hp": 4.6
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "spearmen-uncommon-04",
+    "unitType": "spearmen",
+    "rank": "uncommon",
+    "name": "Pohraniční setnina",
+    "flavorText": "Pohraniční setnina: zkušení kopiníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 4.3,
+      "lng": 1,
+      "def": 6.8,
+      "hp": 4.5
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "spearmen-uncommon-05",
+    "unitType": "spearmen",
+    "rank": "uncommon",
+    "name": "Železná linie",
+    "flavorText": "Železná linie: zkušení kopiníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 4.1,
+      "lng": 0.9,
+      "def": 6.5,
+      "hp": 5.4
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "spearmen-uncommon-06",
+    "unitType": "spearmen",
+    "rank": "uncommon",
+    "name": "Strážci brodu",
+    "flavorText": "Strážci brodu: zkušení kopiníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 3.9,
+      "lng": 1.1,
+      "def": 7.6,
+      "hp": 5.3
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "spearmen-uncommon-07",
+    "unitType": "spearmen",
+    "rank": "uncommon",
+    "name": "Kopiníci Severní marky",
+    "flavorText": "Kopiníci Severní marky: zkušení kopiníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 3.7,
+      "lng": 1,
+      "def": 7.2,
+      "hp": 5.2
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "spearmen-uncommon-08",
+    "unitType": "spearmen",
+    "rank": "uncommon",
+    "name": "Obranná falanga",
+    "flavorText": "Obranná falanga: zkušení kopiníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 4.3,
+      "lng": 1,
+      "def": 6.9,
+      "hp": 5.1
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "spearmen-rare-01",
+    "unitType": "spearmen",
+    "rank": "rare",
+    "name": "Železná stěna",
+    "flavorText": "Železná stěna: elitní kopiníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 3.6,
+      "lng": 1,
+      "def": 7.1,
+      "hp": 4.9
+    },
+    "totalSupply": 20
+  },
+  {
+    "id": "spearmen-rare-02",
+    "unitType": "spearmen",
+    "rank": "rare",
+    "name": "Bratrstvo dlouhého kopí",
+    "flavorText": "Bratrstvo dlouhého kopí: elitní kopiníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 4.2,
+      "lng": 1,
+      "def": 6.8,
+      "hp": 4.8
+    },
+    "totalSupply": 26
+  },
+  {
+    "id": "spearmen-rare-03",
+    "unitType": "spearmen",
+    "rank": "rare",
+    "name": "Setníci obrany",
+    "flavorText": "Setníci obrany: elitní kopiníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 4.1,
+      "lng": 0.9,
+      "def": 6.5,
+      "hp": 4.7
+    },
+    "totalSupply": 32
+  },
+  {
+    "id": "spearmen-rare-04",
+    "unitType": "spearmen",
+    "rank": "rare",
+    "name": "Nezlomná linie",
+    "flavorText": "Nezlomná linie: elitní kopiníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 3.9,
+      "lng": 1.1,
+      "def": 7.5,
+      "hp": 4.6
+    },
+    "totalSupply": 38
+  },
+  {
+    "id": "spearmen-rare-05",
+    "unitType": "spearmen",
+    "rank": "rare",
+    "name": "Ocelový plot",
+    "flavorText": "Ocelový plot: elitní kopiníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 3.7,
+      "lng": 1,
+      "def": 7.2,
+      "hp": 4.5
+    },
+    "totalSupply": 44
+  },
+  {
+    "id": "spearmen-rare-06",
+    "unitType": "spearmen",
+    "rank": "rare",
+    "name": "Strážci hranice",
+    "flavorText": "Strážci hranice: elitní kopiníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 4.3,
+      "lng": 1,
+      "def": 6.9,
+      "hp": 5.4
+    },
+    "totalSupply": 50
+  },
+  {
+    "id": "spearmen-epic-01",
+    "unitType": "spearmen",
+    "rank": "epic",
+    "name": "Poslední val",
+    "flavorText": "Poslední val: legendami opředení kopiníci, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 3.7,
+      "lng": 1,
+      "def": 7.3,
+      "hp": 4.9
+    },
+    "totalSupply": 5
+  },
+  {
+    "id": "spearmen-epic-02",
+    "unitType": "spearmen",
+    "rank": "epic",
+    "name": "Hradba masa a oceli",
+    "flavorText": "Hradba masa a oceli: legendami opředení kopiníci, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 4.3,
+      "lng": 1,
+      "def": 7,
+      "hp": 4.8
+    },
+    "totalSupply": 8
+  },
+  {
+    "id": "spearmen-epic-03",
+    "unitType": "spearmen",
+    "rank": "epic",
+    "name": "Nedobytná linie",
+    "flavorText": "Nedobytná linie: legendami opředení kopiníci, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 4.1,
+      "lng": 0.9,
+      "def": 6.6,
+      "hp": 4.7
+    },
+    "totalSupply": 12
+  },
+  {
+    "id": "spearmen-epic-04",
+    "unitType": "spearmen",
+    "rank": "epic",
+    "name": "Kopí posledního odporu",
+    "flavorText": "Kopí posledního odporu: legendami opředení kopiníci, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 3.9,
+      "lng": 1.1,
+      "def": 7.7,
+      "hp": 4.6
+    },
+    "totalSupply": 15
+  },
+  {
+    "id": "spearmen-legend-01",
+    "unitType": "spearmen",
+    "rank": "legend",
+    "name": "Nezlomná hradba",
+    "flavorText": "Nezlomná hradba: jediní svého druhu — kopiníci, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 3.7,
+      "lng": 1,
+      "def": 7.2,
+      "hp": 4.6
+    },
+    "totalSupply": 1
+  },
+  {
+    "id": "spearmen-legend-02",
+    "unitType": "spearmen",
+    "rank": "legend",
+    "name": "Král obrany",
+    "flavorText": "Král obrany: jediní svého druhu — kopiníci, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 4.3,
+      "lng": 1,
+      "def": 6.9,
+      "hp": 4.5
+    },
+    "totalSupply": 3
+  },
+  {
+    "id": "spearmen-legend-03",
+    "unitType": "spearmen",
+    "rank": "legend",
+    "name": "Poslední bašta říše",
+    "flavorText": "Poslední bašta říše: jediní svého druhu — kopiníci, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 4.1,
+      "lng": 0.9,
+      "def": 6.6,
+      "hp": 5.4
+    },
+    "totalSupply": 5
+  },
+  {
+    "id": "swordsmen-common-01",
+    "unitType": "swordsmen",
+    "rank": "common",
+    "name": "Městská hotovost s mečem",
+    "flavorText": "Městská hotovost s mečem: řadoví mečíři, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 7.2,
+      "lng": 0.9,
+      "def": 3.8,
+      "hp": 5.1
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "swordsmen-common-02",
+    "unitType": "swordsmen",
+    "rank": "common",
+    "name": "Řemeslníci v zbroji",
+    "flavorText": "Řemeslníci v zbroji: řadoví mečíři, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 6.9,
+      "lng": 1.1,
+      "def": 4.4,
+      "hp": 5
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "swordsmen-common-03",
+    "unitType": "swordsmen",
+    "rank": "common",
+    "name": "Verbíři s mečem",
+    "flavorText": "Verbíři s mečem: řadoví mečíři, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 6.6,
+      "lng": 1,
+      "def": 4.2,
+      "hp": 4.9
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "swordsmen-common-04",
+    "unitType": "swordsmen",
+    "rank": "common",
+    "name": "Žoldnéři nováčci",
+    "flavorText": "Žoldnéři nováčci: řadoví mečíři, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 7.6,
+      "lng": 1,
+      "def": 4,
+      "hp": 4.8
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "swordsmen-common-05",
+    "unitType": "swordsmen",
+    "rank": "common",
+    "name": "Ozbrojenci z krčmy",
+    "flavorText": "Ozbrojenci z krčmy: řadoví mečíři, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 7.3,
+      "lng": 1,
+      "def": 3.8,
+      "hp": 4.7
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "swordsmen-common-06",
+    "unitType": "swordsmen",
+    "rank": "common",
+    "name": "Mladí mečíři",
+    "flavorText": "Mladí mečíři: řadoví mečíři, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 7,
+      "lng": 0.9,
+      "def": 3.6,
+      "hp": 4.6
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "swordsmen-common-07",
+    "unitType": "swordsmen",
+    "rank": "common",
+    "name": "Sedláci s krátkým mečem",
+    "flavorText": "Sedláci s krátkým mečem: řadoví mečíři, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 6.6,
+      "lng": 1.1,
+      "def": 4.2,
+      "hp": 5.5
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "swordsmen-common-08",
+    "unitType": "swordsmen",
+    "rank": "common",
+    "name": "Formani s tesákem",
+    "flavorText": "Formani s tesákem: řadoví mečíři, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 7.7,
+      "lng": 1,
+      "def": 4,
+      "hp": 5.4
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "swordsmen-common-09",
+    "unitType": "swordsmen",
+    "rank": "common",
+    "name": "Strážci trhu",
+    "flavorText": "Strážci trhu: řadoví mečíři, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 7.4,
+      "lng": 1,
+      "def": 3.8,
+      "hp": 5.3
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "swordsmen-common-10",
+    "unitType": "swordsmen",
+    "rank": "common",
+    "name": "Obecní ozbrojenci",
+    "flavorText": "Obecní ozbrojenci: řadoví mečíři, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 7,
+      "lng": 0.9,
+      "def": 3.6,
+      "hp": 5
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "swordsmen-uncommon-01",
+    "unitType": "swordsmen",
+    "rank": "uncommon",
+    "name": "Cechovní šermíři",
+    "flavorText": "Cechovní šermíři: zkušení mečíři, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 6.5,
+      "lng": 1,
+      "def": 4.2,
+      "hp": 5.3
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "swordsmen-uncommon-02",
+    "unitType": "swordsmen",
+    "rank": "uncommon",
+    "name": "Bratrstvo čepele",
+    "flavorText": "Bratrstvo čepele: zkušení mečíři, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 7.6,
+      "lng": 1,
+      "def": 4,
+      "hp": 5.2
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "swordsmen-uncommon-03",
+    "unitType": "swordsmen",
+    "rank": "uncommon",
+    "name": "Žoldáci Jižní marky",
+    "flavorText": "Žoldáci Jižní marky: zkušení mečíři, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 7.2,
+      "lng": 0.9,
+      "def": 3.8,
+      "hp": 5.1
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "swordsmen-uncommon-04",
+    "unitType": "swordsmen",
+    "rank": "uncommon",
+    "name": "Městská garda",
+    "flavorText": "Městská garda: zkušení mečíři, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 6.9,
+      "lng": 1.1,
+      "def": 4.4,
+      "hp": 5
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "swordsmen-uncommon-05",
+    "unitType": "swordsmen",
+    "rank": "uncommon",
+    "name": "Ostří meče",
+    "flavorText": "Ostří meče: zkušení mečíři, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 6.6,
+      "lng": 1,
+      "def": 4.2,
+      "hp": 4.9
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "swordsmen-uncommon-06",
+    "unitType": "swordsmen",
+    "rank": "uncommon",
+    "name": "Šermíři z Akademie",
+    "flavorText": "Šermíři z Akademie: zkušení mečíři, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 7.6,
+      "lng": 1,
+      "def": 4,
+      "hp": 4.8
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "swordsmen-uncommon-07",
+    "unitType": "swordsmen",
+    "rank": "uncommon",
+    "name": "Strážci paláce",
+    "flavorText": "Strážci paláce: zkušení mečíři, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 7.3,
+      "lng": 0.9,
+      "def": 3.8,
+      "hp": 4.7
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "swordsmen-uncommon-08",
+    "unitType": "swordsmen",
+    "rank": "uncommon",
+    "name": "Bojovníci arény",
+    "flavorText": "Bojovníci arény: zkušení mečíři, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 6.9,
+      "lng": 1.1,
+      "def": 3.6,
+      "hp": 4.6
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "swordsmen-rare-01",
+    "unitType": "swordsmen",
+    "rank": "rare",
+    "name": "Krvavá čepel",
+    "flavorText": "Krvavá čepel: elitní mečíři, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 6.6,
+      "lng": 1.1,
+      "def": 4.2,
+      "hp": 4.6
+    },
+    "totalSupply": 20
+  },
+  {
+    "id": "swordsmen-rare-02",
+    "unitType": "swordsmen",
+    "rank": "rare",
+    "name": "Bratrstvo oceli",
+    "flavorText": "Bratrstvo oceli: elitní mečíři, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 6.3,
+      "lng": 1,
+      "def": 4,
+      "hp": 4.5
+    },
+    "totalSupply": 26
+  },
+  {
+    "id": "swordsmen-rare-03",
+    "unitType": "swordsmen",
+    "rank": "rare",
+    "name": "Setníci meče",
+    "flavorText": "Setníci meče: elitní mečíři, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 7.4,
+      "lng": 1,
+      "def": 3.9,
+      "hp": 5.4
+    },
+    "totalSupply": 32
+  },
+  {
+    "id": "swordsmen-rare-04",
+    "unitType": "swordsmen",
+    "rank": "rare",
+    "name": "Tanec smrti",
+    "flavorText": "Tanec smrti: elitní mečíři, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 7,
+      "lng": 0.9,
+      "def": 3.7,
+      "hp": 5.3
+    },
+    "totalSupply": 38
+  },
+  {
+    "id": "swordsmen-rare-05",
+    "unitType": "swordsmen",
+    "rank": "rare",
+    "name": "Stříbrná čepel",
+    "flavorText": "Stříbrná čepel: elitní mečíři, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 6.7,
+      "lng": 1.1,
+      "def": 4.3,
+      "hp": 5.2
+    },
+    "totalSupply": 44
+  },
+  {
+    "id": "swordsmen-rare-06",
+    "unitType": "swordsmen",
+    "rank": "rare",
+    "name": "Mistr šermu",
+    "flavorText": "Mistr šermu: elitní mečíři, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 6.4,
+      "lng": 1,
+      "def": 4.1,
+      "hp": 5.1
+    },
+    "totalSupply": 50
+  },
+  {
+    "id": "swordsmen-epic-01",
+    "unitType": "swordsmen",
+    "rank": "epic",
+    "name": "Ostří spravedlnosti",
+    "flavorText": "Ostří spravedlnosti: legendami opředení mečíři, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 6.8,
+      "lng": 1.1,
+      "def": 4.3,
+      "hp": 5.2
+    },
+    "totalSupply": 5
+  },
+  {
+    "id": "swordsmen-epic-02",
+    "unitType": "swordsmen",
+    "rank": "epic",
+    "name": "Krvavý tanec",
+    "flavorText": "Krvavý tanec: legendami opředení mečíři, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 6.5,
+      "lng": 1,
+      "def": 4.1,
+      "hp": 5.1
+    },
+    "totalSupply": 8
+  },
+  {
+    "id": "swordsmen-epic-03",
+    "unitType": "swordsmen",
+    "rank": "epic",
+    "name": "Poslední soud",
+    "flavorText": "Poslední soud: legendami opředení mečíři, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 7.5,
+      "lng": 1,
+      "def": 3.9,
+      "hp": 5
+    },
+    "totalSupply": 12
+  },
+  {
+    "id": "swordsmen-epic-04",
+    "unitType": "swordsmen",
+    "rank": "epic",
+    "name": "Čepel bouře",
+    "flavorText": "Čepel bouře: legendami opředení mečíři, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 7.2,
+      "lng": 0.9,
+      "def": 3.8,
+      "hp": 4.9
+    },
+    "totalSupply": 15
+  },
+  {
+    "id": "swordsmen-legend-01",
+    "unitType": "swordsmen",
+    "rank": "legend",
+    "name": "Čepel králů",
+    "flavorText": "Čepel králů: jediní svého druhu — mečíři, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 7,
+      "lng": 0.9,
+      "def": 3.6,
+      "hp": 5.1
+    },
+    "totalSupply": 1
+  },
+  {
+    "id": "swordsmen-legend-02",
+    "unitType": "swordsmen",
+    "rank": "legend",
+    "name": "Mistr posledního tance",
+    "flavorText": "Mistr posledního tance: jediní svého druhu — mečíři, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 6.7,
+      "lng": 1.1,
+      "def": 4.2,
+      "hp": 5
+    },
+    "totalSupply": 3
+  },
+  {
+    "id": "swordsmen-legend-03",
+    "unitType": "swordsmen",
+    "rank": "legend",
+    "name": "Ostří osudu",
+    "flavorText": "Ostří osudu: jediní svého druhu — mečíři, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 6.3,
+      "lng": 1,
+      "def": 4.1,
+      "hp": 4.9
+    },
+    "totalSupply": 5
+  },
+  {
+    "id": "halberdiers-common-01",
+    "unitType": "halberdiers",
+    "rank": "common",
+    "name": "Vesnická obrana se sudlicí",
+    "flavorText": "Vesnická obrana se sudlicí: řadoví halapartníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 6.1,
+      "lng": 0.9,
+      "def": 7.5,
+      "hp": 7.2
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "halberdiers-common-02",
+    "unitType": "halberdiers",
+    "rank": "common",
+    "name": "Robotníci s halapartnou",
+    "flavorText": "Robotníci s halapartnou: řadoví halapartníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 5.8,
+      "lng": 1.1,
+      "def": 8.7,
+      "hp": 8.7
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "halberdiers-common-03",
+    "unitType": "halberdiers",
+    "rank": "common",
+    "name": "Strážci vrat",
+    "flavorText": "Strážci vrat: řadoví halapartníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 5.6,
+      "lng": 1,
+      "def": 8.3,
+      "hp": 8.5
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "halberdiers-common-04",
+    "unitType": "halberdiers",
+    "rank": "common",
+    "name": "Formani s halapartnou",
+    "flavorText": "Formani s halapartnou: řadoví halapartníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 6.5,
+      "lng": 1,
+      "def": 7.9,
+      "hp": 8.3
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "halberdiers-common-05",
+    "unitType": "halberdiers",
+    "rank": "common",
+    "name": "Sedláci s dřevcovou zbraní",
+    "flavorText": "Sedláci s dřevcovou zbraní: řadoví halapartníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 6.2,
+      "lng": 0.9,
+      "def": 7.5,
+      "hp": 8.2
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "halberdiers-common-06",
+    "unitType": "halberdiers",
+    "rank": "common",
+    "name": "Mladí halapartníci",
+    "flavorText": "Mladí halapartníci: řadoví halapartníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 5.9,
+      "lng": 1.1,
+      "def": 8.7,
+      "hp": 8
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "halberdiers-common-07",
+    "unitType": "halberdiers",
+    "rank": "common",
+    "name": "Hraniční obránci",
+    "flavorText": "Hraniční obránci: řadoví halapartníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 5.6,
+      "lng": 1,
+      "def": 8.4,
+      "hp": 7.8
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "halberdiers-common-08",
+    "unitType": "halberdiers",
+    "rank": "common",
+    "name": "Ostraha skladů",
+    "flavorText": "Ostraha skladů: řadoví halapartníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 6.5,
+      "lng": 1,
+      "def": 8,
+      "hp": 7.7
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "halberdiers-common-09",
+    "unitType": "halberdiers",
+    "rank": "common",
+    "name": "Obecní stráž",
+    "flavorText": "Obecní stráž: řadoví halapartníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 6.2,
+      "lng": 0.9,
+      "def": 7.6,
+      "hp": 7.5
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "halberdiers-common-10",
+    "unitType": "halberdiers",
+    "rank": "common",
+    "name": "Verbíři s halapartnou",
+    "flavorText": "Verbíři s halapartnou: řadoví halapartníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 5.9,
+      "lng": 1.1,
+      "def": 8.8,
+      "hp": 8.6
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "halberdiers-uncommon-01",
+    "unitType": "halberdiers",
+    "rank": "uncommon",
+    "name": "Cechovní halapartníci",
+    "flavorText": "Cechovní halapartníci: zkušení halapartníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 6.1,
+      "lng": 0.9,
+      "def": 7.4,
+      "hp": 8.7
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "halberdiers-uncommon-02",
+    "unitType": "halberdiers",
+    "rank": "uncommon",
+    "name": "Bratrstvo dřevce",
+    "flavorText": "Bratrstvo dřevce: zkušení halapartníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 5.8,
+      "lng": 1.1,
+      "def": 8.6,
+      "hp": 8.6
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "halberdiers-uncommon-03",
+    "unitType": "halberdiers",
+    "rank": "uncommon",
+    "name": "Hradní stráž s halapartnou",
+    "flavorText": "Hradní stráž s halapartnou: zkušení halapartníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 5.5,
+      "lng": 1,
+      "def": 8.2,
+      "hp": 8.4
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "halberdiers-uncommon-04",
+    "unitType": "halberdiers",
+    "rank": "uncommon",
+    "name": "Železní strážci",
+    "flavorText": "Železní strážci: zkušení halapartníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 6.4,
+      "lng": 1,
+      "def": 7.9,
+      "hp": 8.2
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "halberdiers-uncommon-05",
+    "unitType": "halberdiers",
+    "rank": "uncommon",
+    "name": "Palácová garda",
+    "flavorText": "Palácová garda: zkušení halapartníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 6.1,
+      "lng": 0.9,
+      "def": 7.5,
+      "hp": 8.1
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "halberdiers-uncommon-06",
+    "unitType": "halberdiers",
+    "rank": "uncommon",
+    "name": "Strážci pokladu",
+    "flavorText": "Strážci pokladu: zkušení halapartníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 5.9,
+      "lng": 1.1,
+      "def": 8.7,
+      "hp": 7.9
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "halberdiers-uncommon-07",
+    "unitType": "halberdiers",
+    "rank": "uncommon",
+    "name": "Setnina obránců",
+    "flavorText": "Setnina obránců: zkušení halapartníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 5.6,
+      "lng": 1,
+      "def": 8.3,
+      "hp": 7.7
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "halberdiers-uncommon-08",
+    "unitType": "halberdiers",
+    "rank": "uncommon",
+    "name": "Halapartníci Severní marky",
+    "flavorText": "Halapartníci Severní marky: zkušení halapartníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 6.5,
+      "lng": 1,
+      "def": 7.9,
+      "hp": 7.6
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "halberdiers-rare-01",
+    "unitType": "halberdiers",
+    "rank": "rare",
+    "name": "Ocelová hradba",
+    "flavorText": "Ocelová hradba: elitní halapartníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 5.6,
+      "lng": 1,
+      "def": 8.4,
+      "hp": 8.6
+    },
+    "totalSupply": 20
+  },
+  {
+    "id": "halberdiers-rare-02",
+    "unitType": "halberdiers",
+    "rank": "rare",
+    "name": "Bratrstvo železného dřevce",
+    "flavorText": "Bratrstvo železného dřevce: elitní halapartníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 6.5,
+      "lng": 1,
+      "def": 8,
+      "hp": 8.4
+    },
+    "totalSupply": 26
+  },
+  {
+    "id": "halberdiers-rare-03",
+    "unitType": "halberdiers",
+    "rank": "rare",
+    "name": "Setníci obrany hradeb",
+    "flavorText": "Setníci obrany hradeb: elitní halapartníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 6.3,
+      "lng": 1,
+      "def": 7.6,
+      "hp": 8.2
+    },
+    "totalSupply": 32
+  },
+  {
+    "id": "halberdiers-rare-04",
+    "unitType": "halberdiers",
+    "rank": "rare",
+    "name": "Nezdolní strážci",
+    "flavorText": "Nezdolní strážci: elitní halapartníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 6,
+      "lng": 0.9,
+      "def": 7.3,
+      "hp": 8.1
+    },
+    "totalSupply": 38
+  },
+  {
+    "id": "halberdiers-rare-05",
+    "unitType": "halberdiers",
+    "rank": "rare",
+    "name": "Železný val",
+    "flavorText": "Železný val: elitní halapartníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 5.7,
+      "lng": 1.1,
+      "def": 8.5,
+      "hp": 7.9
+    },
+    "totalSupply": 44
+  },
+  {
+    "id": "halberdiers-rare-06",
+    "unitType": "halberdiers",
+    "rank": "rare",
+    "name": "Strážci koruny",
+    "flavorText": "Strážci koruny: elitní halapartníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 5.4,
+      "lng": 1,
+      "def": 8.1,
+      "hp": 7.7
+    },
+    "totalSupply": 50
+  },
+  {
+    "id": "halberdiers-epic-01",
+    "unitType": "halberdiers",
+    "rank": "epic",
+    "name": "Poslední hradba",
+    "flavorText": "Poslední hradba: legendami opředení halapartníci, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 5.8,
+      "lng": 1.1,
+      "def": 8.6,
+      "hp": 7.9
+    },
+    "totalSupply": 5
+  },
+  {
+    "id": "halberdiers-epic-02",
+    "unitType": "halberdiers",
+    "rank": "epic",
+    "name": "Ocelový strom",
+    "flavorText": "Ocelový strom: legendami opředení halapartníci, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 5.5,
+      "lng": 1,
+      "def": 8.2,
+      "hp": 7.8
+    },
+    "totalSupply": 8
+  },
+  {
+    "id": "halberdiers-epic-03",
+    "unitType": "halberdiers",
+    "rank": "epic",
+    "name": "Nezlomný val",
+    "flavorText": "Nezlomný val: legendami opředení halapartníci, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 6.4,
+      "lng": 1,
+      "def": 7.8,
+      "hp": 7.6
+    },
+    "totalSupply": 12
+  },
+  {
+    "id": "halberdiers-epic-04",
+    "unitType": "halberdiers",
+    "rank": "epic",
+    "name": "Strážci posledního dechu",
+    "flavorText": "Strážci posledního dechu: legendami opředení halapartníci, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 6.1,
+      "lng": 0.9,
+      "def": 7.4,
+      "hp": 7.4
+    },
+    "totalSupply": 15
+  },
+  {
+    "id": "halberdiers-legend-01",
+    "unitType": "halberdiers",
+    "rank": "legend",
+    "name": "Strážce brány království",
+    "flavorText": "Strážce brány království: jediní svého druhu — halapartníci, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 6.3,
+      "lng": 1,
+      "def": 7.7,
+      "hp": 8.2
+    },
+    "totalSupply": 1
+  },
+  {
+    "id": "halberdiers-legend-02",
+    "unitType": "halberdiers",
+    "rank": "legend",
+    "name": "Král obránců",
+    "flavorText": "Král obránců: jediní svého druhu — halapartníci, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 6.1,
+      "lng": 0.9,
+      "def": 7.4,
+      "hp": 8
+    },
+    "totalSupply": 3
+  },
+  {
+    "id": "halberdiers-legend-03",
+    "unitType": "halberdiers",
+    "rank": "legend",
+    "name": "Poslední val impéria",
+    "flavorText": "Poslední val impéria: jediní svého druhu — halapartníci, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 5.8,
+      "lng": 1.1,
+      "def": 8.6,
+      "hp": 7.8
+    },
+    "totalSupply": 5
+  },
+  {
+    "id": "knights-common-01",
+    "unitType": "knights",
+    "rank": "common",
+    "name": "Panoši v sedle",
+    "flavorText": "Panoši v sedle: řadoví rytíři, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 7.7,
+      "lng": 1.1,
+      "def": 5.4,
+      "hp": 6.4
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "knights-common-02",
+    "unitType": "knights",
+    "rank": "common",
+    "name": "Mladí rytíři",
+    "flavorText": "Mladí rytíři: řadoví rytíři, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 7.3,
+      "lng": 1,
+      "def": 5.1,
+      "hp": 7.7
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "knights-common-03",
+    "unitType": "knights",
+    "rank": "common",
+    "name": "Zeměpanská jízda",
+    "flavorText": "Zeměpanská jízda: řadoví rytíři, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 8.5,
+      "lng": 1,
+      "def": 4.9,
+      "hp": 7.5
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "knights-common-04",
+    "unitType": "knights",
+    "rank": "common",
+    "name": "Ozbrojenci na koni",
+    "flavorText": "Ozbrojenci na koni: řadoví rytíři, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 8.2,
+      "lng": 0.9,
+      "def": 4.7,
+      "hp": 7.4
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "knights-common-05",
+    "unitType": "knights",
+    "rank": "common",
+    "name": "Formani ve zbroji",
+    "flavorText": "Formani ve zbroji: řadoví rytíři, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 7.8,
+      "lng": 1.1,
+      "def": 5.4,
+      "hp": 7.2
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "knights-common-06",
+    "unitType": "knights",
+    "rank": "common",
+    "name": "Hraniční jízda",
+    "flavorText": "Hraniční jízda: řadoví rytíři, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 7.4,
+      "lng": 1,
+      "def": 5.2,
+      "hp": 7.1
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "knights-common-07",
+    "unitType": "knights",
+    "rank": "common",
+    "name": "Obecní jízdní hlídka",
+    "flavorText": "Obecní jízdní hlídka: řadoví rytíři, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 8.6,
+      "lng": 1,
+      "def": 4.9,
+      "hp": 6.9
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "knights-common-08",
+    "unitType": "knights",
+    "rank": "common",
+    "name": "Verbíři na koních",
+    "flavorText": "Verbíři na koních: řadoví rytíři, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 8.2,
+      "lng": 0.9,
+      "def": 4.7,
+      "hp": 6.8
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "knights-common-09",
+    "unitType": "knights",
+    "rank": "common",
+    "name": "Nováčci turnaje",
+    "flavorText": "Nováčci turnaje: řadoví rytíři, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 7.8,
+      "lng": 1.1,
+      "def": 5.5,
+      "hp": 6.7
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "knights-common-10",
+    "unitType": "knights",
+    "rank": "common",
+    "name": "Sedláci na koni s kopím",
+    "flavorText": "Sedláci na koni s kopím: řadoví rytíři, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 7.4,
+      "lng": 1,
+      "def": 5.2,
+      "hp": 7.6
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "knights-uncommon-01",
+    "unitType": "knights",
+    "rank": "uncommon",
+    "name": "Cechovní rytíři",
+    "flavorText": "Cechovní rytíři: zkušení rytíři, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 7.9,
+      "lng": 1.1,
+      "def": 4.5,
+      "hp": 7.2
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "knights-uncommon-02",
+    "unitType": "knights",
+    "rank": "uncommon",
+    "name": "Bratrstvo ostruh",
+    "flavorText": "Bratrstvo ostruh: zkušení rytíři, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 7.5,
+      "lng": 1.1,
+      "def": 5.3,
+      "hp": 7
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "knights-uncommon-03",
+    "unitType": "knights",
+    "rank": "uncommon",
+    "name": "Rytíři Severní marky",
+    "flavorText": "Rytíři Severní marky: zkušení rytíři, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 8.8,
+      "lng": 1,
+      "def": 5,
+      "hp": 6.9
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "knights-uncommon-04",
+    "unitType": "knights",
+    "rank": "uncommon",
+    "name": "Turnajoví šampioni",
+    "flavorText": "Turnajoví šampioni: zkušení rytíři, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 8.4,
+      "lng": 1,
+      "def": 4.8,
+      "hp": 6.8
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "knights-uncommon-05",
+    "unitType": "knights",
+    "rank": "uncommon",
+    "name": "Královská jízda",
+    "flavorText": "Královská jízda: zkušení rytíři, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 8,
+      "lng": 0.9,
+      "def": 4.5,
+      "hp": 6.6
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "knights-uncommon-06",
+    "unitType": "knights",
+    "rank": "uncommon",
+    "name": "Bojovníci kulatého stolu",
+    "flavorText": "Bojovníci kulatého stolu: zkušení rytíři, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 7.6,
+      "lng": 1.1,
+      "def": 5.3,
+      "hp": 6.5
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "knights-uncommon-07",
+    "unitType": "knights",
+    "rank": "uncommon",
+    "name": "Rytíři žehnané čepele",
+    "flavorText": "Rytíři žehnané čepele: zkušení rytíři, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 7.2,
+      "lng": 1,
+      "def": 5.1,
+      "hp": 6.3
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "knights-uncommon-08",
+    "unitType": "knights",
+    "rank": "uncommon",
+    "name": "Strážci praporu",
+    "flavorText": "Strážci praporu: zkušení rytíři, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 8.4,
+      "lng": 1,
+      "def": 4.8,
+      "hp": 7.6
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "knights-rare-01",
+    "unitType": "knights",
+    "rank": "rare",
+    "name": "Železný jezdec",
+    "flavorText": "Železný jezdec: elitní rytíři, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 8.2,
+      "lng": 0.9,
+      "def": 4.7,
+      "hp": 6.9
+    },
+    "totalSupply": 20
+  },
+  {
+    "id": "knights-rare-02",
+    "unitType": "knights",
+    "rank": "rare",
+    "name": "Bratrstvo dračí korouhve",
+    "flavorText": "Bratrstvo dračí korouhve: elitní rytíři, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 7.8,
+      "lng": 1.1,
+      "def": 5.4,
+      "hp": 6.8
+    },
+    "totalSupply": 26
+  },
+  {
+    "id": "knights-rare-03",
+    "unitType": "knights",
+    "rank": "rare",
+    "name": "Setníci jízdy",
+    "flavorText": "Setníci jízdy: elitní rytíři, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 7.4,
+      "lng": 1,
+      "def": 5.2,
+      "hp": 6.6
+    },
+    "totalSupply": 32
+  },
+  {
+    "id": "knights-rare-04",
+    "unitType": "knights",
+    "rank": "rare",
+    "name": "Rytíři posledního tažení",
+    "flavorText": "Rytíři posledního tažení: elitní rytíři, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 8.6,
+      "lng": 1,
+      "def": 5,
+      "hp": 6.5
+    },
+    "totalSupply": 38
+  },
+  {
+    "id": "knights-rare-05",
+    "unitType": "knights",
+    "rank": "rare",
+    "name": "Stříbrná ostruha",
+    "flavorText": "Stříbrná ostruha: elitní rytíři, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 8.3,
+      "lng": 0.9,
+      "def": 4.7,
+      "hp": 6.3
+    },
+    "totalSupply": 44
+  },
+  {
+    "id": "knights-rare-06",
+    "unitType": "knights",
+    "rank": "rare",
+    "name": "Jezdec bouře",
+    "flavorText": "Jezdec bouře: elitní rytíři, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 7.9,
+      "lng": 1.1,
+      "def": 5.5,
+      "hp": 7.6
+    },
+    "totalSupply": 50
+  },
+  {
+    "id": "knights-epic-01",
+    "unitType": "knights",
+    "rank": "epic",
+    "name": "Poslední výpad",
+    "flavorText": "Poslední výpad: legendami opředení rytíři, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 7.8,
+      "lng": 1.1,
+      "def": 5.4,
+      "hp": 6.3
+    },
+    "totalSupply": 5
+  },
+  {
+    "id": "knights-epic-02",
+    "unitType": "knights",
+    "rank": "epic",
+    "name": "Hromobití kopyt",
+    "flavorText": "Hromobití kopyt: legendami opředení rytíři, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 7.4,
+      "lng": 1,
+      "def": 5.2,
+      "hp": 7.6
+    },
+    "totalSupply": 8
+  },
+  {
+    "id": "knights-epic-03",
+    "unitType": "knights",
+    "rank": "epic",
+    "name": "Rytíř nekonečné bitvy",
+    "flavorText": "Rytíř nekonečné bitvy: legendami opředení rytíři, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 8.6,
+      "lng": 1,
+      "def": 5,
+      "hp": 7.5
+    },
+    "totalSupply": 12
+  },
+  {
+    "id": "knights-epic-04",
+    "unitType": "knights",
+    "rank": "epic",
+    "name": "Dračí ostruha",
+    "flavorText": "Dračí ostruha: legendami opředení rytíři, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 8.3,
+      "lng": 0.9,
+      "def": 4.7,
+      "hp": 7.3
+    },
+    "totalSupply": 15
+  },
+  {
+    "id": "knights-legend-01",
+    "unitType": "knights",
+    "rank": "legend",
+    "name": "Král rytířů",
+    "flavorText": "Král rytířů: jediní svého druhu — rytíři, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 8,
+      "lng": 0.9,
+      "def": 4.6,
+      "hp": 6.3
+    },
+    "totalSupply": 1
+  },
+  {
+    "id": "knights-legend-02",
+    "unitType": "knights",
+    "rank": "legend",
+    "name": "Poslední paladin",
+    "flavorText": "Poslední paladin: jediní svého druhu — rytíři, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 7.6,
+      "lng": 1.1,
+      "def": 5.3,
+      "hp": 7.6
+    },
+    "totalSupply": 3
+  },
+  {
+    "id": "knights-legend-03",
+    "unitType": "knights",
+    "rank": "legend",
+    "name": "Rytíř korunovaný slávou",
+    "flavorText": "Rytíř korunovaný slávou: jediní svého druhu — rytíři, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 7.2,
+      "lng": 1,
+      "def": 5.1,
+      "hp": 7.4
+    },
+    "totalSupply": 5
+  },
+  {
+    "id": "lightCavalry-common-01",
+    "unitType": "lightCavalry",
+    "rank": "common",
+    "name": "Zvědové na koních",
+    "flavorText": "Zvědové na koních: řadoví jízdní harcovníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 5.4,
+      "lng": 4,
+      "def": 2,
+      "hp": 3.6
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "lightCavalry-common-02",
+    "unitType": "lightCavalry",
+    "rank": "common",
+    "name": "Mladí harcovníci",
+    "flavorText": "Mladí harcovníci: řadoví jízdní harcovníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 5.2,
+      "lng": 3.8,
+      "def": 1.9,
+      "hp": 4.3
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "lightCavalry-common-03",
+    "unitType": "lightCavalry",
+    "rank": "common",
+    "name": "Pohraniční jezdci",
+    "flavorText": "Pohraniční jezdci: řadoví jízdní harcovníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 4.9,
+      "lng": 4.4,
+      "def": 2.2,
+      "hp": 4.3
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "lightCavalry-common-04",
+    "unitType": "lightCavalry",
+    "rank": "common",
+    "name": "Formani na rychlých koních",
+    "flavorText": "Formani na rychlých koních: řadoví jízdní harcovníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 4.7,
+      "lng": 4.2,
+      "def": 2.1,
+      "hp": 4.2
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "lightCavalry-common-05",
+    "unitType": "lightCavalry",
+    "rank": "common",
+    "name": "Verbíři jízdní hlídky",
+    "flavorText": "Verbíři jízdní hlídky: řadoví jízdní harcovníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 5.5,
+      "lng": 4,
+      "def": 2,
+      "hp": 4.1
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "lightCavalry-common-06",
+    "unitType": "lightCavalry",
+    "rank": "common",
+    "name": "Obecní jezdci",
+    "flavorText": "Obecní jezdci: řadoví jízdní harcovníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 5.2,
+      "lng": 3.8,
+      "def": 1.9,
+      "hp": 4
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "lightCavalry-common-07",
+    "unitType": "lightCavalry",
+    "rank": "common",
+    "name": "Zvědové hranic",
+    "flavorText": "Zvědové hranic: řadoví jízdní harcovníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 5,
+      "lng": 3.6,
+      "def": 1.8,
+      "hp": 3.9
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "lightCavalry-common-08",
+    "unitType": "lightCavalry",
+    "rank": "common",
+    "name": "Rychlí poslové",
+    "flavorText": "Rychlí poslové: řadoví jízdní harcovníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 4.7,
+      "lng": 4.2,
+      "def": 2.1,
+      "hp": 3.8
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "lightCavalry-common-09",
+    "unitType": "lightCavalry",
+    "rank": "common",
+    "name": "Sedláci na koních s prakem",
+    "flavorText": "Sedláci na koních s prakem: řadoví jízdní harcovníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 5.5,
+      "lng": 4,
+      "def": 2,
+      "hp": 3.8
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "lightCavalry-common-10",
+    "unitType": "lightCavalry",
+    "rank": "common",
+    "name": "Nováčci jízdní hlídky",
+    "flavorText": "Nováčci jízdní hlídky: řadoví jízdní harcovníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 5.2,
+      "lng": 3.8,
+      "def": 1.9,
+      "hp": 4.3
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "lightCavalry-uncommon-01",
+    "unitType": "lightCavalry",
+    "rank": "uncommon",
+    "name": "Cechovní harcovníci",
+    "flavorText": "Cechovní harcovníci: zkušení jízdní harcovníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 4.5,
+      "lng": 4,
+      "def": 2,
+      "hp": 3.7
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "lightCavalry-uncommon-02",
+    "unitType": "lightCavalry",
+    "rank": "uncommon",
+    "name": "Bratrstvo rychlého jezdce",
+    "flavorText": "Bratrstvo rychlého jezdce: zkušení jízdní harcovníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 5.3,
+      "lng": 3.8,
+      "def": 1.9,
+      "hp": 3.6
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "lightCavalry-uncommon-03",
+    "unitType": "lightCavalry",
+    "rank": "uncommon",
+    "name": "Jízdní hlídka Severní marky",
+    "flavorText": "Jízdní hlídka Severní marky: zkušení jízdní harcovníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 5,
+      "lng": 3.7,
+      "def": 1.8,
+      "hp": 4.4
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "lightCavalry-uncommon-04",
+    "unitType": "lightCavalry",
+    "rank": "uncommon",
+    "name": "Zvědové královské armády",
+    "flavorText": "Zvědové královské armády: zkušení jízdní harcovníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 4.8,
+      "lng": 4.3,
+      "def": 2.1,
+      "hp": 4.3
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "lightCavalry-uncommon-05",
+    "unitType": "lightCavalry",
+    "rank": "uncommon",
+    "name": "Rychlí jezdci",
+    "flavorText": "Rychlí jezdci: zkušení jízdní harcovníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 4.6,
+      "lng": 4.1,
+      "def": 2,
+      "hp": 4.2
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "lightCavalry-uncommon-06",
+    "unitType": "lightCavalry",
+    "rank": "uncommon",
+    "name": "Harcovníci bouře",
+    "flavorText": "Harcovníci bouře: zkušení jízdní harcovníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 5.3,
+      "lng": 3.9,
+      "def": 1.9,
+      "hp": 4.1
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "lightCavalry-uncommon-07",
+    "unitType": "lightCavalry",
+    "rank": "uncommon",
+    "name": "Strážci karavan",
+    "flavorText": "Strážci karavan: zkušení jízdní harcovníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 5.1,
+      "lng": 3.7,
+      "def": 1.9,
+      "hp": 4
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "lightCavalry-uncommon-08",
+    "unitType": "lightCavalry",
+    "rank": "uncommon",
+    "name": "Jezdci větru",
+    "flavorText": "Jezdci větru: zkušení jízdní harcovníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 4.8,
+      "lng": 4.3,
+      "def": 2.2,
+      "hp": 3.9
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "lightCavalry-rare-01",
+    "unitType": "lightCavalry",
+    "rank": "rare",
+    "name": "Stín na koni",
+    "flavorText": "Stín na koni: elitní jízdní harcovníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 5.2,
+      "lng": 3.8,
+      "def": 1.9,
+      "hp": 4
+    },
+    "totalSupply": 20
+  },
+  {
+    "id": "lightCavalry-rare-02",
+    "unitType": "lightCavalry",
+    "rank": "rare",
+    "name": "Bratrstvo tichého jezdce",
+    "flavorText": "Bratrstvo tichého jezdce: elitní jízdní harcovníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 5,
+      "lng": 3.6,
+      "def": 1.8,
+      "hp": 4
+    },
+    "totalSupply": 26
+  },
+  {
+    "id": "lightCavalry-rare-03",
+    "unitType": "lightCavalry",
+    "rank": "rare",
+    "name": "Setníci zvědů",
+    "flavorText": "Setníci zvědů: elitní jízdní harcovníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 4.8,
+      "lng": 4.2,
+      "def": 2.1,
+      "hp": 3.9
+    },
+    "totalSupply": 32
+  },
+  {
+    "id": "lightCavalry-rare-04",
+    "unitType": "lightCavalry",
+    "rank": "rare",
+    "name": "Blesk stepí",
+    "flavorText": "Blesk stepí: elitní jízdní harcovníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 4.5,
+      "lng": 4,
+      "def": 2,
+      "hp": 3.8
+    },
+    "totalSupply": 38
+  },
+  {
+    "id": "lightCavalry-rare-05",
+    "unitType": "lightCavalry",
+    "rank": "rare",
+    "name": "Rychlý jako vítr",
+    "flavorText": "Rychlý jako vítr: elitní jízdní harcovníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 5.3,
+      "lng": 3.9,
+      "def": 1.9,
+      "hp": 3.7
+    },
+    "totalSupply": 44
+  },
+  {
+    "id": "lightCavalry-rare-06",
+    "unitType": "lightCavalry",
+    "rank": "rare",
+    "name": "Jezdec přízraku",
+    "flavorText": "Jezdec přízraku: elitní jízdní harcovníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 5,
+      "lng": 3.7,
+      "def": 1.8,
+      "hp": 3.6
+    },
+    "totalSupply": 50
+  },
+  {
+    "id": "lightCavalry-epic-01",
+    "unitType": "lightCavalry",
+    "rank": "epic",
+    "name": "Vítr z východu",
+    "flavorText": "Vítr z východu: legendami opředení jízdní harcovníci, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 5.3,
+      "lng": 3.9,
+      "def": 2,
+      "hp": 3.7
+    },
+    "totalSupply": 5
+  },
+  {
+    "id": "lightCavalry-epic-02",
+    "unitType": "lightCavalry",
+    "rank": "epic",
+    "name": "Přízrak stepí",
+    "flavorText": "Přízrak stepí: legendami opředení jízdní harcovníci, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 5.1,
+      "lng": 3.7,
+      "def": 1.9,
+      "hp": 3.6
+    },
+    "totalSupply": 8
+  },
+  {
+    "id": "lightCavalry-epic-03",
+    "unitType": "lightCavalry",
+    "rank": "epic",
+    "name": "Poslední zvěd",
+    "flavorText": "Poslední zvěd: legendami opředení jízdní harcovníci, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 4.9,
+      "lng": 4.3,
+      "def": 2.2,
+      "hp": 4.4
+    },
+    "totalSupply": 12
+  },
+  {
+    "id": "lightCavalry-epic-04",
+    "unitType": "lightCavalry",
+    "rank": "epic",
+    "name": "Harcovník bouře",
+    "flavorText": "Harcovník bouře: legendami opředení jízdní harcovníci, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 4.6,
+      "lng": 4.1,
+      "def": 2.1,
+      "hp": 4.3
+    },
+    "totalSupply": 15
+  },
+  {
+    "id": "lightCavalry-legend-01",
+    "unitType": "lightCavalry",
+    "rank": "legend",
+    "name": "Král zvědů",
+    "flavorText": "Král zvědů: jediní svého druhu — jízdní harcovníci, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 5.2,
+      "lng": 3.8,
+      "def": 1.9,
+      "hp": 4.4
+    },
+    "totalSupply": 1
+  },
+  {
+    "id": "lightCavalry-legend-02",
+    "unitType": "lightCavalry",
+    "rank": "legend",
+    "name": "Jezdec bez stínu",
+    "flavorText": "Jezdec bez stínu: jediní svého druhu — jízdní harcovníci, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 5,
+      "lng": 3.6,
+      "def": 1.8,
+      "hp": 4.3
+    },
+    "totalSupply": 3
+  },
+  {
+    "id": "lightCavalry-legend-03",
+    "unitType": "lightCavalry",
+    "rank": "legend",
+    "name": "Vítr osudu",
+    "flavorText": "Vítr osudu: jediní svého druhu — jízdní harcovníci, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 4.8,
+      "lng": 4.2,
+      "def": 2.1,
+      "hp": 4.2
+    },
+    "totalSupply": 5
+  },
+  {
+    "id": "siegeEngines-common-01",
+    "unitType": "siegeEngines",
+    "rank": "common",
+    "name": "Vesnický katapult",
+    "flavorText": "Vesnický katapult: řadoví obléhací stroje, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 0,
+      "lng": 9.1,
+      "def": 0.9,
+      "hp": 2.9
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "siegeEngines-common-02",
+    "unitType": "siegeEngines",
+    "rank": "common",
+    "name": "Improvizovaný trebuchet",
+    "flavorText": "Improvizovaný trebuchet: řadoví obléhací stroje, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 0,
+      "lng": 10.6,
+      "def": 1.1,
+      "hp": 2.9
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "siegeEngines-common-03",
+    "unitType": "siegeEngines",
+    "rank": "common",
+    "name": "Dřevěný prak",
+    "flavorText": "Dřevěný prak: řadoví obléhací stroje, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 0,
+      "lng": 10.2,
+      "def": 1,
+      "hp": 2.8
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "siegeEngines-common-04",
+    "unitType": "siegeEngines",
+    "rank": "common",
+    "name": "Obléhací žebřík s vrhačem",
+    "flavorText": "Obléhací žebřík s vrhačem: řadoví obléhací stroje, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 0,
+      "lng": 9.7,
+      "def": 1,
+      "hp": 2.7
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "siegeEngines-common-05",
+    "unitType": "siegeEngines",
+    "rank": "common",
+    "name": "Formanský katapult",
+    "flavorText": "Formanský katapult: řadoví obléhací stroje, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 0,
+      "lng": 9.2,
+      "def": 0.9,
+      "hp": 3.3
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "siegeEngines-common-06",
+    "unitType": "siegeEngines",
+    "rank": "common",
+    "name": "Obecní balista",
+    "flavorText": "Obecní balista: řadoví obléhací stroje, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 0,
+      "lng": 10.7,
+      "def": 1.1,
+      "hp": 3.2
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "siegeEngines-common-07",
+    "unitType": "siegeEngines",
+    "rank": "common",
+    "name": "Nouzový vrhač kamenů",
+    "flavorText": "Nouzový vrhač kamenů: řadoví obléhací stroje, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 0,
+      "lng": 10.2,
+      "def": 1,
+      "hp": 3.2
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "siegeEngines-common-08",
+    "unitType": "siegeEngines",
+    "rank": "common",
+    "name": "Polní katapult",
+    "flavorText": "Polní katapult: řadoví obléhací stroje, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 0,
+      "lng": 9.8,
+      "def": 1,
+      "hp": 3.1
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "siegeEngines-common-09",
+    "unitType": "siegeEngines",
+    "rank": "common",
+    "name": "Rolnický trebuchet",
+    "flavorText": "Rolnický trebuchet: řadoví obléhací stroje, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 0,
+      "lng": 9.3,
+      "def": 0.9,
+      "hp": 3
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "siegeEngines-common-10",
+    "unitType": "siegeEngines",
+    "rank": "common",
+    "name": "Provizorní obléhací stroj",
+    "flavorText": "Provizorní obléhací stroj: řadoví obléhací stroje, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 0,
+      "lng": 10.7,
+      "def": 1.1,
+      "hp": 2.8
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "siegeEngines-uncommon-01",
+    "unitType": "siegeEngines",
+    "rank": "uncommon",
+    "name": "Cechovní trebuchet",
+    "flavorText": "Cechovní trebuchet: zkušení obléhací stroje, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 0,
+      "lng": 9.5,
+      "def": 0.9,
+      "hp": 2.8
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "siegeEngines-uncommon-02",
+    "unitType": "siegeEngines",
+    "rank": "uncommon",
+    "name": "Železný katapult",
+    "flavorText": "Železný katapult: zkušení obléhací stroje, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 0,
+      "lng": 11,
+      "def": 0.9,
+      "hp": 2.8
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "siegeEngines-uncommon-03",
+    "unitType": "siegeEngines",
+    "rank": "uncommon",
+    "name": "Obléhací balista Severní marky",
+    "flavorText": "Obléhací balista Severní marky: zkušení obléhací stroje, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 0,
+      "lng": 10.5,
+      "def": 1.1,
+      "hp": 2.7
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "siegeEngines-uncommon-04",
+    "unitType": "siegeEngines",
+    "rank": "uncommon",
+    "name": "Královská balista",
+    "flavorText": "Královská balista: zkušení obléhací stroje, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 0,
+      "lng": 10,
+      "def": 1,
+      "hp": 3.2
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "siegeEngines-uncommon-05",
+    "unitType": "siegeEngines",
+    "rank": "uncommon",
+    "name": "Ocelový vrhač",
+    "flavorText": "Ocelový vrhač: zkušení obléhací stroje, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 0,
+      "lng": 9.5,
+      "def": 1,
+      "hp": 3.2
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "siegeEngines-uncommon-06",
+    "unitType": "siegeEngines",
+    "rank": "uncommon",
+    "name": "Obléhací věž",
+    "flavorText": "Obléhací věž: zkušení obléhací stroje, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 0,
+      "lng": 9.1,
+      "def": 0.9,
+      "hp": 3.1
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "siegeEngines-uncommon-07",
+    "unitType": "siegeEngines",
+    "rank": "uncommon",
+    "name": "Bratrstvo obléhačů",
+    "flavorText": "Bratrstvo obléhačů: zkušení obléhací stroje, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 0,
+      "lng": 10.6,
+      "def": 1.1,
+      "hp": 3.1
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "siegeEngines-uncommon-08",
+    "unitType": "siegeEngines",
+    "rank": "uncommon",
+    "name": "Trebuchet posádky",
+    "flavorText": "Trebuchet posádky: zkušení obléhací stroje, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 0,
+      "lng": 10.1,
+      "def": 1,
+      "hp": 3
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "siegeEngines-rare-01",
+    "unitType": "siegeEngines",
+    "rank": "rare",
+    "name": "Zkáza hradeb",
+    "flavorText": "Zkáza hradeb: elitní obléhací stroje, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 0,
+      "lng": 9.1,
+      "def": 0.9,
+      "hp": 2.9
+    },
+    "totalSupply": 20
+  },
+  {
+    "id": "siegeEngines-rare-02",
+    "unitType": "siegeEngines",
+    "rank": "rare",
+    "name": "Bratrstvo ohnivého kamene",
+    "flavorText": "Bratrstvo ohnivého kamene: elitní obléhací stroje, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 0,
+      "lng": 10.6,
+      "def": 1.1,
+      "hp": 2.9
+    },
+    "totalSupply": 26
+  },
+  {
+    "id": "siegeEngines-rare-03",
+    "unitType": "siegeEngines",
+    "rank": "rare",
+    "name": "Setníci obléhání",
+    "flavorText": "Setníci obléhání: elitní obléhací stroje, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 0,
+      "lng": 10.1,
+      "def": 1,
+      "hp": 2.8
+    },
+    "totalSupply": 32
+  },
+  {
+    "id": "siegeEngines-rare-04",
+    "unitType": "siegeEngines",
+    "rank": "rare",
+    "name": "Drtič bran",
+    "flavorText": "Drtič bran: elitní obléhací stroje, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 0,
+      "lng": 9.6,
+      "def": 1,
+      "hp": 2.8
+    },
+    "totalSupply": 38
+  },
+  {
+    "id": "siegeEngines-rare-05",
+    "unitType": "siegeEngines",
+    "rank": "rare",
+    "name": "Ocelový hrom",
+    "flavorText": "Ocelový hrom: elitní obléhací stroje, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 0,
+      "lng": 9.2,
+      "def": 0.9,
+      "hp": 3.3
+    },
+    "totalSupply": 44
+  },
+  {
+    "id": "siegeEngines-rare-06",
+    "unitType": "siegeEngines",
+    "rank": "rare",
+    "name": "Poslední salva kamenů",
+    "flavorText": "Poslední salva kamenů: elitní obléhací stroje, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 0,
+      "lng": 10.7,
+      "def": 1.1,
+      "hp": 3.2
+    },
+    "totalSupply": 50
+  },
+  {
+    "id": "siegeEngines-epic-01",
+    "unitType": "siegeEngines",
+    "rank": "epic",
+    "name": "Zkáza království",
+    "flavorText": "Zkáza království: legendami opředení obléhací stroje, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 0,
+      "lng": 9.3,
+      "def": 0.9,
+      "hp": 2.7
+    },
+    "totalSupply": 5
+  },
+  {
+    "id": "siegeEngines-epic-02",
+    "unitType": "siegeEngines",
+    "rank": "epic",
+    "name": "Ohnivý déšť",
+    "flavorText": "Ohnivý déšť: legendami opředení obléhací stroje, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 0,
+      "lng": 10.8,
+      "def": 1.1,
+      "hp": 3.2
+    },
+    "totalSupply": 8
+  },
+  {
+    "id": "siegeEngines-epic-03",
+    "unitType": "siegeEngines",
+    "rank": "epic",
+    "name": "Drtič impérií",
+    "flavorText": "Drtič impérií: legendami opředení obléhací stroje, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 0,
+      "lng": 10.3,
+      "def": 1,
+      "hp": 3.2
+    },
+    "totalSupply": 12
+  },
+  {
+    "id": "siegeEngines-epic-04",
+    "unitType": "siegeEngines",
+    "rank": "epic",
+    "name": "Poslední bašta obležení",
+    "flavorText": "Poslední bašta obležení: legendami opředení obléhací stroje, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 0,
+      "lng": 9.9,
+      "def": 1,
+      "hp": 3.1
+    },
+    "totalSupply": 15
+  },
+  {
+    "id": "siegeEngines-legend-01",
+    "unitType": "siegeEngines",
+    "rank": "legend",
+    "name": "Zkáza všech hradeb",
+    "flavorText": "Zkáza všech hradeb: jediní svého druhu — obléhací stroje, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 0,
+      "lng": 9.5,
+      "def": 0.9,
+      "hp": 2.9
+    },
+    "totalSupply": 1
+  },
+  {
+    "id": "siegeEngines-legend-02",
+    "unitType": "siegeEngines",
+    "rank": "legend",
+    "name": "Poslední soud kamenů",
+    "flavorText": "Poslední soud kamenů: jediní svého druhu — obléhací stroje, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 0,
+      "lng": 11,
+      "def": 0.9,
+      "hp": 2.8
+    },
+    "totalSupply": 3
+  },
+  {
+    "id": "siegeEngines-legend-03",
+    "unitType": "siegeEngines",
+    "rank": "legend",
+    "name": "Trebuchet bohů",
+    "flavorText": "Trebuchet bohů: jediní svého druhu — obléhací stroje, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 0,
+      "lng": 10.5,
+      "def": 1.1,
+      "hp": 2.8
+    },
+    "totalSupply": 5
+  }
+]
