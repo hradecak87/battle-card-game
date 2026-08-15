@@ -1,126 +1,393 @@
-# Progress Notes — Card Collection & Combat Core (subsystem #1)
+# Progress & Source of Truth — Battle Card Game V2
 
-Status snapshot written just before a context compaction, so implementation
-can resume smoothly. Read this file first if context was lost.
+**This file is the single source of truth for what to do and why.** It must
+be self-sufficient: everything needed to resume work — full context, every
+brainstorming decision, the full implementation plan, and exact current
+status — lives here. Always read this file first when resuming work
+(especially after a context compaction or in a new session), and always
+update it as work progresses (not just at the end of a session).
 
-## Where things live
+---
+
+## 1. Big picture: this is subsystem #1 of a much larger game
+
+The user's full vision (from the original brainstorming conversation) is a
+medieval web card game with: card collection & combat, player accounts with
+"nation" classes and XP/levels, a 256×256 territory map with occupation and
+castles/villages, real-time multi-army RTS battles between players, a card
+trading exchange, and notifications. That whole vision was judged **too
+large for one spec** and was explicitly decomposed into independent specs,
+each with its own spec → plan → implementation cycle:
+
+1. **Card Collection & Combat Core** ← **we are here, currently implementing this one**
+2. Players & Accounts (registration, nation classes/perks, XP/levels, matchmaking by level)
+3. Territory Map (256×256 grid, occupation timers, castles/villages, troop transfers)
+4. Multi-army RTS Battle (real-time, both players online, timeouts, rest-area cooldowns, reuses subsystem #1's `resolveDuel` as its per-duel building block)
+5. Trading/Exchange (offer a card, others counter-offer with cards, accept/reject)
+6. Notifications (attack alerts, trade offers — email and/or push, mechanism not yet decided)
+
+Subsystems 2-6 are **not designed yet** — do not build anything for them.
+When subsystem #1 is fully implemented and verified, the next step is to
+run the `brainstorming` skill again for subsystem #2, following the same
+process (explore → clarify → propose approaches → design → spec → review →
+plan → implement).
+
+## 2. Where things live
 
 - **Project root**: `C:\Users\z0040m9d\Documents\Projects\Battle card game V2`
-  (this is also the git repo root — `git init` was run directly here).
-- **Spec** (approved, reviewed, committed):
+  — this is also the git repo root (`git init` was run directly here, no
+  prior history).
+- **Previous related project** (for reference/consistency, NOT part of this
+  repo): `C:\Users\z0040m9d\Documents\Projects\Battle card game` — a simpler
+  Napoleonic-themed Durak-like card game (Next.js 14 + TS + Tailwind + Jest,
+  no backend). This V2 project intentionally reuses its tech stack and MVP
+  philosophy (local logic first, backend added only when a later subsystem
+  actually needs it).
+- **Spec** (approved, reviewed by spec-document-reviewer subagent, committed):
   `docs/superpowers/specs/2026-08-15-card-collection-combat-core-design.md`
 - **Implementation plan** (committed):
   `docs/superpowers/plans/2026-08-15-card-collection-combat-core-plan.md`
-- **Session todos**: tracked in the SQL `todos`/`todo_deps` tables (session DB,
-  not in the repo). Query ready-to-work todos with the standard dependency
-  join (see plan file for the 9-step breakdown: scaffold-project,
-  card-types, combat-logic, unit-type-baselines, catalog-content,
-  catalog-loader, collection-page, arena-page, final-verify).
-
-## What's done so far
-
-1. ✅ **scaffold-project** — Next.js 14 (App Router) + TypeScript + Tailwind
-   scaffolded via `create-next-app` into a temp dir (because the folder name
-   "Battle card game V2" has spaces/capitals, invalid for npm package names)
-   then moved into the project root; `package.json` "name" manually fixed to
-   `battle-card-game-v2`. Jest + `ts-jest`-free `next/jest` config added
-   (`jest.config.js`, `jest.setup.ts` with `@testing-library/jest-dom`).
-   `npm run build` and `npm test` (no tests yet) both verified working.
-   Committed (3 commits: scaffold, package name/jest fixes, then untracking
-   `.superpowers/` brainstorming artifacts from git — added to `.gitignore`).
-
-2. ✅ **card-types** — `lib/cards/types.ts` written: `UnitType`, `Rank`,
-   `CardTemplate`, `CardInstance`, `EffectiveCard`, `RawStats`, plus exported
-   constants `UNIT_TYPES`, `RANKS`, `VARIANTS_PER_RANK` (10/8/6/4/3),
-   `SUPPLY_RANGE` (rare 20-50, epic 5-15, legend 1-5). Verified with
-   `npx tsc --noEmit` (no errors). **Not yet committed to git** — do this
-   before/with the next commit.
-
-3. ✅ **combat-logic** — `lib/cards/combat.ts` written and **verified**: all
-   12 Jest tests in `combat.test.ts` pass (`npm test -- combat`), and
-   `npx tsc --noEmit` is clean project-wide. Details:
-   - `RANK_MULTIPLIER` table (common 1.0, uncommon 1.15, rare 1.35, epic 1.6,
-     legend 2.0)
-   - `applyRank(baseStats, rank): EffectiveCard` — multiplies, rounds to
-     nearest int, clamps to min 0
-   - `resolveDuel(attacker, defender): 'attacker'|'defender'` and
-     `resolveDuelWithBreakdown(...)` implementing the TTK formula from spec
-     §7 (atk = max(str,lng); dmg = max(0, atk - def); ttk = hp/dmg or
-     Infinity; lower ttk wins; ties/mutual-infinite → defender wins)
-   - `lib/cards/combat.test.ts` written with test cases: rank scaling for all
-     5 ranks, negative-clamp defensive case, attacker decisive win, defender
-     decisive win, an "archer vs fragile spearman" scenario demonstrating the
-     intended archer-wins-before-melee dynamic, zero-damage/infinite-TTK
-     cases (both sides infinite, one side infinite), and exact-tie TTK.
-   - `lib/cards/combat.test.ts` written and passing (12/12 tests): rank
-     scaling for all 5 ranks, negative-clamp defensive case, attacker
-     decisive win, defender decisive win, an "archer vs fragile spearman"
-     scenario demonstrating the intended archer-wins-before-melee dynamic,
-     zero-damage/infinite-TTK cases (both sides infinite, one side
-     infinite), and exact-tie TTK.
-   - **Committed together with `unit-types.ts` and `types.ts`** in the next
-     commit after this file was written (see git log for exact commit).
-
-4. ✅ **unit-type-baselines** — `lib/cards/unit-types.ts` written and
-   type-checked. `UNIT_TYPE_BASELINES` record mapping each of the 8
-   `UnitType`s to `{ stats: RawStats; role: string }` per the spec §5 table
-   (archers, crossbowmen, spearmen, swordsmen, halberdiers, knights,
-   lightCavalry, siegeEngines with their str/lng/def/hp/role).
-
-5. ✅ **project-instructions** — `.github/copilot-instructions.md` created,
-   pointing at this file as the authoritative state snapshot to read first
-   and update continuously.
-
-6. ✅ **catalog-content** — `scripts/generate-catalog-data.js` written (a
-   one-off, non-shipped content-authoring tool) with hand-curated Czech
-   honorific names for all 8 unit types × 5 ranks (10/8/6/4/3), a
-   deterministic seeded ±10% flavor-variance function, and index-spread
-   `totalSupply` assignment within each capped rank's range. Run via
-   `node scripts/generate-catalog-data.js`, producing
-   `lib/cards/catalog-data.json` (248 templates). One duplicate name
-   ("Ocelový hrom" used for both a knights-epic and a siegeEngines-rare
-   card) was found and fixed before finalizing.
-
-7. ✅ **catalog-loader** — `lib/cards/catalog.ts` written: loads
-   `catalog-data.json`, validates it synchronously at import time (total
-   count, per-type/per-rank counts, unique ids/names, totalSupply
-   null-vs-in-range, no negative baseStats), exposes `getAllTemplates()`,
-   `getTemplatesByType()`, `getTemplatesByRank()`, `getTemplateById()`.
-   `lib/cards/catalog.test.ts` written and passing (12/12): validates the
-   real data file, plus 4 malformed-fixture tests (wrong total count,
-   duplicate id, out-of-range totalSupply, negative baseStats) each
-   confirming the loader throws. Full suite: 24/24 tests passing across
-   both test files; `npx tsc --noEmit` clean.
-
-## Immediate next steps (in order)
-
-1. **collection-page**: `app/collection/` — list/filter by unit type + rank,
-   shows effective stats (via `applyRank`) + flavor text + totalSupply.
-2. **arena-page**: `app/arena/` — pick 2 cards, run
-   `resolveDuelWithBreakdown`, show step-by-step atk/dmg/ttk breakdown and
-   winner.
-3. **final-verify**: `npm run build`, `npm test`, manual `npm run dev` smoke
-   test of `/collection` and `/arena`.
-
-## Key decisions/conventions to remember
-
-- No backend/DB/auth in this subsystem — pure logic + `localStorage` only,
-  consistent with the previous Napoleonic card game project's MVP approach.
-- Card supply/minting is data-model-only here (`totalSupply` on
-  `CardTemplate`); actual admin minting UI and reward-distribution triggers
-  are explicitly out of scope (future Players/Battle specs).
-- Git commit trailer required on every commit:
+  (the `writing-plans` skill was unavailable in this environment, so the
+  plan was authored directly following the same principles — small
+  verifiable steps, tests alongside code, explicit verification commands)
+- **Session todos**: tracked in the SQL `todos`/`todo_deps` tables (session
+  DB, not in the repo — if a new session starts, these will be gone and
+  must be inferred from the "Step-by-step plan & status" section below
+  instead).
+- **Git commit trailer** required on every commit:
   `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>`
-- User approved starting implementation ("začni") on 2026-08-15; do not need
-  to re-ask for permission to continue this same plan, but per the custom
-  instructions, still do NOT commit anything until a meaningfully-sized,
-  tested unit is ready and the user has reviewed/approved it in this
-  session's flow (the brainstorming/planning-approved commits so far were
-  docs-only and scaffold/config, which is a lighter bar; use judgment before
-  committing actual game-logic code — probably fine once combat.ts tests
-  pass, since that's a coherent, tested unit, but flag it to the user in the
-  next message rather than silently committing without mention).
-- `.superpowers/brainstorm/...` visual companion server was started earlier
-  (session-only, ephemeral) but never actually used for anything visual —
-  it's fine if it's no longer running after compaction; no need to restart it
-  unless a visual question comes up later.
+
+## 3. All brainstorming decisions for subsystem #1 (the "why" behind the spec)
+
+These are the actual answers the user gave during brainstorming, preserved
+here so nothing gets silently re-litigated or forgotten:
+
+- **Scope decomposition approved as listed in section 1 above.**
+- **Visual companion**: offered and enabled, but never actually used — all
+  questions for this subsystem turned out to be conceptual/textual, not
+  visual. The brainstorming visual-companion server was started once at
+  `http://localhost:56949` (ephemeral, session-only, long since stopped —
+  do not try to reuse it; start a fresh one if a genuinely visual question
+  comes up in a future subsystem).
+- **Number of unit types**: user chose **8-10** (not 15-20, not fewer) —
+  landed on exactly 8.
+- **Rank vs. unit type relationship**: user chose **"unique_per_rank"** —
+  each rank tier of a unit type has its own uniquely-named cards (not just
+  one archetype scaled up). Explicit requirement: cards must have "honosné"
+  (honorific/grand) original names, e.g. common archer = "Práčata", legend
+  archer = "Nejostřejší šípy". **Duplicates in battle allowed** — a player
+  can own a Common and a Legend version of the same unit type
+  simultaneously; they're independent cards.
+- **Collector feel is a first-class requirement**: the user explicitly said
+  the collection must satisfy the feeling of owning something legendary,
+  and rarity must be visible (e.g. "how many of this named card exist in
+  the game").
+- **Rank multiplier scaling**: user chose **"mild"** — Common ×1.0,
+  Uncommon ×1.15, Rare ×1.35, Epic ×1.6, Legend ×2.0. Rank is a bonus;
+  which stats a unit type has (its archetype) matters more for outcomes
+  than raw rarity.
+- **Combat/duel resolution approach**: user was offered 3 options (A:
+  phased ranged-then-melee simulation, B: single formula/no phases, C:
+  phased with initiative/multiple volleys) and **chose B**. This led to the
+  time-to-kill (TTK) "damage race" formula in the spec (§7) — a single
+  closed-form calculation, no round-by-round simulation, that still
+  naturally produces the desired archer-beats-fragile-melee-unit dynamic
+  because the archer's TTK against a low-HP target is much lower than the
+  melee unit's TTK against the archer.
+- **Card instance/supply source**: user was offered 3 options for how new
+  card copies enter the game (A: all pre-exist at world start held by NPCs,
+  B: generated continuously as reward drops, C: hybrid) and **chose B, with
+  an explicit amendment: new card instances must only be minted by an
+  admin action**, not by any automatic algorithm. This produced the
+  `CardInstance.mintedBy: 'admin'` field and the rule that reward systems
+  (in later specs) draw from an already-minted, unclaimed pool — they never
+  auto-generate new instances themselves.
+- **Rarity/supply hybrid model confirmed**: Common/Uncommon = uncapped
+  supply (never a bottleneck). Rare/Epic/Legend = fixed `totalSupply` cap
+  per named card, chosen at content-authoring time within: Rare 20-50
+  (inclusive), Epic 5-15 (inclusive), Legend 1-5 (inclusive).
+- **Named variants per rank per unit type**: user was offered
+  3-4/2-3/2/1-2/1 (common/uncommon/rare/epic/legend) and explicitly asked
+  for **3× those numbers** "aby sbírka karet nebyla zas moc malá" (so the
+  collection isn't too small) → landed on **10/8/6/4/3**, giving 31
+  variants/type × 8 types = **248 unique card templates** total.
+  Each variant within a rank gets a fixed **±10% flavor stat variance**
+  baked in permanently at authoring time (not re-rolled per physical copy).
+- **Demo output scope**: user was offered "logic + tests only" vs. "logic +
+  a simple interactive demo UI" and **chose the demo UI** — a
+  Next.js/Tailwind app with a collection browser and a duel arena, no
+  accounts/backend, so balance/content can be validated visually before
+  building anything else.
+- User confirmed every section of the spec explicitly (data model, 8 unit
+  types + stats table, naming/variant-count approach, the TTK formula, and
+  the overall tech stack/demo summary) before it was written and
+  spec-reviewed.
+- Spec review loop: 4 iterations with the `spec-document-reviewer` subagent
+  (issues found → fixed → re-reviewed) until **Approved** on iteration 4.
+  Fixed issues included: clarifying `totalSupply` as a content-authored cap
+  vs. runtime `mintedCount`, clarifying "rank" vs "rarity" were the same
+  concept (removed duplicate terminology), defining the `EffectiveCard`
+  type explicitly, changing "1-10 scale" wording to "0-10 scale" (Siege
+  Engines has `str: 0`), and clarifying that unit-type "roles" (e.g.
+  "anti-cavalry" for Spearmen) are flavor-only — there is no mechanical
+  counter/bonus system, everything emerges from the raw 4 stats via the TTK
+  formula.
+- User approved the final spec as-is ("ne, je to dobré") and then said
+  **"začni"** (start) to authorize beginning implementation — this
+  authorization covers the current 9-step plan below; do not need to
+  re-ask permission for each step of executing this already-approved plan,
+  but DO surface/mention what was done, and still follow the repo's
+  git commit policy (see section 5).
+- User asked whether this can run on Vercel again: **yes** — plain
+  Next.js on Vercel works the same as the previous project; a real
+  backend/DB will only become relevant once subsystem #2+ needs persistent
+  accounts/real-time state.
+- User asked to **write this very progress file** proactively before a
+  context compaction, then asked for confirmation that the new
+  `.github/copilot-instructions.md` file was scoped to **this project
+  only**, not global (confirmed: it is local to this repo, the global
+  `~/.copilot/copilot-instructions.md` was not touched). User then asked to
+  make this progress file comprehensive enough to be used **on its own** to
+  know exactly what to do (including the full plan and every Q&A decision)
+  — hence this full rewrite, done in anticipation of an imminent context
+  compaction so nothing has to be re-asked or re-derived.
+
+## 4. Full implementation plan (all 9 steps) — status inline
+
+Each step below is from `docs/superpowers/plans/2026-08-15-card-collection-combat-core-plan.md`,
+copied in full here (not just referenced) so this file alone is sufficient.
+
+### Step 1 — Project scaffold — ✅ DONE
+
+- `create-next-app@14` (App Router, TypeScript, Tailwind, no `src/`,
+  ESLint) — scaffolded into a temp directory
+  (`C:\Users\z0040m9d\Documents\Projects\battle-card-game-v2-scaffold`)
+  because the target folder name "Battle card game V2" contains
+  spaces/capitals, which `create-next-app`/npm reject as a package name.
+  Files were then moved into the real project root and the temp dir
+  deleted; `package.json`'s `"name"` field manually fixed to
+  `battle-card-game-v2`.
+- Jest + React Testing Library added: `jest`, `@types/jest`, `ts-node`,
+  `jest-environment-jsdom`, `@testing-library/react`,
+  `@testing-library/jest-dom`. Config: `jest.config.js` (uses `next/jest`,
+  `testEnvironment: 'jest-environment-jsdom'`, `moduleNameMapper` for the
+  `@/*` alias), `jest.setup.ts` (imports `@testing-library/jest-dom`).
+  `package.json` `"test"` script added (`jest`).
+- Verified: `npm run build` succeeds (static pages generated). `npm test`
+  runs cleanly (was fixed after an initial config typo —
+  `setupFilesAfterEach` should not have existed, only `setupFilesAfterEnv`).
+- `.gitignore`: default Next.js ignores kept, plus `/.superpowers/` added
+  (brainstorming skill artifacts — these got committed once by accident and
+  were then `git rm --cached` to untrack them).
+- Committed across a few small commits (scaffold; package name/jest config
+  fix; untracking `.superpowers/`).
+
+### Step 2 — Card types — ✅ DONE
+
+- `lib/cards/types.ts`: `UnitType` (union of the 8 unit type string
+  literals) + `UNIT_TYPES` array constant; `Rank` (5 literals) + `RANKS`
+  array constant; `VARIANTS_PER_RANK` (`{common:10, uncommon:8, rare:6,
+  epic:4, legend:3}`); `SUPPLY_RANGE` (`{rare:[20,50], epic:[5,15],
+  legend:[1,5]}`); `RawStats` interface (`str, lng, def, hp`);
+  `CardTemplate` interface (`id, unitType, rank, name, flavorText,
+  baseStats, totalSupply: number|null`); `CardInstance` interface
+  (`instanceId, templateId, ownerId: string|null, mintedAt, mintedBy:
+  'admin'`) — defined for forward-compatibility with later specs, not used
+  by this subsystem's demo UI; `EffectiveCard` interface (`str, lng, def,
+  hp` — post-rank-scaling numbers used in combat).
+- Verified: `npx tsc --noEmit` clean.
+- Committed together with combat-logic and unit-type-baselines (see below).
+
+### Step 3 — Combat logic — ✅ DONE
+
+- `lib/cards/combat.ts`:
+  - `RANK_MULTIPLIER: Record<Rank, number>` = `{common:1.0, uncommon:1.15,
+    rare:1.35, epic:1.6, legend:2.0}`.
+  - `applyRank(baseStats: RawStats, rank: Rank): EffectiveCard` — multiplies
+    each of the 4 attributes by the rank multiplier, rounds to nearest
+    integer (`Math.round`), clamps to a minimum of 0 (`Math.max(0, ...)`).
+  - `resolveDuel(attacker: EffectiveCard, defender: EffectiveCard):
+    'attacker' | 'defender'` and the more detailed
+    `resolveDuelWithBreakdown(...)` which also returns `{atk, dmgDealt, ttk}`
+    for each side. Exact algorithm (spec §7):
+    1. `atkA = max(attacker.str, attacker.lng)`, `atkD = max(defender.str,
+       defender.lng)` — each side attacks with its stronger stat.
+    2. `dmgToDefender = max(0, atkA - defender.def)`, `dmgToAttacker =
+       max(0, atkD - attacker.def)`.
+    3. `ttkAttackerWins = dmgToDefender > 0 ? defender.hp / dmgToDefender :
+       Infinity` (same pattern for `ttkDefenderWins`).
+    4. Lower TTK wins. **Tie (including both-Infinity) → defender wins.**
+- `lib/cards/combat.test.ts` — 12 tests, all passing:
+  - `applyRank`: exact expected output for all 5 ranks against a fixed base
+    stat object, plus a defensive negative-clamp case.
+  - `resolveDuel`/`resolveDuelWithBreakdown`: attacker decisive win,
+    defender decisive win, an explicit "archer vs. fragile spearman"
+    scenario proving the intended dynamic (archer's high LNG punches
+    through low DEF for large damage against low HP, giving a much lower
+    TTK than the spearman achieves back), both-sides-zero-damage (mutual
+    Infinite TTK → defender wins), one-side-zero-damage (attacker can't
+    penetrate but neither can defender in that specific fixture → defender
+    wins), and an exact-tie-TTK case (defender wins).
+- Verified: `npm test -- combat` → 12/12 pass. `npx tsc --noEmit` clean.
+
+### Step 4 — Unit type baseline data — ✅ DONE
+
+- `lib/cards/unit-types.ts`: `UNIT_TYPE_BASELINES` — a `Record<UnitType,
+  {stats: RawStats; role: string}>` with the exact spec §5 numbers:
+
+  | Unit Type | str | lng | def | hp | role (flavor only, no mechanical effect) |
+  |---|---|---|---|---|---|
+  | archers | 1 | 8 | 2 | 4 | Glass-cannon ranged |
+  | crossbowmen | 1 | 7 | 5 | 4 | Slower-firing but better shielded ranged |
+  | spearmen | 4 | 1 | 7 | 5 | Anti-cavalry, strong defense |
+  | swordsmen | 7 | 1 | 4 | 5 | Balanced melee striker |
+  | halberdiers | 6 | 1 | 8 | 8 | Tank, holds the line |
+  | knights | 8 | 1 | 5 | 7 | Heavy melee spearhead |
+  | lightCavalry | 5 | 4 | 2 | 4 | Flexible hybrid, fragile |
+  | siegeEngines | 0 | 10 | 1 | 3 | Extreme ranged, dies to anything in melee |
+
+  This is the reference baseline that `scripts/generate-catalog-data.js`
+  (step 5) varies ±10% per named variant — it is NOT consumed at runtime by
+  combat/UI code, only by that generation script.
+- Verified: `npx tsc --noEmit` clean.
+
+### Step 5 — Catalog content authoring — ✅ DONE
+
+- `scripts/generate-catalog-data.js` — a one-off, **not shipped with the
+  app**, Node content-authoring script (run manually with
+  `node scripts/generate-catalog-data.js`, writes
+  `lib/cards/catalog-data.json`). Contains:
+  - `NAMES`: hand-curated Czech honorific names per unit type × rank,
+    following a "common folk → legendary named individuals" progression
+    (exact arrays are in the script file itself — do not re-derive them,
+    just read the script if the actual name list is needed). Counts match
+    `VARIANTS_PER_RANK` exactly (10/8/6/4/3) for every one of the 8 types.
+  - `TIER_FLAVOR`: 5 template functions (one per rank) producing a short
+    Czech flavor sentence per card, personalized with the card's name and a
+    Czech plural label for its unit type (e.g. "lučištníci", "rytíři").
+  - `seededFactor(seed)`: a simple deterministic string-hash → `[0.9, 1.1]`
+    mapping, used to generate a **reproducible** ±10% variance per stat per
+    template (seeded by `"{id}:{statName}"`), so re-running the script
+    produces byte-identical output.
+  - `supplyForIndex(rank, index, count)`: spreads `totalSupply` values
+    evenly across each capped rank's range (e.g. 6 rare variants spread
+    across 20-50).
+  - Output: exactly 248 `CardTemplate` objects written as pretty-printed
+    JSON to `lib/cards/catalog-data.json`.
+- **One bug found and fixed during authoring**: the name "Ocelový hrom" was
+  originally used for both a knights-epic card and a siegeEngines-rare
+  card (duplicate names are invalid per the catalog validator in step 6).
+  Fixed by renaming the knights-epic one to "Hromobití kopyt". Verified
+  with an ad-hoc Node one-liner that all 248 names in the generated JSON
+  are unique before re-running the full test suite.
+- Verified: manual duplicate-check script confirmed 248 total / 248 unique
+  names after the fix; full catalog validation (step 6's `catalog.ts`)
+  passes on this data.
+
+### Step 6 — Catalog loader — ✅ DONE
+
+- `lib/cards/catalog.ts`:
+  - Imports `catalog-data.json` (via `resolveJsonModule`, already enabled
+    in `tsconfig.json`), casts to `CardTemplate[]`.
+  - `validateCatalog(templates)`: runs once at module import time (top level
+    of the file, not inside a function called later) and **throws
+    synchronously** if any of these fail: total count !== 248; duplicate
+    `id`; duplicate `name`; any `baseStats` attribute is negative;
+    `totalSupply` is not `null` for common/uncommon; `totalSupply` is
+    missing or out of its rank's `[min,max]` range for rare/epic/legend;
+    per-unit-type-per-rank counts don't match `VARIANTS_PER_RANK`.
+  - Exported accessors: `getAllTemplates()`, `getTemplatesByType(unitType)`,
+    `getTemplatesByRank(rank)`, `getTemplateById(id)`.
+- `lib/cards/catalog.test.ts` — 12 tests, all passing:
+  - Against the **real** `catalog-data.json`: exactly 248 templates;
+    correct per-type-per-rank counts for every combination; unique
+    ids/names across the whole catalog; `totalSupply` null-vs-in-range
+    correctness; no negative `baseStats` anywhere; `getTemplatesByType`
+    returns only matching templates (31 for archers); `getTemplatesByRank`
+    returns only matching templates (24 for legend = 3×8 types);
+    `getTemplateById` finds "archers-common-01" → "Práčata" and returns
+    `undefined` for an unknown id.
+  - Against **malformed in-memory fixtures** (using `jest.doMock` +
+    `jest.resetModules()` + `require('./catalog')` fresh each time, then
+    `jest.dontMock` to restore): wrong total count throws
+    `/expected 248 templates/`; duplicate id throws `/duplicate id/`;
+    out-of-range `totalSupply` on a legend card throws
+    `/totalSupply must be within/`; negative `baseStats.str` throws
+    `/negative baseStats/`.
+- Verified: `npm test -- catalog` → 12/12 pass. Full suite (`npm test`) →
+  24/24 pass across both test files. `npx tsc --noEmit` clean project-wide.
+
+### Step 7 — Collection browser page — 🔶 IN PROGRESS (just started, no code written yet)
+
+Not yet built. To do:
+- `app/collection/page.tsx` (or similar App Router structure) that:
+  - Reads `getAllTemplates()` from `lib/cards/catalog.ts`.
+  - Provides two filters: unit type (8 options, e.g. a `<select>` or button
+    group) and rank (5 options) — per the spec, these are the only two
+    filter dimensions (rank IS the rarity tier; don't add a separate
+    "rarity" filter, that was a reviewed-and-fixed ambiguity in the spec).
+  - For each template shown: name, unit type, rank, **effective stats**
+    (call `applyRank(template.baseStats, template.rank)` from
+    `lib/cards/combat.ts` — do not show raw `baseStats` as the primary
+    display value), flavor text, and `totalSupply` (or "unlimited" /
+    "neomezeno" for common/uncommon) as **static** rarity context — there
+    is no live "claimed count" tracking in this demo (no accounts/instances
+    persisted), per the spec's explicit resolution of that ambiguity.
+- Light component test (Jest + RTL): selecting a unit-type filter narrows
+  the visible list to only that type; selecting a rank filter narrows to
+  only that rank.
+- Styling: Tailwind, consistent with the rest of the scaffold. No specific
+  visual design was approved (visual companion was never used) — use
+  reasonable judgment, simple card-grid layout is fine.
+
+### Step 8 — Duel arena page — ⬜ NOT STARTED
+
+- `app/arena/page.tsx`:
+  - Two card pickers (dropdowns or searchable lists) — any two templates
+    from the catalog, including picking the same template for both sides.
+  - "Fight" button: calls `resolveDuelWithBreakdown` (from
+    `lib/cards/combat.ts`) after applying `applyRank` to both picked
+    templates' `baseStats`.
+  - Displays the full breakdown: both sides' `atk`, `dmgDealt`, `ttk`
+    values, and the final `winner` — the whole point is making the
+    reasoning visible (spec §8), not just showing a winner.
+- Light component test: selecting two specific templates and fighting
+  produces breakdown numbers matching what calling `resolveDuelWithBreakdown`
+  directly on those (rank-applied) stats would produce.
+
+### Step 9 — Final verification — ⬜ NOT STARTED
+
+- `npm run build` (production build, no type errors).
+- `npm test` (full suite green — should be 24+ tests once steps 7-8 add
+  their own).
+- Manual smoke check: `npm run dev`, open `/collection` and `/arena` in a
+  browser, confirm filtering and a duel both work end-to-end. **This is the
+  first point at which there's anything to actually show/try in a
+  browser** — mention this explicitly to the user once reached, since they
+  asked earlier "je možné už něco vyzkoušet?" and were told "not yet, after
+  the arena page."
+
+## 5. Process/policy reminders (from the custom project instructions, not spec-specific)
+
+- **No implementation without explicit user instruction.** This plan's
+  execution was explicitly authorized by the user's "začni" — continuing
+  through this same already-approved plan does not require re-asking, but
+  do not start subsystem #2 (or any new unapproved scope) without a fresh
+  explicit go-ahead following its own brainstorming/spec/approval cycle.
+- **Git commits**: only after a meaningfully-sized, tested functional unit
+  is complete (not tiny/untested changes). So far every commit in this repo
+  has been either docs-only, scaffold/config, or a tested code unit (types +
+  combat logic + tests; catalog content + loader + tests) — keep following
+  that granularity: commit after each completed, verified plan step, not
+  mid-step.
+- **Git push**: not done yet, and requires explicit user approval before
+  ever pushing to a remote (none configured yet, in fact — this is a local
+  git repo only so far).
+- **Destructive operations**: never delete/modify anything outside this
+  project directory or outside its git repo without explicit permission.
+  (The only reference reads outside this directory so far were read-only
+  views of the sibling `Battle card game` project for context, and of the
+  global Copilot session-recall/skills files — no writes/deletes outside
+  this project's folder have occurred.)
+- `.github/copilot-instructions.md` in **this project only** (not global)
+  tells future sessions to read and continuously update this very file.
