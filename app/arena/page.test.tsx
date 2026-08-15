@@ -16,12 +16,18 @@ describe('ArenaPage', () => {
     // attacker atk=max(1,9)=9, dmg to defender=max(0,9-7)=2, ttk=5/2=2.50
     // defender atk=max(4,1)=4, dmg to attacker=max(0,4-2)=2, ttk=4/2=2.00
     // lower ttk wins -> defender (2.00 < 2.50)
-    const attackerCard = screen.getByText('Práčata').closest('div') as HTMLElement
-    const defenderCard = screen.getByText('Rolníci s kopím').closest('div') as HTMLElement
+    const attackerCard = screen.getByTestId('side-result-attacker')
+    const defenderCard = screen.getByTestId('side-result-defender')
 
-    expect(attackerCard).toHaveTextContent('9') // atk
+    // effective stats (STR/LNG/DEF/HP) are shown alongside the ATK/DMG/TTK breakdown
+    expect(attackerCard).toHaveTextContent('1') // str
+    expect(attackerCard).toHaveTextContent('9') // lng / atk
+    expect(attackerCard).toHaveTextContent('2') // def
+    expect(attackerCard).toHaveTextContent('4') // hp
     expect(attackerCard).toHaveTextContent('2.50') // ttk
-    expect(defenderCard).toHaveTextContent('4') // atk
+    expect(defenderCard).toHaveTextContent('4') // str / atk
+    expect(defenderCard).toHaveTextContent('7') // def
+    expect(defenderCard).toHaveTextContent('5') // hp
     expect(defenderCard).toHaveTextContent('2.00') // ttk
     expect(defenderCard).toHaveTextContent('VÍTĚZ')
     expect(attackerCard).not.toHaveTextContent('VÍTĚZ')

@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react'
 import { getAllTemplates } from '@/lib/cards/catalog'
 import { applyRank, DuelBreakdown, resolveDuelWithBreakdown } from '@/lib/cards/combat'
-import { CardTemplate, Rank, UnitType } from '@/lib/cards/types'
+import { CardTemplate, EffectiveCard, Rank, UnitType } from '@/lib/cards/types'
+import { TradingCard } from '@/components/cards/TradingCard'
 
 const UNIT_TYPE_LABELS: Record<UnitType, string> = {
   archers: 'Lučištníci',
@@ -34,20 +35,47 @@ function formatTtk(ttk: number): string {
 
 interface SideResultProps {
   title: string
-  templateName: string
+  template: CardTemplate
+  stats: EffectiveCard
   result: DuelBreakdown['attacker']
   isWinner: boolean
 }
 
-function SideResult({ title, templateName, result, isWinner }: SideResultProps) {
+function SideResult({ title, template, stats, result, isWinner }: SideResultProps) {
   return (
     <div
+      data-testid={`side-result-${title === 'Útočník' ? 'attacker' : 'defender'}`}
       className={`rounded-lg border p-4 flex-1 ${
         isWinner ? 'border-amber-500 bg-amber-950/30' : 'border-zinc-700 bg-zinc-900'
       }`}
     >
       <p className="text-xs text-zinc-400">{title}</p>
-      <h3 className="font-semibold mb-2">{templateName}</h3>
+
+      <div className="max-w-[140px] mx-auto mb-3">
+        <TradingCard template={template} stats={stats} compact />
+      </div>
+
+      <p className="text-xs text-zinc-500 mb-1">Staty karty</p>
+      <dl className="grid grid-cols-4 gap-2 text-center text-xs mb-3">
+        <div>
+          <dt className="text-zinc-500">STR</dt>
+          <dd className="font-mono font-semibold">{stats.str}</dd>
+        </div>
+        <div>
+          <dt className="text-zinc-500">LNG</dt>
+          <dd className="font-mono font-semibold">{stats.lng}</dd>
+        </div>
+        <div>
+          <dt className="text-zinc-500">DEF</dt>
+          <dd className="font-mono font-semibold">{stats.def}</dd>
+        </div>
+        <div>
+          <dt className="text-zinc-500">HP</dt>
+          <dd className="font-mono font-semibold">{stats.hp}</dd>
+        </div>
+      </dl>
+
+      <p className="text-xs text-zinc-500 mb-1">Výpočet souboje</p>
       <dl className="grid grid-cols-3 gap-2 text-center text-xs">
         <div>
           <dt className="text-zinc-500">ATK</dt>
@@ -73,6 +101,10 @@ export default function ArenaPage() {
   const [attackerId, setAttackerId] = useState(allTemplates[0]?.id ?? '')
   const [defenderId, setDefenderId] = useState(allTemplates[1]?.id ?? '')
   const [result, setResult] = useState<DuelBreakdown | null>(null)
+  const [fightStats, setFightStats] = useState<{
+    attacker: EffectiveCard
+    defender: EffectiveCard
+  } | null>(null)
 
   const attackerTemplate = allTemplates.find((t) => t.id === attackerId)
   const defenderTemplate = allTemplates.find((t) => t.id === defenderId)
@@ -81,6 +113,7 @@ export default function ArenaPage() {
     if (!attackerTemplate || !defenderTemplate) return
     const attackerStats = applyRank(attackerTemplate.baseStats, attackerTemplate.rank)
     const defenderStats = applyRank(defenderTemplate.baseStats, defenderTemplate.rank)
+    setFightStats({ attacker: attackerStats, defender: defenderStats })
     setResult(resolveDuelWithBreakdown(attackerStats, defenderStats))
   }
 
@@ -101,6 +134,7 @@ export default function ArenaPage() {
             onChange={(e) => {
               setAttackerId(e.target.value)
               setResult(null)
+              setFightStats(null)
             }}
           >
             {allTemplates.map((t) => (
@@ -120,6 +154,7 @@ export default function ArenaPage() {
             onChange={(e) => {
               setDefenderId(e.target.value)
               setResult(null)
+              setFightStats(null)
             }}
           >
             {allTemplates.map((t) => (
@@ -139,17 +174,19 @@ export default function ArenaPage() {
         Souboj!
       </button>
 
-      {result && attackerTemplate && defenderTemplate && (
+      {result && fightStats && attackerTemplate && defenderTemplate && (
         <div className="flex flex-col sm:flex-row gap-4 max-w-3xl">
           <SideResult
             title="Útočník"
-            templateName={attackerTemplate.name}
+            template={attackerTemplate}
+            stats={fightStats.attacker}
             result={result.attacker}
             isWinner={result.winner === 'attacker'}
           />
           <SideResult
             title="Obránce"
-            templateName={defenderTemplate.name}
+            template={defenderTemplate}
+            stats={fightStats.defender}
             result={result.defender}
             isWinner={result.winner === 'defender'}
           />
