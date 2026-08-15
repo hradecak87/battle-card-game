@@ -625,3 +625,67 @@ is the reliable fallback for any future migration.
   `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>`
   trailer) — awaiting the user's go-ahead to commit (and separately, to
   push, which additionally requires its own explicit approval).
+
+## 8. Subsystem #3: Territory Map — spec written, review-approved, awaiting user's spec review
+
+Brainstorming completed via the `brainstorming` skill (text-only — the
+visual companion's WSL `bash.exe` dependency didn't work in this
+environment). Spec written to
+`docs/superpowers/specs/2026-08-15-territory-map-design.md`, then run
+through **5 rounds** of the `spec-document-reviewer` subagent loop until
+**Approved** (fixes across rounds: concrete resolve-on-read/write RPCs
+instead of a vague "every read path"; atomic home-territory assignment
+folded into `complete_kingdom_onboarding` plus a unique partial index
+guaranteeing one home tile per player; fully specified claim/transfer/cancel
+state machines with both timers precomputed upfront at claim-start;
+`start_transfer` fully specified (was previously only named); a
+discriminated `CardTemplate` union (`UnitCardTemplate | StructureCardTemplate`)
+so Castle/Village cards fit the existing subsystem #1 model; explicit
+`minted_count`-is-a-lifetime-counter semantics reconciling structure-card
+burning with subsystem #1's "cards are never destroyed" invariant (a
+deliberate, scoped exception); Mongol Horde (−25% transfer time) and
+Scandinavia (−20% occupation time) nation perks from subsystem #2 wired
+into the formulas, since that spec explicitly deferred applying them to
+"whichever subsystem owns the mechanic"; RLS enabled with public-read/
+no-direct-write policies on all 5 new tables; retuned occupation-formula
+constant (500→150) so the 10-hour floor is reachable by a realistic army,
+not just a theoretical max; missing indexes for the lazy-resolver's due-
+movement/due-occupation lookups; row-locking (`select ... for update` +
+re-check) on both the target territory and the selected `card_instances` in
+`start_claim`/`start_transfer`/home-assignment to close concurrent-request
+races; requiring a non-empty troop selection; excluding already-claimed
+tiles from the home-assignment candidate pool; and counting a player's own
+in-flight claims (not just settled ownership) against the 32-territory cap
+so parallel claims can't jointly overflow it).
+
+**Key decisions locked into the spec** (full Q&A history above §1 of this
+section didn't exist yet when this was written — see the spec file itself
+and the brainstorming conversation transcript for the complete Q1-Q15
+question list): viewport+pan+coordinate-jump+minimap map navigation; static
+one-time 256×256 world-gen; only castle/village tiles start with NPC
+garrisons (empty tiles have no owner at all); automatic home-territory
+assignment right after onboarding, with a starter army; real `CardInstance`s
+(not abstract numbers) as garrisons; subsystem #3 scope excludes **all**
+combat (deferred to subsystem #4); a claimed empty tile locks immediately
+(no contested claims) but the claimant can cancel (instant troop return, no
+return-trip timer); hard block at the 32-territory cap; two-phase transfer-
+then-occupation timing (10-hour occupation floor); 5 difficulty levels
+mirroring the card-rank multiplier scale (×1.0/1.5/2.25/3.4/5.0); Castle and
+Village are new burn-on-use structure cards (not tile flags), rankable like
+unit cards, obtainable only via admin-mint for now (combat loot arrives with
+subsystem #4); a tile may have both a Castle and a Village simultaneously,
+with their defense bonuses stacking additively; and — a major scope addition
+discovered mid-brainstorming — this subsystem must also add the **first real
+database persistence for card instances** (`card_templates`/`card_instances`
+tables), since subsystem #1 only ever defined these as in-memory
+TypeScript types with no backend.
+
+**Not yet done**: per the `brainstorming` skill's User Review Gate, the user
+must explicitly review the spec file itself before the `writing-plans` skill
+is invoked — this is the immediate next step once the user is back. The spec
+has **not been committed to git** yet (per project policy: commits require
+explicit user approval of a tested/working result, which doesn't apply the
+same way to a not-yet-implemented design doc — deferred to be safe, pending
+the user's go-ahead alongside their spec review). No implementation code for
+subsystem #3 has been written or should be, until the plan is written and
+approved, per the project's hard rule.
