@@ -748,6 +748,20 @@ go-ahead**:
   `@supabase/supabase-js`'s realtime client even though these scripts
   never use realtime) — polyfilled with the already-present `ws` package;
   committed.
-- `0002_territories.verification.sql`'s manual SQL checklist has not been
-  run yet against the live project — still the recommended next
-  acceptance check for the RPC/schema layer.
+- `0002_territories.verification.sql`'s manual SQL checklist was partially
+  run against the live project (via a throwaway supabase-js script, since
+  raw REST/PowerShell calls with the new `sb_secret_...` service-role key
+  format get rejected with "Forbidden use of secret API key in browser" —
+  supabase-js works fine, it just sets different headers): RLS anon
+  read-succeeds/write-is-silently-filtered confirmed (territory row `id=1`
+  verified unchanged after anon UPDATE/DELETE attempts — Postgres RLS
+  filters via `USING`, so these return 200/204 with 0 rows affected rather
+  than an error, which is expected Postgres RLS behavior, not a bug); all
+  3 `card_templates` check-constraint cases (bad village attack_bonus_pct,
+  good village, incomplete unit) passed as expected, test rows cleaned up.
+  **Not run**: the home-tile-uniqueness insert test (would violate the
+  live world's `unique(x, y)` index since the grid is now fully
+  populated — needs adapting to use `information_schema` instead of a raw
+  insert) and the 4 mutating-RPC rejection-path tests (need a real
+  authenticated player, and no one has signed up yet) — low priority,
+  can be exercised once real players/onboarding exist.
