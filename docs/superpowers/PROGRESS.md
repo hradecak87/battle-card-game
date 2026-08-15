@@ -626,7 +626,7 @@ is the reliable fallback for any future migration.
   trailer) — awaiting the user's go-ahead to commit (and separately, to
   push, which additionally requires its own explicit approval).
 
-## 8. Subsystem #3: Territory Map — spec written, review-approved, awaiting user's spec review
+## 8. Subsystem #3: Territory Map — spec+plan approved, implementation complete (code), migration NOT applied
 
 Brainstorming completed via the `brainstorming` skill (text-only — the
 visual companion's WSL `bash.exe` dependency didn't work in this
@@ -680,12 +680,60 @@ database persistence for card instances** (`card_templates`/`card_instances`
 tables), since subsystem #1 only ever defined these as in-memory
 TypeScript types with no backend.
 
-**Not yet done**: per the `brainstorming` skill's User Review Gate, the user
-must explicitly review the spec file itself before the `writing-plans` skill
-is invoked — this is the immediate next step once the user is back. The spec
-has **not been committed to git** yet (per project policy: commits require
-explicit user approval of a tested/working result, which doesn't apply the
-same way to a not-yet-implemented design doc — deferred to be safe, pending
-the user's go-ahead alongside their spec review). No implementation code for
-subsystem #3 has been written or should be, until the plan is written and
-approved, per the project's hard rule.
+Implementation plan written to
+`docs/superpowers/plans/2026-08-15-territory-map-plan.md` (deliberately more
+consolidated task granularity than the `writing-plans` skill's default, per
+the user's request to keep it concise), run through **3 rounds** of the
+`plan-document-reviewer` subagent loop until **Approved**. Both the spec and
+plan documents are committed (`0cee135`, `f34c0f6`).
+
+**Implementation status: all 13 plan tasks complete and committed**, each
+with its own tests green before committing (per the plan's per-task TDD
+pattern):
+
+- **Chunk 1 (pure logic)**: `CardTemplate` split into `UnitCardTemplate |
+  StructureCardTemplate` (`lib/cards/types.ts`, `fa98806`); transfer/
+  occupation formulas (`lib/territories/formulas.ts`, `2ee6d9c`);
+  castle/village bonus stacking (`lib/territories/structureBonus.ts`,
+  `dcf8fb9`).
+- **Chunk 2 (DB schema, world-gen, RPCs)**: full schema migration —
+  `card_templates`/`card_instances`/`territories`/`troop_movements`/
+  `troop_movement_units`, all indexes, RLS (`supabase/migrations/
+  0002_territories.sql`, `b993635`); manual SQL verification checklist
+  (`0002_territories.verification.sql`, `ea7d154`); `resolve_due_movements()`
+  + the 4 read RPCs (`c8996e8`); `start_claim`/`start_transfer`/
+  `cancel_claim`/`build_structure` mutating RPCs with row-locking (`d68c77a`);
+  `complete_kingdom_onboarding` extended for atomic home-territory + starter
+  army assignment (`f0bafa2`); `scripts/seed-card-templates.ts` +
+  `scripts/generate-world.ts` with tested pure placement-logic helpers
+  (`537a72e`).
+- **Chunk 3 (Map UI)**: typed RPC client wrappers (`lib/territories/api.ts`,
+  `916c153`); pannable viewport with click-drag + arrow-button panning and
+  coordinate jump (`components/territories/MapViewport.tsx`,
+  `app/map/page.tsx`, `51adda6`); minimap overview
+  (`components/territories/Minimap.tsx`, `21bcd4e`); territory detail panel
+  with state-dependent claim/transfer/cancel/build actions and user-facing
+  RPC error surfacing (`components/territories/TerritoryDetailPanel.tsx`,
+  `9bbae8b`).
+
+**Verification**: `npx tsc --noEmit` clean and full `npx jest` **119/119
+passing** across **18 suites** as of the last task's commit.
+
+**Not yet done / explicitly deferred, requires the user's separate
+go-ahead**:
+- **The `0002_territories.sql` migration has NOT been applied to any live
+  Supabase project.** No Supabase project exists yet for this game at all
+  (same as `0001_players.sql`'s status) — applying either migration, running
+  `scripts/seed-card-templates.ts`, or running `scripts/generate-world.ts`
+  against a real project all require the user's explicit approval first,
+  per project policy (these are irreversible/production-schema-affecting
+  actions).
+- `0002_territories.verification.sql`'s manual SQL checklist has not been
+  run (it can't be, until the migration is applied) — this remains the
+  acceptance check for the RPC/schema layer in lieu of live integration
+  tests, exactly as planned.
+- No git push has been performed — commits are local only, pending the
+  user's review and explicit push approval.
+- All castle/village combat bonuses, actual combat resolution, and
+  combat-loot card acquisition are explicitly out of scope here — deferred
+  to subsystem #4 (spec §13).
