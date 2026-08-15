@@ -86,6 +86,7 @@ describe('catalog validation (malformed fixtures)', () => {
         totalSupply: null,
       },
     ])
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- fresh re-import needed after jest.resetModules()
     expect(() => require('./catalog')).toThrow(/expected 248 templates/)
     jest.dontMock('./catalog-data.json')
   })
@@ -95,6 +96,7 @@ describe('catalog validation (malformed fixtures)', () => {
     const full = jest.requireActual('./catalog-data.json') as unknown as Array<{ id: string }>
     const withDuplicate = full.map((t, i) => (i === 1 ? { ...t, id: full[0].id } : t))
     jest.doMock('./catalog-data.json', () => withDuplicate)
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- fresh re-import needed after jest.resetModules()
     expect(() => require('./catalog')).toThrow(/duplicate id/)
     jest.dontMock('./catalog-data.json')
   })
@@ -109,6 +111,7 @@ describe('catalog validation (malformed fixtures)', () => {
       t.rank === 'legend' ? { ...t, totalSupply: 999 } : t
     )
     jest.doMock('./catalog-data.json', () => withBadSupply)
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- fresh re-import needed after jest.resetModules()
     expect(() => require('./catalog')).toThrow(/totalSupply must be within/)
     jest.dontMock('./catalog-data.json')
   })
@@ -122,7 +125,9 @@ describe('catalog validation (malformed fixtures)', () => {
       i === 0 ? { ...t, baseStats: { ...t.baseStats, str: -1 } } : t
     )
     jest.doMock('./catalog-data.json', () => withNegative)
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- fresh re-import needed after jest.resetModules()
     expect(() => require('./catalog')).toThrow(/negative baseStats/)
     jest.dontMock('./catalog-data.json')
   })
 })
+

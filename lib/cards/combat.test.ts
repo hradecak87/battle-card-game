@@ -51,8 +51,6 @@ describe('resolveDuel', () => {
   it('archer-vs-spearman: a high-LNG low-DEF archer beats a low-HP melee spearman before it closes the gap', () => {
     // Archer (per spec §5 baseline): str=1, lng=8, def=2, hp=4
     const archer: EffectiveCard = { str: 1, lng: 8, def: 2, hp: 4 }
-    // Spearman (per spec §5 baseline): str=4, lng=1, def=7, hp=5
-    const spearman: EffectiveCard = { str: 4, lng: 1, def: 7, hp: 5 }
 
     // Archer attacks (as attacker) — its LNG=8 easily punches through the
     // spearman's DEF=7 for 1 dmg/tick; the spearman's STR=4 can't punch

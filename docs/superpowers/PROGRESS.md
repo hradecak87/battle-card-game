@@ -19,15 +19,15 @@ trading exchange, and notifications. That whole vision was judged **too
 large for one spec** and was explicitly decomposed into independent specs,
 each with its own spec → plan → implementation cycle:
 
-1. **Card Collection & Combat Core** ← **we are here, currently implementing this one**
-2. Players & Accounts (registration, nation classes/perks, XP/levels, matchmaking by level)
+1. **Card Collection & Combat Core** ← **✅ FULLY IMPLEMENTED AND VERIFIED** (all 9 plan steps done, 30/30 tests pass, `npm run build` clean, viewable at `/`, `/collection`, `/arena`)
+2. Players & Accounts (registration, nation classes/perks, XP/levels, matchmaking by level) ← **next up, not designed yet**
 3. Territory Map (256×256 grid, occupation timers, castles/villages, troop transfers)
 4. Multi-army RTS Battle (real-time, both players online, timeouts, rest-area cooldowns, reuses subsystem #1's `resolveDuel` as its per-duel building block)
 5. Trading/Exchange (offer a card, others counter-offer with cards, accept/reject)
 6. Notifications (attack alerts, trade offers — email and/or push, mechanism not yet decided)
 
 Subsystems 2-6 are **not designed yet** — do not build anything for them.
-When subsystem #1 is fully implemented and verified, the next step is to
+Now that subsystem #1 is fully implemented and verified, the next step is to
 run the `brainstorming` skill again for subsystem #2, following the same
 process (explore → clarify → propose approaches → design → spec → review →
 plan → implement).
@@ -317,55 +317,88 @@ copied in full here (not just referenced) so this file alone is sufficient.
 - Verified: `npm test -- catalog` → 12/12 pass. Full suite (`npm test`) →
   24/24 pass across both test files. `npx tsc --noEmit` clean project-wide.
 
-### Step 7 — Collection browser page — 🔶 IN PROGRESS (just started, no code written yet)
+### Step 7 — Collection browser page — ✅ DONE
 
-Not yet built. To do:
-- `app/collection/page.tsx` (or similar App Router structure) that:
-  - Reads `getAllTemplates()` from `lib/cards/catalog.ts`.
-  - Provides two filters: unit type (8 options, e.g. a `<select>` or button
-    group) and rank (5 options) — per the spec, these are the only two
-    filter dimensions (rank IS the rarity tier; don't add a separate
-    "rarity" filter, that was a reviewed-and-fixed ambiguity in the spec).
-  - For each template shown: name, unit type, rank, **effective stats**
-    (call `applyRank(template.baseStats, template.rank)` from
-    `lib/cards/combat.ts` — do not show raw `baseStats` as the primary
-    display value), flavor text, and `totalSupply` (or "unlimited" /
-    "neomezeno" for common/uncommon) as **static** rarity context — there
-    is no live "claimed count" tracking in this demo (no accounts/instances
-    persisted), per the spec's explicit resolution of that ambiguity.
-- Light component test (Jest + RTL): selecting a unit-type filter narrows
-  the visible list to only that type; selecting a rank filter narrows to
-  only that rank.
-- Styling: Tailwind, consistent with the rest of the scaffold. No specific
-  visual design was approved (visual companion was never used) — use
-  reasonable judgment, simple card-grid layout is fine.
+- `app/collection/page.tsx` — client component (`'use client'`):
+  - Reads `getAllTemplates()` from `lib/cards/catalog.ts` once via
+    `useMemo`.
+  - Two `<select>` filters: unit type (8 options + "Vše"/all) and rank (5
+    options + "Vše"/all) — exactly the two filter dimensions from the
+    spec, no separate "rarity" filter (rank IS rarity).
+  - Each card shows: name, unit-type label (Czech), rank badge (color
+    per rank), flavor text, **effective stats** via
+    `applyRank(t.baseStats, t.rank)` (STR/LNG/DEF/HP grid — NOT raw
+    baseStats), and `totalSupply` as static text ("Neomezeno" for
+    null/common/uncommon, "Existuje jen N×" otherwise). No live
+    claimed-count (no persistence in this demo).
+  - Header shows "`{filtered.length} z {allTemplates.length} karet`" —
+    doubles as a simple filter-count sanity display and a test hook.
+  - Dark theme (zinc/amber/blue/purple/emerald palette for rank badges),
+    responsive grid (1/2/3/4 columns by breakpoint).
+- `app/collection/page.test.tsx` — 4 RTL tests, all passing: shows all 248
+  by default; filtering by unit type narrows to 31 (archers); filtering by
+  rank narrows to 24 (legend); combining both filters narrows to 3
+  (archers × legend).
+- Added `@testing-library/user-event` as a new devDependency (was missing;
+  needed for `userEvent.setup()` + `selectOptions` in the new tests).
+- Verified: `npx jest app/collection` → 4/4 pass.
 
-### Step 8 — Duel arena page — ⬜ NOT STARTED
+### Step 8 — Duel arena page — ✅ DONE
 
-- `app/arena/page.tsx`:
-  - Two card pickers (dropdowns or searchable lists) — any two templates
-    from the catalog, including picking the same template for both sides.
-  - "Fight" button: calls `resolveDuelWithBreakdown` (from
-    `lib/cards/combat.ts`) after applying `applyRank` to both picked
-    templates' `baseStats`.
-  - Displays the full breakdown: both sides' `atk`, `dmgDealt`, `ttk`
-    values, and the final `winner` — the whole point is making the
-    reasoning visible (spec §8), not just showing a winner.
-- Light component test: selecting two specific templates and fighting
-  produces breakdown numbers matching what calling `resolveDuelWithBreakdown`
-  directly on those (rank-applied) stats would produce.
+- `app/arena/page.tsx` — client component:
+  - Two `<select>` card pickers ("Útočník"/"Obránce"), each listing all 248
+    templates as `"{name} — {unitTypeLabel} ({rankLabel})"`; picking the
+    same template on both sides is allowed (no restriction).
+  - "Souboj!" button: applies `applyRank` to both picked templates'
+    `baseStats`, then calls `resolveDuelWithBreakdown` from
+    `lib/cards/combat.ts`.
+  - Displays a two-column breakdown (`SideResult` sub-component): ATK / DMG
+    / TTK for both attacker and defender, with the winning side highlighted
+    (amber border/background + "VÍTĚZ" label). `TTK=Infinity` renders as
+    "∞"; finite values are `.toFixed(2)`.
+  - Changing either select clears the previous result (`setResult(null)`)
+    so stale breakdown numbers are never shown for a different matchup.
+- `app/arena/page.test.tsx` — 2 RTL tests, both passing: (1) picks
+  `archers-common-01` ("Práčata", str=1/lng≈8.7→9/def≈2.2→2/hp=4) vs.
+  `spearmen-common-01` ("Rolníci s kopím", str≈4.3→4/lng=1/def=7/hp≈4.7→5),
+  clicks fight, and asserts the exact expected numbers (attacker atk=9,
+  dmg=2, ttk=2.50; defender atk=4, dmg=2, ttk=2.00; **defender wins**
+  since 2.00 < 2.50) — this doubles as a regression check on the
+  `resolveDuelWithBreakdown` math itself, wired through real catalog data;
+  (2) no "VÍTĚZ" text is present before fighting.
+- Verified: `npx jest app/arena` → 2/2 pass.
 
-### Step 9 — Final verification — ⬜ NOT STARTED
+### Step 9 — Final verification — ✅ DONE
 
-- `npm run build` (production build, no type errors).
-- `npm test` (full suite green — should be 24+ tests once steps 7-8 add
-  their own).
-- Manual smoke check: `npm run dev`, open `/collection` and `/arena` in a
-  browser, confirm filtering and a duel both work end-to-end. **This is the
-  first point at which there's anything to actually show/try in a
-  browser** — mention this explicitly to the user once reached, since they
-  asked earlier "je možné už něco vyzkoušet?" and were told "not yet, after
-  the arena page."
+- `npm test` (full suite): **30/30 pass** across 4 test files
+  (`combat.test.ts`, `catalog.test.ts`, `app/collection/page.test.tsx`,
+  `app/arena/page.test.tsx`).
+- `npx tsc --noEmit`: clean, no errors.
+- `npm run build`: initially **failed** on pre-existing ESLint errors
+  surfaced by the Next.js build's lint step (not caused by the new pages):
+  - `lib/cards/catalog.test.ts` had 4× `@typescript-eslint/no-require-imports`
+    errors on the `require('./catalog')` fresh-reimport-after-
+    `jest.resetModules()` pattern — fixed with targeted
+    `// eslint-disable-next-line` comments (the pattern itself is correct
+    and needed; only the lint rule needed a documented exception).
+  - `lib/cards/combat.test.ts` had an unused `spearman` variable (dead
+    leftover from an earlier edit where `fragileSpearman` replaced it as
+    the actually-used fixture) — removed.
+  - After both fixes: `npm run build` **succeeds cleanly** — 3 routes
+    prerendered as static content (`/`, `/collection` @ 1.32 kB,
+    `/arena` @ 1.52 kB), no lint/type errors.
+- Manual smoke check: started `npm run dev` (detached background process),
+  confirmed HTTP 200 from `/`, `/collection`, and `/arena` via
+  `Invoke-WebRequest`. **This is the first point where the app is actually
+  viewable in a browser** — `http://localhost:3000` (home page with links),
+  `http://localhost:3000/collection`, `http://localhost:3000/arena`.
+- Also rewrote `app/page.tsx` (previously the default create-next-app
+  boilerplate) into an actual landing page: title, short description, and
+  two buttons linking to `/collection` and `/arena`. Updated
+  `app/layout.tsx` metadata (title/description) and forced a dark theme on
+  `<body>` (`bg-zinc-950 text-zinc-100`) so it's visually consistent with
+  the card-grid pages (which assume dark zinc/amber colors regardless of
+  OS light/dark preference).
 
 ## 5. Process/policy reminders (from the custom project instructions, not spec-specific)
 
