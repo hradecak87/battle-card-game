@@ -20,7 +20,7 @@ large for one spec** and was explicitly decomposed into independent specs,
 each with its own spec → plan → implementation cycle:
 
 1. **Card Collection & Combat Core** ← **✅ FULLY IMPLEMENTED AND VERIFIED** (all 9 plan steps done, 30/30 tests pass, `npm run build` clean, viewable at `/`, `/collection`, `/arena`)
-2. Players & Accounts (registration, nation classes/perks, XP/levels, matchmaking by level) ← **next up, not designed yet**
+2. Players & Accounts (registration, nation classes/perks, XP/levels, matchmaking by level) ← **spec approved & committed; data/logic layer implemented and tested; pages/auth wiring blocked on a Supabase project (see §7 below)**
 3. Territory Map (256×256 grid, occupation timers, castles/villages, troop transfers)
 4. Multi-army RTS Battle (real-time, both players online, timeouts, rest-area cooldowns, reuses subsystem #1's `resolveDuel` as its per-duel building block)
 5. Trading/Exchange (offer a card, others counter-offer with cards, accept/reject)
@@ -487,6 +487,47 @@ now finished and approved.
   `/collection` and `/mockup` use a `grid-cols-[repeat(auto-fill,minmax(170px,1fr))]`
   grid so cards never render narrower than 170px (the width the layout was
   tuned against for the worst-case 94-char flavor text).
+
+## 7. Subsystem #2: Players & Accounts — data/logic layer implemented
+
+Spec: `docs/superpowers/specs/2026-08-15-players-accounts-design.md` (passed
+the spec-review loop after several rounds of fixes — leveling formula,
+unsafe RLS, auth-sync trigger, nation enum, case-insensitive uniqueness
+indexes, coat-of-arms server-side validation, email-verification/reset flow,
+leaderboard filter — see the commit history around 2026-08-15 for the
+fix-by-fix detail). Plan: `docs/superpowers/plans/2026-08-15-players-accounts-plan.md`.
+
+**What's implemented and tested** (all pure, no backend needed):
+- `lib/players/nations.ts` — the 6 permanent nation choices + perk text
+  (data only; no combat/transfer/occupation code reads these yet, by
+  design — see spec §3.1).
+- `lib/players/leveling.ts` — `xpRequiredForLevel` / `levelForXp`.
+- `lib/players/matchmaking.ts` — `canPlayersFight` / `MAX_LEVEL_GAP = 3`.
+- `lib/players/coats-of-arms.tsx` — 21 hand-drawn SVG shield designs (a
+  shared `ShieldOutline` kite-shape wrapper + varied inner patterns per
+  entry); each shield uses `useId()` for its clipPath id specifically
+  because the onboarding gallery renders 20+ of these on one page at once,
+  and a shared hardcoded id would have collided.
+- `supabase/migrations/0001_players.sql` — the full schema from spec §2:
+  `nation_id` enum, `players` table, case-insensitive unique indexes, the
+  `auth.users` → `players` sync trigger, RLS (public select, no direct
+  update), and the three RPC functions (`complete_kingdom_onboarding`,
+  `update_kingdom`, `heartbeat`) plus a shared `is_valid_coat_of_arms_id`
+  helper. **Not yet applied to any real database** — no Supabase project
+  exists yet.
+
+**What's NOT done yet (blocked on a Supabase project)**: `/register`,
+`/login`, `/reset-password`, `/onboarding/kingdom`, `/profile/me`,
+`/profile/[id]`, `/leaderboard` (spec §7) — none of these pages/routes exist
+yet. Once the user provisions a free Supabase project and shares its URL +
+anon key, the next step is a short follow-up plan to actually run the
+migration and wire these pages up — the plan document above explicitly
+scoped this out as a separate, smaller plan since it can't be built or
+tested without those credentials.
+
+Verification done for this section: `npx jest lib/players` (all suites
+pass), `npx tsc --noEmit` (clean) — run after every file in this section was
+added.
   Current sizing (as of this addendum, tuned per direct user feedback —
   "2x", then dialed back to "150% of the original" — do not re-tune
   without a similar explicit request): name `text-[8.25cqw]`
