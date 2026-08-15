@@ -43,6 +43,12 @@ export default function Home() {
                 Můj profil
               </Link>
               <Link
+                href="/map"
+                className="rounded-full border border-zinc-600 hover:border-zinc-400 px-8 py-3 font-semibold transition-colors"
+              >
+                Mapa
+              </Link>
+              <Link
                 href="/leaderboard"
                 className="rounded-full border border-zinc-600 hover:border-zinc-400 px-8 py-3 font-semibold transition-colors"
               >

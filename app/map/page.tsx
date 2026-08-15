@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { getViewport, Territory } from '@/lib/territories/api'
+import { getMinimapOverview, getViewport, Territory } from '@/lib/territories/api'
 import MapViewport from '@/components/territories/MapViewport'
+import { useSession } from '@/lib/supabase/useSession'
 
 const VIEW_SIZE = 15
 const HALF = Math.floor(VIEW_SIZE / 2)
@@ -15,11 +16,13 @@ function clamp(value: number) {
 }
 
 export default function MapPage() {
+  const { user } = useSession()
   const [centerX, setCenterX] = useState(128)
   const [centerY, setCenterY] = useState(128)
   const [territories, setTerritories] = useState<Territory[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selectedTile, setSelectedTile] = useState<Territory | null>(null)
+  const [homeStatus, setHomeStatus] = useState<'idle' | 'searching' | 'not-found'>('idle')
 
   const loadViewport = useCallback((x: number, y: number) => {
     const x1 = clamp(x - HALF)
@@ -50,6 +53,23 @@ export default function MapPage() {
     setCenterY(clamp(y))
   }
 
+  async function handleFindHome() {
+    if (!user) return
+    setHomeStatus('searching')
+    const { data, error: rpcError } = await getMinimapOverview()
+    if (rpcError || !data) {
+      setHomeStatus('not-found')
+      return
+    }
+    const home = data.find((tile) => tile.owner_id === user.id)
+    if (!home) {
+      setHomeStatus('not-found')
+      return
+    }
+    setHomeStatus('idle')
+    handleJump(home.x, home.y)
+  }
+
   return (
     <main className="min-h-screen p-8 flex flex-col items-center gap-6">
       <div className="w-full max-w-4xl flex flex-col gap-4">
@@ -57,6 +77,23 @@ export default function MapPage() {
           ← Domů
         </Link>
         <h1 className="text-2xl font-bold text-center">Mapa království</h1>
+
+        {user && (
+          <div className="flex flex-col items-center gap-1">
+            <button
+              onClick={handleFindHome}
+              disabled={homeStatus === 'searching'}
+              className="rounded-full border border-zinc-600 hover:border-zinc-400 px-6 py-2 text-sm font-semibold transition-colors disabled:opacity-50"
+            >
+              {homeStatus === 'searching' ? 'Hledám…' : '🏠 Moje domovské území'}
+            </button>
+            {homeStatus === 'not-found' && (
+              <p className="text-xs text-red-400">
+                Domovské území nenalezeno (možná ještě nemáš dokončený onboarding).
+              </p>
+            )}
+          </div>
+        )}
 
         {error && <p className="text-red-400 text-sm">{error}</p>}
 

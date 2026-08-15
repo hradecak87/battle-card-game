@@ -21,9 +21,15 @@ const getViewport = jest.fn().mockResolvedValue({
   data: [mockTerritory(128, 128, { is_home: true, owner_id: 'me' })],
   error: null,
 })
+const getMinimapOverview = jest.fn().mockResolvedValue({ data: [], error: null })
 
 jest.mock('@/lib/territories/api', () => ({
   getViewport: (...args: unknown[]) => getViewport(...args),
+  getMinimapOverview: (...args: unknown[]) => getMinimapOverview(...args),
+}))
+
+jest.mock('@/lib/supabase/useSession', () => ({
+  useSession: () => ({ user: null, player: null, loading: false }),
 }))
 
 describe('MapPage', () => {
