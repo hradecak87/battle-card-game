@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Battle Card Game V2
+
+A medieval card-collection and combat web game. Next.js 14 (App Router) +
+TypeScript + Tailwind, no backend/database yet — this is subsystem #1 of a
+larger planned game (see `docs/superpowers/PROGRESS.md` for the full context,
+decisions, and roadmap).
+
+## What's implemented so far
+
+**Subsystem #1 — Card Collection & Combat Core** (fully done):
+
+- A catalog of 248 unique card templates: 8 medieval unit types (archers,
+  crossbowmen, spearmen, swordsmen, halberdiers, knights, light cavalry,
+  siege engines) × 5 ranks (common/uncommon/rare/epic/legend), each with its
+  own honorific Czech name, flavor text, and stats.
+- A deterministic 1v1 duel resolution algorithm (`lib/cards/combat.ts`)
+  based on a time-to-kill "damage race" formula.
+- `/collection` — browse and filter the full card catalog.
+- `/arena` — pick two cards and resolve a duel, with the full attack/damage/
+  time-to-kill breakdown shown.
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see the landing page,
+or go directly to `/collection` or `/arena`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Testing
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm test        # full Jest + React Testing Library suite
+npx tsc --noEmit # type check
+npm run build    # production build (also lints)
+```
 
-## Learn More
+## Deploying
 
-To learn more about Next.js, take a look at the following resources:
+This is a plain Next.js app — it deploys to [Vercel](https://vercel.com) the
+same way as any other Next.js project (`vercel` CLI or connect the git repo
+in the Vercel dashboard). No environment variables or external services are
+required for this subsystem.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project docs
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `docs/superpowers/PROGRESS.md` — **source of truth**: full project
+  context, every design decision, the complete implementation plan with
+  status, and process/policy notes. Read this first when resuming work.
+- `docs/superpowers/specs/` — approved subsystem specs.
+- `docs/superpowers/plans/` — implementation plans.
