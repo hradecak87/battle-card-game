@@ -1,6 +1,11 @@
+'use client'
+
 import Link from 'next/link'
+import { useSession } from '@/lib/supabase/useSession'
 
 export default function Home() {
+  const { user, loading } = useSession()
+
   return (
     <main className="min-h-screen flex flex-col items-center justify-center gap-10 p-8 text-center">
       <div>
@@ -27,7 +32,50 @@ export default function Home() {
         </Link>
       </div>
 
+      {!loading && (
+        <div className="flex flex-col sm:flex-row gap-4">
+          {user ? (
+            <>
+              <Link
+                href="/profile/me"
+                className="rounded-full border border-zinc-600 hover:border-zinc-400 px-8 py-3 font-semibold transition-colors"
+              >
+                Můj profil
+              </Link>
+              <Link
+                href="/leaderboard"
+                className="rounded-full border border-zinc-600 hover:border-zinc-400 px-8 py-3 font-semibold transition-colors"
+              >
+                Žebříček
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="rounded-full border border-zinc-600 hover:border-zinc-400 px-8 py-3 font-semibold transition-colors"
+              >
+                Přihlásit se
+              </Link>
+              <Link
+                href="/register"
+                className="rounded-full border border-zinc-600 hover:border-zinc-400 px-8 py-3 font-semibold transition-colors"
+              >
+                Založit království
+              </Link>
+              <Link
+                href="/leaderboard"
+                className="rounded-full border border-zinc-600 hover:border-zinc-400 px-8 py-3 font-semibold transition-colors"
+              >
+                Žebříček
+              </Link>
+            </>
+          )}
+        </div>
+      )}
+
       <p className="text-xs text-zinc-600">248 karet · 8 typů vojsk · 5 ranků</p>
     </main>
   )
 }
+
