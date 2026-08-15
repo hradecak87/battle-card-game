@@ -75,7 +75,28 @@ insert into territories (x, y, difficulty) values (300, 300, 1);
 delete from territories where id = 1;
 
 -- ---------------------------------------------------------------------
--- 5. Cleanup (run after verifying, to leave the scratch project tidy).
+-- 6. Mutating RPC rejection paths (Task 6). Run authenticated as a real
+--    test player (so auth.uid() resolves), substituting real ids.
+-- ---------------------------------------------------------------------
+
+-- Expect: FAILS with 'destination territory is not available to claim'
+-- (destination already locked/owned — pick a territory id you know is).
+select start_claim(:origin_id, :already_locked_destination_id, array[:card_instance_id]::uuid[]);
+
+-- Expect: FAILS with 'caller does not own destination_territory_id (use
+-- start_claim instead)' (destination not owned by the caller).
+select start_transfer(:origin_id, :not_my_destination_id, array[:card_instance_id]::uuid[]);
+
+-- Expect: FAILS with 'caller is not the current claimant of this territory'
+-- (call from a different player than the one who started the claim).
+select cancel_claim(:someone_elses_claimed_territory_id);
+
+-- Expect: FAILS with 'territory already has a castle structure' (or
+-- 'village', matching whichever category card_instance_id is).
+select build_structure(:territory_id_with_existing_structure, :structure_card_instance_id);
+
+-- ---------------------------------------------------------------------
+-- 7. Cleanup (run after verifying, to leave the scratch project tidy).
 -- ---------------------------------------------------------------------
 -- reset role; -- if you used `set role anon` above
 delete from card_templates where id in

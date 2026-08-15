@@ -236,3 +236,334 @@ begin
       and status in ('in_transit', 'occupying');
 end;
 $$;
+
+-- ---------------------------------------------------------------------
+-- 8. army_power() helper — sums rank-scaled str+lng+def+hp for a set of
+--    card_instances, mirroring lib/cards/combat.ts's applyRank/
+--    RANK_MULTIPLIER exactly (spec §9.1). Internal helper for the
+--    mutating RPCs below, not itself exposed as public API.
+-- ---------------------------------------------------------------------
+create or replace function _army_power(instance_ids uuid[])
+returns numeric
+language sql
+security definer
+as $$
+  select coalesce(sum(
+    greatest(0, round((ct.base_stats->>'str')::numeric *
+      case ct.rank when 'common' then 1.0 when 'uncommon' then 1.15
+        when 'rare' then 1.35 when 'epic' then 1.6 when 'legend' then 2.0 end)) +
+    greatest(0, round((ct.base_stats->>'lng')::numeric *
+      case ct.rank when 'common' then 1.0 when 'uncommon' then 1.15
+        when 'rare' then 1.35 when 'epic' then 1.6 when 'legend' then 2.0 end)) +
+    greatest(0, round((ct.base_stats->>'def')::numeric *
+      case ct.rank when 'common' then 1.0 when 'uncommon' then 1.15
+        when 'rare' then 1.35 when 'epic' then 1.6 when 'legend' then 2.0 end)) +
+    greatest(0, round((ct.base_stats->>'hp')::numeric *
+      case ct.rank when 'common' then 1.0 when 'uncommon' then 1.15
+        when 'rare' then 1.35 when 'epic' then 1.6 when 'legend' then 2.0 end))
+  ), 0)
+  from card_instances ci
+  join card_templates ct on ct.id = ci.template_id
+  where ci.instance_id = any(instance_ids);
+$$;
+
+-- ---------------------------------------------------------------------
+-- 9. Mutating RPCs (§6, §7, §8, §11). Each calls resolve_due_movements()
+--    first (§3), then re-checks every invariant server-side.
+-- ---------------------------------------------------------------------
+create or replace function start_claim(
+  origin_territory_id integer,
+  destination_territory_id integer,
+  card_instance_ids uuid[]
+)
+returns void
+language plpgsql
+security definer
+as $$
+declare
+  caller uuid := auth.uid();
+  caller_nation nation_id;
+  origin_x smallint; origin_y smallint;
+  dest_x smallint; dest_y smallint;
+  dest_difficulty smallint;
+  dest_owner uuid; dest_locked_by uuid;
+  distance numeric;
+  power numeric;
+  difficulty_mult numeric;
+  transfer_hrs numeric;
+  occupation_hrs numeric;
+  effective_count integer;
+  matching_count integer;
+  arrives_at timestamptz;
+  occupies_at timestamptz;
+  movement_id uuid;
+begin
+  perform resolve_due_movements();
+
+  if card_instance_ids is null or array_length(card_instance_ids, 1) is null then
+    raise exception 'card_instance_ids must be non-empty';
+  end if;
+
+  select nation into caller_nation from players where id = caller;
+
+  select x, y into origin_x, origin_y
+  from territories where id = origin_territory_id and owner_id = caller;
+  if not found then
+    raise exception 'caller does not own origin_territory_id';
+  end if;
+
+  select x, y, difficulty, owner_id, claim_locked_by
+  into dest_x, dest_y, dest_difficulty, dest_owner, dest_locked_by
+  from territories where id = destination_territory_id;
+  if dest_owner is not null or dest_locked_by is not null then
+    raise exception 'destination territory is not available to claim';
+  end if;
+
+  select count(*) into effective_count
+  from territories where owner_id = caller or claim_locked_by = caller;
+  if effective_count >= 32 then
+    raise exception 'territory ownership cap (32) reached';
+  end if;
+
+  select count(*) into matching_count
+  from card_instances ci
+  join card_templates ct on ct.id = ci.template_id
+  where ci.instance_id = any(card_instance_ids)
+    and ci.owner_id = caller
+    and ci.stationed_territory_id = origin_territory_id
+    and ci.status = 'stationed'
+    and ct.category = 'unit';
+  if matching_count <> array_length(card_instance_ids, 1) then
+    raise exception 'one or more card instances are not eligible to send';
+  end if;
+
+  distance := greatest(abs(dest_x - origin_x), abs(dest_y - origin_y));
+  power := _army_power(card_instance_ids);
+  difficulty_mult := case dest_difficulty
+    when 1 then 1.0 when 2 then 1.5 when 3 then 2.25 when 4 then 3.4 when 5 then 5.0 end;
+
+  transfer_hrs := greatest(0.25, distance * 0.3)
+    * (case when caller_nation = 'mongol_horde' then 0.75 else 1.0 end);
+  occupation_hrs := greatest(10, (150 * difficulty_mult) / sqrt(power))
+    * (case when caller_nation = 'scandinavia' then 0.8 else 1.0 end);
+
+  -- Row-lock the destination and re-verify immediately before writing.
+  perform id from territories
+  where id = destination_territory_id and owner_id is null and claim_locked_by is null
+  for update;
+  if not found then
+    raise exception 'destination territory is not available to claim';
+  end if;
+
+  -- Row-lock the selected instances and re-verify immediately before writing.
+  perform instance_id from card_instances
+  where instance_id = any(card_instance_ids)
+    and owner_id = caller
+    and stationed_territory_id = origin_territory_id
+    and status = 'stationed'
+  for update;
+  if not found then
+    raise exception 'one or more card instances are not eligible to send';
+  end if;
+
+  arrives_at := now() + (transfer_hrs || ' hours')::interval;
+  occupies_at := arrives_at + (occupation_hrs || ' hours')::interval;
+
+  update territories
+  set claim_locked_by = caller,
+      claim_started_at = now(),
+      claim_transfer_arrives_at = arrives_at,
+      claim_occupation_completes_at = occupies_at
+  where id = destination_territory_id;
+
+  insert into troop_movements
+    (player_id, kind, origin_territory_id, destination_territory_id, transfer_arrives_at)
+  values (caller, 'claim', origin_territory_id, destination_territory_id, arrives_at)
+  returning id into movement_id;
+
+  insert into troop_movement_units (movement_id, card_instance_id)
+  select movement_id, unnest(card_instance_ids);
+
+  update card_instances
+  set status = 'in_transit'
+  where instance_id = any(card_instance_ids);
+end;
+$$;
+
+create or replace function start_transfer(
+  origin_territory_id integer,
+  destination_territory_id integer,
+  card_instance_ids uuid[]
+)
+returns void
+language plpgsql
+security definer
+as $$
+declare
+  caller uuid := auth.uid();
+  caller_nation nation_id;
+  origin_x smallint; origin_y smallint;
+  dest_x smallint; dest_y smallint;
+  distance numeric;
+  transfer_hrs numeric;
+  matching_count integer;
+  arrives_at timestamptz;
+  movement_id uuid;
+begin
+  perform resolve_due_movements();
+
+  if card_instance_ids is null or array_length(card_instance_ids, 1) is null then
+    raise exception 'card_instance_ids must be non-empty';
+  end if;
+
+  select nation into caller_nation from players where id = caller;
+
+  select x, y into origin_x, origin_y
+  from territories where id = origin_territory_id and owner_id = caller;
+  if not found then
+    raise exception 'caller does not own origin_territory_id';
+  end if;
+
+  select x, y into dest_x, dest_y
+  from territories where id = destination_territory_id and owner_id = caller;
+  if not found then
+    raise exception 'caller does not own destination_territory_id (use start_claim instead)';
+  end if;
+
+  select count(*) into matching_count
+  from card_instances ci
+  join card_templates ct on ct.id = ci.template_id
+  where ci.instance_id = any(card_instance_ids)
+    and ci.owner_id = caller
+    and ci.stationed_territory_id = origin_territory_id
+    and ci.status = 'stationed'
+    and ct.category = 'unit';
+  if matching_count <> array_length(card_instance_ids, 1) then
+    raise exception 'one or more card instances are not eligible to send';
+  end if;
+
+  distance := greatest(abs(dest_x - origin_x), abs(dest_y - origin_y));
+  transfer_hrs := greatest(0.25, distance * 0.3)
+    * (case when caller_nation = 'mongol_horde' then 0.75 else 1.0 end);
+
+  -- Row-lock the selected instances and re-verify immediately before writing.
+  perform instance_id from card_instances
+  where instance_id = any(card_instance_ids)
+    and owner_id = caller
+    and stationed_territory_id = origin_territory_id
+    and status = 'stationed'
+  for update;
+  if not found then
+    raise exception 'one or more card instances are not eligible to send';
+  end if;
+
+  arrives_at := now() + (transfer_hrs || ' hours')::interval;
+
+  insert into troop_movements
+    (player_id, kind, origin_territory_id, destination_territory_id, transfer_arrives_at)
+  values (caller, 'transfer', origin_territory_id, destination_territory_id, arrives_at)
+  returning id into movement_id;
+
+  insert into troop_movement_units (movement_id, card_instance_id)
+  select movement_id, unnest(card_instance_ids);
+
+  update card_instances
+  set status = 'in_transit'
+  where instance_id = any(card_instance_ids);
+end;
+$$;
+
+create or replace function cancel_claim(territory_id integer)
+returns void
+language plpgsql
+security definer
+as $$
+declare
+  caller uuid := auth.uid();
+  origin_id integer;
+  movement_id uuid;
+begin
+  perform resolve_due_movements();
+
+  perform id from territories where id = territory_id and claim_locked_by = caller;
+  if not found then
+    raise exception 'caller is not the current claimant of this territory';
+  end if;
+
+  select tm.id, tm.origin_territory_id into movement_id, origin_id
+  from troop_movements tm
+  where tm.destination_territory_id = territory_id
+    and tm.kind = 'claim'
+    and tm.status in ('in_transit', 'occupying')
+  order by tm.started_at desc
+  limit 1;
+  if movement_id is null then
+    raise exception 'no active claim movement found for this territory';
+  end if;
+
+  update troop_movements
+  set status = 'cancelled', cancelled_at = now()
+  where id = movement_id;
+
+  update card_instances
+  set status = 'stationed', stationed_territory_id = origin_id
+  where instance_id in (
+    select tmu.card_instance_id from troop_movement_units tmu where tmu.movement_id = movement_id
+  );
+
+  update territories
+  set claim_locked_by = null,
+      claim_started_at = null,
+      claim_transfer_arrives_at = null,
+      claim_occupation_completes_at = null
+  where id = territory_id;
+end;
+$$;
+
+create or replace function build_structure(territory_id integer, card_instance_id uuid)
+returns void
+language plpgsql
+security definer
+as $$
+declare
+  caller uuid := auth.uid();
+  tmpl_category text;
+  tmpl_rank text;
+  existing_rank text;
+begin
+  perform resolve_due_movements();
+
+  perform id from territories where id = territory_id and owner_id = caller;
+  if not found then
+    raise exception 'caller does not own this territory';
+  end if;
+
+  select ct.category, ct.rank into tmpl_category, tmpl_rank
+  from card_instances ci
+  join card_templates ct on ct.id = ci.template_id
+  where ci.instance_id = card_instance_id and ci.owner_id = caller;
+  if not found then
+    raise exception 'caller does not own this card instance';
+  end if;
+  if tmpl_category not in ('castle', 'village') then
+    raise exception 'card instance is not a Castle/Village structure card';
+  end if;
+
+  if tmpl_category = 'castle' then
+    select castle_rank into existing_rank from territories where id = territory_id;
+  else
+    select village_rank into existing_rank from territories where id = territory_id;
+  end if;
+  if existing_rank is not null then
+    raise exception 'territory already has a % structure', tmpl_category;
+  end if;
+
+  if tmpl_category = 'castle' then
+    update territories set castle_rank = tmpl_rank where id = territory_id;
+  else
+    update territories set village_rank = tmpl_rank where id = territory_id;
+  end if;
+
+  delete from card_instances where instance_id = card_instance_id;
+end;
+$$;
