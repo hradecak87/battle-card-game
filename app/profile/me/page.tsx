@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSession } from '@/lib/supabase/useSession'
 import { supabase } from '@/lib/supabase/client'
@@ -37,9 +38,28 @@ export default function ProfileMePage() {
     return { error: error?.message ?? null }
   }
 
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    router.push('/')
+  }
+
   return (
-    <main className="min-h-screen flex items-center justify-center p-8">
+    <main className="min-h-screen flex flex-col items-center gap-6 p-8">
+      <nav className="w-full max-w-xl flex justify-between items-center text-sm">
+        <Link href="/" className="underline text-zinc-400 hover:text-zinc-200">
+          ← Domů
+        </Link>
+        <div className="flex gap-4">
+          <Link href="/leaderboard" className="underline text-zinc-400 hover:text-zinc-200">
+            Žebříček
+          </Link>
+          <button type="button" onClick={handleLogout} className="underline text-zinc-400 hover:text-zinc-200">
+            Odhlásit se
+          </button>
+        </div>
+      </nav>
       <PlayerProfileCard player={player} editable onUpdateKingdom={handleUpdateKingdom} />
     </main>
   )
 }
+

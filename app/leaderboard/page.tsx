@@ -37,8 +37,11 @@ export default function LeaderboardPage() {
   }, [])
 
   return (
-    <main className="min-h-screen p-8 flex flex-col items-center">
+    <main className="min-h-screen p-8 flex flex-col items-center gap-6">
       <div className="w-full max-w-2xl">
+        <Link href="/" className="underline text-sm text-zinc-400 hover:text-zinc-200">
+          ← Domů
+        </Link>
         <h1 className="text-2xl font-bold mb-6 text-center">Žebříček</h1>
         {players === null ? (
           <p className="text-zinc-400 text-center">Načítám…</p>
