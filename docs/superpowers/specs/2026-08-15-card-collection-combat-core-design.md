@@ -40,11 +40,13 @@ interface CardTemplate {
 }
 ```
 
-`effectiveStats = baseStats × rankMultiplier` (see §3). The ±10% flavor variance is
-applied once, at content-generation time, and baked into `baseStats` — it is not
-re-rolled per instance, so every physical copy of "Nejostřejší šípy" has identical
-stats (the variance differentiates *named variants within the same rank*, not
-individual copies of the same variant).
+`effectiveStats = round(baseStats × rankMultiplier)`, each of the 4 attributes
+rounded to the nearest integer and clamped to a minimum of 0 (see §6 for the
+exact formula, shared verbatim with the `applyRank` helper in §9). The ±10%
+flavor variance is applied once, at content-authoring time, and baked into
+`baseStats` — it is not re-rolled per instance, so every physical copy of
+"Nejostřejší šípy" has identical stats (the variance differentiates *named
+variants within the same rank*, not individual copies of the same variant).
 
 ### Card Instance (an ownable, individual copy)
 
@@ -65,8 +67,8 @@ destroyed" rule).
 
 ## 3. Ranks and Scaling
 
-Rank is a **mild multiplier** — it matters, but deliberate matchups/type
-counters (per §5) matter more than raw rarity:
+Rank is a **mild multiplier** — it matters, but which stats a card has (its
+unit type, per §5) has a bigger effect on duel outcomes than raw rarity:
 
 | Rank | Multiplier |
 |---|---|
@@ -81,27 +83,42 @@ multiplier identically — rank does not favor one attribute over another.
 
 ## 4. Rarity / Supply Model
 
-- **Common / Uncommon**: unlimited supply. These are earned freely and form the
-  bulk of any player's army; they are never a bottleneck.
-- **Rare / Epic / Legend**: fixed total supply (`totalSupply` on the template),
-  e.g. Rare ~20-50 copies, Epic ~5-15, Legend ~1-5 (exact numbers set per
-  template at content-authoring time, not hardcoded globally).
-- **New instances only enter the game via an admin minting action.** There is
-  no automatic algorithmic minting. The game reward system (battles, XP
-  milestones, daily challenges — designed in later specs) draws from
-  already-minted, currently-unclaimed instances (`ownerId === null`); if none
-  are available for a given template, that card simply cannot be won until an
-  admin mints more (which may be never, for the scarcest legends).
-- The collection UI shows `X / totalSupply` for capped ranks (e.g. "2 / 3
-  exist") so scarcity is visible and meaningful to players.
+`totalSupply` on a `CardTemplate` is a **content-authored cap** — part of the
+catalog data itself (see §6), not something minted or computed at runtime. It
+answers "how many copies of this card can ever exist," and is fixed when the
+template is authored:
+
+- **Common / Uncommon**: `totalSupply = null` (uncapped). These are earned
+  freely and form the bulk of any player's army; they are never a bottleneck.
+- **Rare / Epic / Legend**: `totalSupply` is a concrete positive number chosen
+  per template within its rank's fixed range — Rare: 20-50 (inclusive), Epic:
+  5-15 (inclusive), Legend: 1-5 (inclusive) — fixed at catalog-authoring time
+  and never changed afterward.
+
+Separate from the cap is `mintedCount` — how many `CardInstance`s of that
+template **actually exist right now** (i.e. how many times an admin has
+minted one). `mintedCount` starts at 0 for every template and can never exceed
+`totalSupply`. **New instances only enter the game via an admin minting
+action** — there is no automatic algorithmic minting. The game reward system
+(battles, XP milestones, daily challenges — designed in later specs) draws
+from already-minted, currently-unclaimed instances (`ownerId === null`); if
+none are available (either none minted yet, or all minted copies are owned),
+that card simply cannot be won until an admin mints more, up to `totalSupply`
+(which may never happen, for the scarcest legends).
+
+The collection UI shows `mintedCount / totalSupply` for capped ranks (e.g.
+"2 / 3 exist") so scarcity is visible. In the demo scope (§8), which has no
+persistence layer for instances, `mintedCount` is not tracked live — the demo
+only displays the static `totalSupply` cap from the catalog data as
+informational rarity context, not a live claimed-count.
 
 This minting mechanism and reward-distribution logic (*how* a battle win
 selects and grants an instance) is defined here only at the data-model level;
 the actual trigger logic belongs to the Players/XP and Battle specs.
 
-## 5. Unit Types (base stats, 1-10 scale, pre-rank-multiplier)
+## 5. Unit Types (base stats, 0-10 scale, pre-rank-multiplier, before flavor variance)
 
-| Unit Type | STR (melee) | LNG (ranged) | DEF | HP | Role |
+| Unit Type | STR (melee) | LNG (ranged) | DEF | HP | Role (descriptive only) |
 |---|---|---|---|---|---|
 | Archers (Lučištníci) | 1 | 8 | 2 | 4 | Glass-cannon ranged |
 | Crossbowmen (Kušištníci) | 1 | 7 | 5 | 4 | Slower-firing but better shielded ranged |
@@ -111,6 +128,22 @@ the actual trigger logic belongs to the Players/XP and Battle specs.
 | Knights/Cavalry (Rytíři) | 8 | 1 | 5 | 7 | Heavy melee spearhead |
 | Light Cavalry (Lehká jízda) | 5 | 4 | 2 | 4 | Flexible hybrid, fragile |
 | Siege Engines (Obléhací stroje) | 0 | 10 | 1 | 3 | Extreme ranged, dies to anything in melee |
+
+This table is the **unvaried baseline** used as the starting point for each
+unit type's authored variants (§6); it is a design guideline, not a hard
+validation bound — an individual template's authored `baseStats` (baseline
+± the variant's flavor variance) may fall slightly outside 0-10 (e.g. a
+variance-boosted Siege Engine's `lng` could exceed 10). The only hard rule
+(enforced in §10) is that no stat is negative; there is no upper clamp.
+
+The "Role" column is flavor/descriptive context for content authoring (§6) —
+it does not correspond to any special mechanical rule. There is no
+type-vs-type counter table or bonus/penalty system; e.g. "anti-cavalry" for
+Spearmen simply describes that their high DEF happens to make them
+statistically strong against Knights under the formula in §7, not a hardcoded
+rule that spearmen deal bonus damage to cavalry specifically. All matchup
+outcomes emerge purely from the four raw stats via `resolveDuel` — there is no
+separate counter/bonus system to implement.
 
 ## 6. Named Variants & Content Generation
 
@@ -128,15 +161,44 @@ Total: 31 variants × 8 unit types = **248 unique card templates**.
 
 Naming follows a "common folk → legendary named individuals" progression per
 type (e.g. Archers: common "Práčata", uncommon "Královští střelci", rare
-"Sokolí oko", epic "Vlčí luk", legend "Nejostřejší šípy"). Each variant within
-a rank gets a fixed ±10% stat variance from the unit type's base stats (see
-§2) so same-rank cards aren't stat-identical, plus a unique flavor text line.
+"Sokolí oko", epic "Vlčí luk", legend "Nejostřejší šípy").
 
-The full 248-card list is generated programmatically from this ruleset as a
-content data file (`lib/cards/catalog.ts` or a generated JSON) during
-implementation — not hand-authored card-by-card in this spec.
+**What's rule-based vs. hand-authored:** the *structure* (how many variants
+per rank, per unit type; the rank multiplier; the `totalSupply` range per
+rank) is defined by the rules above and can be validated/enforced
+programmatically. The actual *content* of each of the 248 templates — its
+name, flavor text, and exact `totalSupply` value within its rank's range — is
+hand-authored (by a content designer, or an LLM-assisted authoring pass
+following this spec's naming pattern) and stored as static data, e.g.
+`lib/cards/catalog-data.json`. `lib/cards/catalog.ts` loads this data and
+applies the deterministic, programmatic parts:
+
+- **ID**: `{unitType}-{rank}-{two-digit index}`, e.g. `archers-common-03`,
+  index assigned in the order variants appear in the data file for that
+  unit type + rank pair.
+- **Flavor variance**: each template's `baseStats` in the data file already
+  includes its fixed ±10% variance from the unit type's table values (§5) —
+  this is baked into the authored data once, not re-computed at load time, so
+  variance never changes between runs.
+- **Effective stats at combat/display time**: `effectiveStats = round(baseStats × rankMultiplier)`,
+  each of the 4 attributes rounded to the nearest integer and clamped to a
+  minimum of 0.
+
+A catalog-validation test (§10) checks the data file matches the structural
+rules (counts per rank/type, unique IDs and names, `totalSupply` within its
+rank's range) so authored content can't silently drift from this spec.
 
 ## 7. Duel Resolution Algorithm
+
+```ts
+interface EffectiveCard {
+  str: number
+  lng: number
+  def: number
+  hp: number
+} // a template's baseStats after applyRank() (§3) has been applied — the
+  // post-rank-multiplier, post-rounding numbers actually used in combat
+```
 
 A single deterministic formula, no round-by-round simulation:
 
@@ -179,8 +241,11 @@ this function once per individual duel.
 A Next.js page set with no backend, no accounts, no persistence beyond
 `localStorage` (matching the previous project's MVP approach):
 
-- **Collection browser**: list/filter all 248 templates by unit type, rank,
-  and rarity; show `X / totalSupply` for capped ranks.
+- **Collection browser**: list/filter all 248 templates by unit type and
+  rank; show each template's `totalSupply` (or "unlimited" for common/uncommon)
+  as static rarity context read directly from the catalog data — the demo has
+  no instance persistence, so it never shows a live "claimed" count, only the
+  cap.
 - **Duel arena**: pick any two cards, run `resolveDuel`, and show a
   step-by-step breakdown of the calculation (atk, dmg, ttk for both sides) so
   the reasoning behind the outcome is visible — this is the primary tool for
@@ -203,9 +268,17 @@ Consistent with the previous Napoleonic card game project:
 ### Module Boundaries
 
 - `lib/cards/types.ts` — `CardTemplate`, `CardInstance`, `UnitType`, `Rank` types.
-- `lib/cards/catalog.ts` — generates the 248 `CardTemplate` entries from the
-  unit-type table (§5) and naming/variance rules (§6). Pure, deterministic
-  (seeded), no I/O.
+- `lib/cards/catalog-data.json` — the 248 hand-authored card templates (name,
+  flavor text, baseStats incl. baked-in variance, totalSupply), following the
+  structural rules in §6.
+- `lib/cards/catalog.ts` — loads `catalog-data.json`, validates it against the
+  structural rules (§6, §10), and exposes typed accessors (`getAllTemplates()`,
+  `getTemplatesByType()`, etc.). No content generation logic lives here —
+  content is static data; this module only loads/validates/queries it.
+  Validation runs once at module load (import time); if the data fails
+  validation (wrong counts, duplicate IDs/names, out-of-range `totalSupply`),
+  the module throws synchronously so the failure surfaces immediately at
+  build/test time rather than silently serving bad data to the UI.
 - `lib/cards/combat.ts` — `resolveDuel` (§7) and the effective-stats helper
   (`applyRank(baseStats, rank) => effectiveStats`). Pure functions.
 - `app/collection/*` — collection browser page, reads `catalog.ts` directly.
@@ -219,9 +292,10 @@ Jest unit tests in `lib/cards/`:
 - `resolveDuel`: decisive wins in both directions, the archer-vs-spearman
   scenario explicitly, zero-damage/infinite-TTK cases, tie-break (equal TTK →
   defender wins, mutual-infinite → defender wins).
-- Catalog generation: exactly 248 templates, correct counts per rank per unit
-  type, unique IDs/names, `totalSupply` set correctly (null for common/uncommon,
-  a positive number for rare/epic/legend).
+- Catalog data validation: exactly 248 templates, correct counts per rank per
+  unit type, unique IDs/names, `totalSupply` set correctly (null for
+  common/uncommon, a positive number within its rank's target range for
+  rare/epic/legend), and no template has a negative `baseStats` value.
 
 Light component tests for the collection filter and arena breakdown display;
 no e2e tests required for this demo-only deliverable.
