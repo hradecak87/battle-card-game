@@ -117,3 +117,122 @@ create policy card_instances_select_all on card_instances for select using (true
 create policy territories_select_all on territories for select using (true);
 create policy troop_movements_select_all on troop_movements for select using (true);
 create policy troop_movement_units_select_all on troop_movement_units for select using (true);
+
+-- ---------------------------------------------------------------------
+-- 6. resolve_due_movements() — lazy resolution (§3). Called at the top of
+--    every RPC below, both reads and mutations, so no cron job is needed.
+-- ---------------------------------------------------------------------
+create or replace function resolve_due_movements()
+returns void
+language plpgsql
+security definer
+as $$
+begin
+  -- Step 1: transfer/claim arrival. For 'transfer', complete the trip
+  -- outright. For 'claim', flip to 'occupying' — its
+  -- claim_occupation_completes_at was already precomputed at claim-start.
+  update card_instances ci
+  set stationed_territory_id = tm.destination_territory_id,
+      status = 'stationed'
+  from troop_movements tm
+  where tm.status = 'in_transit'
+    and tm.transfer_arrives_at <= now()
+    and ci.instance_id in (
+      select tmu.card_instance_id from troop_movement_units tmu
+      where tmu.movement_id = tm.id
+    );
+
+  update troop_movements
+  set status = 'completed'
+  where status = 'in_transit'
+    and transfer_arrives_at <= now()
+    and kind = 'transfer';
+
+  update troop_movements
+  set status = 'occupying'
+  where status = 'in_transit'
+    and transfer_arrives_at <= now()
+    and kind = 'claim';
+
+  -- Step 2: occupation completion. Flip ownership, clear the claim lock,
+  -- and complete the corresponding troop_movements row.
+  update troop_movements tm
+  set status = 'completed'
+  from territories t
+  where tm.kind = 'claim'
+    and tm.status = 'occupying'
+    and tm.destination_territory_id = t.id
+    and t.claim_occupation_completes_at <= now()
+    and t.claim_locked_by is not null;
+
+  update territories
+  set owner_id = claim_locked_by,
+      claim_locked_by = null,
+      claim_started_at = null,
+      claim_transfer_arrives_at = null,
+      claim_occupation_completes_at = null
+  where claim_occupation_completes_at <= now()
+    and claim_locked_by is not null;
+end;
+$$;
+
+-- ---------------------------------------------------------------------
+-- 7. Read RPCs (§3, §9.2). Plain reads gated by the RLS read-all policies
+--    above — not `security definer` themselves, but they call
+--    resolve_due_movements(), which is.
+-- ---------------------------------------------------------------------
+create or replace function get_viewport(x1 smallint, y1 smallint, x2 smallint, y2 smallint)
+returns setof territories
+language plpgsql
+as $$
+begin
+  perform resolve_due_movements();
+  return query
+    select * from territories
+    where x between x1 and x2 and y between y1 and y2;
+end;
+$$;
+
+create or replace function get_minimap_overview()
+returns table (
+  x smallint,
+  y smallint,
+  owner_id uuid,
+  castle_rank text,
+  village_rank text,
+  claim_locked_by uuid
+)
+language plpgsql
+as $$
+begin
+  perform resolve_due_movements();
+  return query
+    select t.x, t.y, t.owner_id, t.castle_rank, t.village_rank, t.claim_locked_by
+    from territories t
+    where t.owner_id is not null or t.castle_rank is not null
+       or t.village_rank is not null or t.claim_locked_by is not null;
+end;
+$$;
+
+create or replace function get_territory(territory_id integer)
+returns setof territories
+language plpgsql
+as $$
+begin
+  perform resolve_due_movements();
+  return query select * from territories where id = territory_id;
+end;
+$$;
+
+create or replace function get_my_movements()
+returns setof troop_movements
+language plpgsql
+as $$
+begin
+  perform resolve_due_movements();
+  return query
+    select * from troop_movements
+    where player_id = auth.uid()
+      and status in ('in_transit', 'occupying');
+end;
+$$;
