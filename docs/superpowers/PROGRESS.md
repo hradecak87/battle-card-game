@@ -424,3 +424,104 @@ copied in full here (not just referenced) so this file alone is sufficient.
   this project's folder have occurred.)
 - `.github/copilot-instructions.md` in **this project only** (not global)
   tells future sessions to read and continuously update this very file.
+
+## 6. Addendum: subsystem #1 visual polish (trading-card design) — ✅ DONE
+
+After subsystem #1 was fully implemented and verified (section 4 above),
+the user asked for a visual-design pass on top of it — not a new
+subsystem, an enhancement to the existing `/collection` and `/arena` pages.
+This was iterated live with the user via a temporary `/mockup` page and is
+now finished and approved.
+
+- **No image-generation tool is available** in this environment — checked
+  via `tool_search_tool`, none found. All card art is therefore
+  hand-authored SVG vector line-art (emblems: bow, crossbow, spear+shield,
+  crossed swords, halberd, winged helm, horse+saber, trebuchet), not
+  raster/painted illustration. User was told this and accepted it, and
+  explicitly preferred the simple "symbol" emblem style over a more
+  detailed full-character SVG figure that was also prototyped (only for
+  archers, as a proof-of-concept, in `unit-art.tsx`'s unused
+  `variant="figure"` path — kept in code but not used anywhere).
+- **New files**:
+  - `lib/cards/unit-art-theme.ts` — gradient + accent color per `UnitType`.
+  - `components/cards/unit-art.tsx` — `UnitArt` component: CSS gradient
+    background (as a plain `<div style>`, NOT inside the SVG — see bug
+    note below) + a square-viewBox `<svg>` with the emblem line art on top.
+  - `components/cards/TradingCard.tsx` — the reusable card component now
+    used by both `/collection` (full mode) and `/arena` (`compact` mode,
+    which hides flavor text and totalSupply to save space). Rank-colored
+    border frame (common=gray, uncommon=blue, rare=green, epic=purple,
+    legend=gold+glow), fixed `aspect-[5/7]` shape (2.5"×3.5" poker-card
+    ratio — width alone determines height, independent of grid stretch
+    behavior or how much text is inside).
+  - `app/mockup/page.tsx` — **kept intentionally** (user's explicit choice,
+    not deleted) as a permanent design-reference page showing: one unit
+    type across all 5 ranks, a stat-alignment check (short vs. long name),
+    a stress test with the catalog's single longest flavor text (94 chars)
+    at the narrowest supported card width, and one example of each of the
+    8 unit types cycling through all 5 ranks for variety.
+- **Two real bugs hit and fixed during iteration** (useful if similar
+  patterns recur):
+  1. **SVG letterboxing**: a square `viewBox` SVG inside a non-square
+     container, with default `preserveAspectRatio="xMidYMid meet"`, scales
+     the *entire* SVG content (including any background `<rect>` drawn
+     inside it) to fit and centers it — leaving visible empty gaps on the
+     sides where the background rect doesn't reach. Fix: put the
+     background as a plain CSS background on the parent `<div>` (which
+     naturally fills its own box regardless of aspect ratio) and keep only
+     the foreground artwork (no background) inside the letterboxed SVG.
+  2. **Tailwind 3.4.19 has no built-in `@container` utility** (container
+     queries are a *separate* `@tailwindcss/container-queries` plugin, not
+     a core feature in this version) — using the class `@container`
+     compiled to nothing, so `cqw`-unit font sizes had no query container
+     to size against and fell back to the viewport, making text huge.
+     Fixed by using an arbitrary-property utility instead, which needs no
+     plugin: `[container-type:inline-size]` directly on the card's root
+     div.
+- **Typography approach**: all font sizes/paddings/gaps inside
+  `TradingCard` are set in `cqw` (container query width) units, sized
+  against that `[container-type:inline-size]` root div — so text scales
+  proportionally with each card's own rendered width (not the viewport),
+  and the same relative layout holds whether a card is shown large (full
+  `/collection` grid) or small (compact `/arena` side-by-side). Both
+  `/collection` and `/mockup` use a `grid-cols-[repeat(auto-fill,minmax(170px,1fr))]`
+  grid so cards never render narrower than 170px (the width the layout was
+  tuned against for the worst-case 94-char flavor text).
+  Current sizing (as of this addendum, tuned per direct user feedback —
+  "2x", then dialed back to "150% of the original" — do not re-tune
+  without a similar explicit request): name `text-[8.25cqw]`
+  (compact: `text-[7.2cqw]`), subtitle `text-[5.7cqw]`, flavor
+  `text-[5.1cqw]` (`line-clamp-3`, full mode only), rank badge
+  `text-[5.4cqw]`, stat labels `text-[4.8cqw]`, stat values `text-[6.3cqw]`,
+  supply text `text-[4.8cqw]` (full mode only).
+- **`/arena` integration**: `SideResult` now renders a `compact`
+  `TradingCard` (capped at `max-w-[140px]`) above the existing STR/LNG/DEF/
+  HP and ATK/DMG/TTK stat breakdown (that breakdown table, added earlier in
+  this same addendum before the TradingCard work started, is unchanged).
+  The old separate `<h3>{template.name}</h3>` was removed since the
+  compact card already shows the name — removing it also fixed a test
+  bug (duplicate text). `SideResult`'s outer div now carries
+  `data-testid="side-result-attacker"`/`"side-result-defender"` so
+  `app/arena/page.test.tsx` can target each side reliably regardless of
+  internal DOM nesting (replacing a fragile `getByText(name).closest('div')`
+  query that broke once the name moved inside the nested `TradingCard`).
+- **Verification**: `npx tsc --noEmit` clean, full Jest suite 30/30
+  passing (`lib/cards/combat.test.ts`, `lib/cards/catalog.test.ts`,
+  `app/arena/page.test.tsx`, `app/collection/page.test.tsx`),
+  `npm run build` clean (`/`, `/arena` 1.71 kB, `/collection` 996 B,
+  `/mockup` 138 B — all prerendered static), and manual `Invoke-WebRequest`
+  200 checks on `/`, `/collection`, `/arena`, `/mockup` after every
+  iteration. **User explicitly approved the final design** ("vypadá to
+  dobře") after several rounds of live feedback (background gradient
+  letterboxing, text overflow, aspect ratio, font-size scaling twice, and
+  a rank-badge/rank-variety mockup mixup that turned out to be a
+  non-bug — see history above).
+- **Not yet done**: this whole addendum is implemented but **not yet
+  committed** — per project policy, commit only once the user explicitly
+  confirms the tested result looks good, which just happened, so this is
+  the next natural commit point (arena stat-breakdown fields + full
+  TradingCard/UnitArt visual system + `/mockup` + arena test fix, all as
+  one or a few granular commits, each followed by the required
+  `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>`
+  trailer) — awaiting the user's go-ahead to commit (and separately, to
+  push, which additionally requires its own explicit approval).
