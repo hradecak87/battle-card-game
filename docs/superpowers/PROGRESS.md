@@ -626,7 +626,7 @@ is the reliable fallback for any future migration.
   trailer) — awaiting the user's go-ahead to commit (and separately, to
   push, which additionally requires its own explicit approval).
 
-## 8. Subsystem #3: Territory Map — spec+plan approved, implementation complete (code), migration NOT applied
+## 8. Subsystem #3: Territory Map — spec+plan approved, implementation complete, migration APPLIED & LIVE
 
 Brainstorming completed via the `brainstorming` skill (text-only — the
 visual companion's WSL `bash.exe` dependency didn't work in this
@@ -721,19 +721,33 @@ passing** across **18 suites** as of the last task's commit.
 
 **Not yet done / explicitly deferred, requires the user's separate
 go-ahead**:
-- **The `0002_territories.sql` migration has NOT been applied to any live
-  Supabase project.** No Supabase project exists yet for this game at all
-  (same as `0001_players.sql`'s status) — applying either migration, running
-  `scripts/seed-card-templates.ts`, or running `scripts/generate-world.ts`
-  against a real project all require the user's explicit approval first,
-  per project policy (these are irreversible/production-schema-affecting
-  actions).
-- `0002_territories.verification.sql`'s manual SQL checklist has not been
-  run (it can't be, until the migration is applied) — this remains the
-  acceptance check for the RPC/schema layer in lieu of live integration
-  tests, exactly as planned.
 - No git push has been performed — commits are local only, pending the
   user's review and explicit push approval.
 - All castle/village combat bonuses, actual combat resolution, and
   combat-loot card acquisition are explicitly out of scope here — deferred
   to subsystem #4 (spec §13).
+
+**Deployment (this session, live project `yjmvktpsczmabcpwcyoa`)**:
+- `0002_territories.sql` applied via the SQL Editor. Hit one bug on first
+  attempt: `troop_movement_units.card_instance_id` referenced
+  `card_instances(id)`, but that table's PK column is `instance_id`
+  (`42703: column "id" ... does not exist`) — fixed and committed
+  (`8272e1e`), re-ran successfully.
+- Verified live via REST API (anon key): all 5 tables reachable
+  (`territories`, `card_templates`, `card_instances`, `troop_movements`,
+  `troop_movement_units`) and `get_minimap_overview` RPC callable.
+- `scripts/seed-card-templates.ts` run against the live project (service
+  role key) — seeded 258 card templates (248 unit + 10 structure).
+- `scripts/generate-world.ts` run against the live project — generated all
+  65,536 territories plus NPC garrisons on 1,000 pre-seeded structure
+  tiles (7,702 `card_instances` rows total). Verified row counts live via
+  REST API (`territories`: 65536, `card_templates`: 258, `card_instances`:
+  7702).
+- Both scripts needed a small Node-20-compatibility fix (native
+  `WebSocket` global missing pre-Node-22, required internally by
+  `@supabase/supabase-js`'s realtime client even though these scripts
+  never use realtime) — polyfilled with the already-present `ws` package;
+  committed.
+- `0002_territories.verification.sql`'s manual SQL checklist has not been
+  run yet against the live project — still the recommended next
+  acceptance check for the RPC/schema layer.

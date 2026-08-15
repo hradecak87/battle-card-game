@@ -13,6 +13,12 @@
 import { createClient } from '@supabase/supabase-js'
 import { Rank } from '../lib/cards/types'
 
+// Node <22 has no native WebSocket global, which @supabase/supabase-js's
+// realtime client requires even though this script never uses realtime.
+if (typeof globalThis.WebSocket === 'undefined') {
+  ;(globalThis as any).WebSocket = require('ws')
+}
+
 export const MAP_SIZE = 256
 
 /** Difficulty 1-2 make up ~60% of the map, tapering to ~5% for 5 (spec §4). */

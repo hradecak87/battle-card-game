@@ -15,6 +15,12 @@ import { createClient } from '@supabase/supabase-js'
 import catalogData from '../lib/cards/catalog-data.json'
 import { Rank } from '../lib/cards/types'
 
+// Node <22 has no native WebSocket global, which @supabase/supabase-js's
+// realtime client requires even though this script never uses realtime.
+if (typeof globalThis.WebSocket === 'undefined') {
+  ;(globalThis as any).WebSocket = require('ws')
+}
+
 // Village DEF / Castle DEF / Castle ATK bonus %, per rank (spec §7).
 const STRUCTURE_BONUS_TABLE: Record<Rank, { villageDef: number; castleDef: number; castleAtk: number }> = {
   common: { villageDef: 10, castleDef: 20, castleAtk: 10 },
