@@ -20,7 +20,7 @@ large for one spec** and was explicitly decomposed into independent specs,
 each with its own spec → plan → implementation cycle:
 
 1. **Card Collection & Combat Core** ← **✅ FULLY IMPLEMENTED AND VERIFIED** (all 9 plan steps done, 30/30 tests pass, `npm run build` clean, viewable at `/`, `/collection`, `/arena`)
-2. Players & Accounts (registration, nation classes/perks, XP/levels, matchmaking by level) ← **spec approved & committed; data/logic layer implemented and tested; pages/auth wiring blocked on a Supabase project (see §7 below)**
+2. Players & Accounts (registration, nation classes/perks, XP/levels, matchmaking by level) ← **✅ FULLY IMPLEMENTED** — data/logic layer + Supabase migration applied to a live project + all pages (register/login/reset-password/onboarding/profile/leaderboard) built and tested (61/61 tests); manual browser verification with the user still pending (see §7 below)
 3. Territory Map (256×256 grid, occupation timers, castles/villages, troop transfers)
 4. Multi-army RTS Battle (real-time, both players online, timeouts, rest-area cooldowns, reuses subsystem #1's `resolveDuel` as its per-duel building block)
 5. Trading/Exchange (offer a card, others counter-offer with cards, accept/reject)
@@ -516,18 +516,77 @@ fix-by-fix detail). Plan: `docs/superpowers/plans/2026-08-15-players-accounts-pl
   helper. **Not yet applied to any real database** — no Supabase project
   exists yet.
 
-**What's NOT done yet (blocked on a Supabase project)**: `/register`,
-`/login`, `/reset-password`, `/onboarding/kingdom`, `/profile/me`,
-`/profile/[id]`, `/leaderboard` (spec §7) — none of these pages/routes exist
-yet. Once the user provisions a free Supabase project and shares its URL +
-anon key, the next step is a short follow-up plan to actually run the
-migration and wire these pages up — the plan document above explicitly
-scoped this out as a separate, smaller plan since it can't be built or
-tested without those credentials.
-
 Verification done for this section: `npx jest lib/players` (all suites
 pass), `npx tsc --noEmit` (clean) — run after every file in this section was
 added.
+
+### 7.1 Pages/auth layer — ✅ IMPLEMENTED (subsystem #2 now feature-complete)
+
+The user provisioned a real Supabase project
+(`https://yjmvktpsczmabcpwcyoa.supabase.co`) and manually applied
+`0001_players.sql` via the SQL Editor (direct/pooled DB connections from
+this environment failed — see the note at the end of this section — so
+this is the working path if a future migration is ever needed). Verified
+live via a REST `select` call returning `200 []`.
+
+Plan: `docs/superpowers/plans/2026-08-15-players-accounts-pages-plan.md`,
+all 10 tasks done and committed:
+- `lib/supabase/client.ts` — singleton browser client from
+  `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY` (`.env.local`,
+  gitignored, holds the real project's credentials).
+- `lib/supabase/useSession.ts` — `{ user, player, loading }` hook.
+- `app/register/page.tsx` — email/password/display-name/nation form,
+  `supabase.auth.signUp`, "check your email" confirmation screen.
+- `app/login/page.tsx` — `signInWithPassword`, "email not confirmed" +
+  resend flow, links to `/reset-password`/`/register`.
+- `app/reset-password/page.tsx` — dual-mode (request link vs. set new
+  password once a recovery session exists via
+  `onAuthStateChange`'s `PASSWORD_RECOVERY` event).
+- `app/onboarding/kingdom/page.tsx` (+ test) — kingdom name + coat-of-arms
+  gallery (all 21 `COATS_OF_ARMS`), calls
+  `complete_kingdom_onboarding` RPC.
+- `components/players/PlayerProfileCard.tsx` — shared display component
+  (level/XP bar, nation + perk text, kingdom name/coat of arms, online
+  badge, account age, playtime) with an `editable` prop, used by both:
+  - `app/profile/me/page.tsx` (+ test) — redirects to `/login` if logged
+    out, `/onboarding/kingdom` if onboarding incomplete; editable kingdom
+    name/coat via `update_kingdom` RPC.
+  - `app/profile/[id]/page.tsx` (+ test) — read-only, fetched by id, no
+    auth required.
+- `app/leaderboard/page.tsx` (+ test) — all onboarded players, sorted by
+  `levelForXp` then raw XP descending, ranked list linking to
+  `/profile/[id]`.
+- `components/players/HeartbeatBeacon.tsx` — calls the `heartbeat` RPC on
+  mount + every 30s while a user is logged in; mounted once in
+  `app/layout.tsx`.
+- `app/page.tsx` — now a client component; shows login/register/leaderboard
+  links when logged out, profile/leaderboard when logged in (via
+  `useSession`).
+
+**Verification**: `npx tsc --noEmit` clean; full `npx jest` suite
+**61/61 passing** across 12 suites (up from 55). `npm run build` was
+attempted but **repeatedly hung indefinitely** on this machine right after
+printing the Next.js banner (no CPU activity in the spawned build workers,
+reproduced 3 times, with and without `NEXT_TELEMETRY_DISABLED=1` and after
+clearing `.next`) — this looks like a local/environment issue (possibly
+antivirus or disk I/O contention on a shared machine), not a code problem,
+since `tsc` and the full test suite are both clean. **Not yet resolved —
+retry `npm run build` in a future session** if a clean production build
+needs to be confirmed before deploying.
+
+**Not yet done**: the manual browser verification checklist from the plan
+(spec §8 — register a real account, confirm email, log in, complete
+onboarding, check `/leaderboard`/`/profile/[id]`, test `/reset-password`)
+requires the user to check their own inbox, so it's still pending their
+availability. No commits have been pushed to any remote — that (like every
+commit) requires separate explicit user approval, not yet requested.
+
+**Open question, not blocking**: Supabase's IPv4 pooler
+(`aws-0-<region>.pooler.supabase.com`) didn't work for this project from
+this environment across ~16 tried regions (`tenant/user ... not found`),
+and the direct host (`db.<ref>.supabase.co`) is IPv6-only while this
+machine has no IPv6 connectivity at all. Manual SQL Editor paste-and-run
+is the reliable fallback for any future migration.
   Current sizing (as of this addendum, tuned per direct user feedback —
   "2x", then dialed back to "150% of the original" — do not re-tune
   without a similar explicit request): name `text-[8.25cqw]`
