@@ -1,4 +1,4 @@
-import { CardTemplate, EffectiveCard, Rank, UnitType } from '@/lib/cards/types'
+import { UnitCardTemplate, EffectiveCard, Rank, UnitType } from '@/lib/cards/types'
 import { UnitArt } from './unit-art'
 
 const UNIT_TYPE_LABELS: Record<UnitType, string> = {
@@ -61,7 +61,7 @@ const RANK_FRAME: Record<
 }
 
 interface TradingCardProps {
-  template: CardTemplate
+  template: UnitCardTemplate
   stats: EffectiveCard
   /** Compact mode: smaller footprint for the arena side-by-side layout. */
   compact?: boolean

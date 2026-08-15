@@ -1,17 +1,25 @@
 import rawCatalogData from './catalog-data.json'
 import {
-  CardTemplate,
   RANKS,
   Rank,
   SUPPLY_RANGE,
   UNIT_TYPES,
+  UnitCardTemplate,
   UnitType,
   VARIANTS_PER_RANK,
 } from './types'
 
-const catalogData = rawCatalogData as CardTemplate[]
+// catalog-data.json holds only the fields specific to unit cards (no
+// `category`, since every entry in this file is a unit) — inject the
+// `category: 'unit'` discriminant once, at load time, rather than editing
+// all 248 hand-authored entries.
+type RawUnitTemplate = Omit<UnitCardTemplate, 'category'>
+const catalogData: UnitCardTemplate[] = (rawCatalogData as RawUnitTemplate[]).map((t) => ({
+  ...t,
+  category: 'unit' as const,
+}))
 
-function validateCatalog(templates: CardTemplate[]): void {
+function validateCatalog(templates: UnitCardTemplate[]): void {
   const expectedTotal = UNIT_TYPES.length * RANKS.reduce((sum, r) => sum + VARIANTS_PER_RANK[r], 0)
   if (templates.length !== expectedTotal) {
     throw new Error(
@@ -82,18 +90,18 @@ function validateCatalog(templates: CardTemplate[]): void {
 // (build/test time) rather than serving bad data to the UI (spec section 9).
 validateCatalog(catalogData)
 
-export function getAllTemplates(): CardTemplate[] {
+export function getAllTemplates(): UnitCardTemplate[] {
   return catalogData
 }
 
-export function getTemplatesByType(unitType: UnitType): CardTemplate[] {
+export function getTemplatesByType(unitType: UnitType): UnitCardTemplate[] {
   return catalogData.filter((t) => t.unitType === unitType)
 }
 
-export function getTemplatesByRank(rank: Rank): CardTemplate[] {
+export function getTemplatesByRank(rank: Rank): UnitCardTemplate[] {
   return catalogData.filter((t) => t.rank === rank)
 }
 
-export function getTemplateById(id: string): CardTemplate | undefined {
+export function getTemplateById(id: string): UnitCardTemplate | undefined {
   return catalogData.find((t) => t.id === id)
 }

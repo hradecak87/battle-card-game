@@ -52,12 +52,13 @@ export interface RawStats {
 }
 
 /**
- * A static catalog entry: one named, ownable-in-principle card design.
+ * A static catalog entry: one named, ownable-in-principle unit card design.
  * `baseStats` already includes the ±10% flavor variance baked in at
  * authoring time (spec §2, §6) — it is NOT yet rank-scaled.
  */
-export interface CardTemplate {
+export interface UnitCardTemplate {
   id: string
+  category: 'unit'
   unitType: UnitType
   rank: Rank
   name: string
@@ -68,14 +69,49 @@ export interface CardTemplate {
 }
 
 /**
+ * A Castle or Village structure card template (Territory Map spec §2.1,
+ * §7). Built by burning the card instance onto an owned territory —
+ * these never enter combat directly and have no baseStats of their own.
+ */
+export interface StructureCardTemplate {
+  id: string
+  category: 'castle' | 'village'
+  rank: Rank
+  name: string
+  flavorText: string
+  /** Defense bonus % granted to defenders on the territory (both categories). */
+  defenseBonusPct: number
+  /** Attack bonus % granted to defenders (castle only; null for village). */
+  attackBonusPct: number | null
+  /** null = uncapped. A positive number for capped ranks (Territory Map spec §2.1). */
+  totalSupply: number | null
+}
+
+/**
+ * A card template is either a unit (used in combat) or a structure
+ * (Castle/Village, built onto a territory). Discriminate on `category`.
+ */
+export type CardTemplate = UnitCardTemplate | StructureCardTemplate
+
+/** Narrows a possibly-mixed CardTemplate list down to unit templates only. */
+export function isUnitTemplate(template: CardTemplate): template is UnitCardTemplate {
+  return template.category === 'unit'
+}
+
+/**
  * An individual, ownable copy of a CardTemplate. Not used by the demo UI
  * (which has no persistence/accounts) — defined here for forward
- * compatibility with later specs (Players/Battle) per design §2.
+ * compatibility with later specs (Players/Territory Map/Battle) per design
+ * §2. `stationedTerritoryId`/`status` are populated once card instances are
+ * actually persisted (Territory Map spec §2.2); `stationedTerritoryId`
+ * matches `territories.id`, a Postgres integer, not a uuid.
  */
 export interface CardInstance {
   instanceId: string
   templateId: string
   ownerId: string | null
+  stationedTerritoryId: number | null
+  status: 'stationed' | 'in_transit'
   mintedAt: string
   mintedBy: 'admin'
 }

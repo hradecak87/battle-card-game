@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { getAllTemplates } from '@/lib/cards/catalog'
 import { applyRank, DuelBreakdown, resolveDuelWithBreakdown } from '@/lib/cards/combat'
-import { CardTemplate, EffectiveCard, Rank, UnitType } from '@/lib/cards/types'
+import { UnitCardTemplate, EffectiveCard, Rank, UnitType } from '@/lib/cards/types'
 import { TradingCard } from '@/components/cards/TradingCard'
 
 const UNIT_TYPE_LABELS: Record<UnitType, string> = {
@@ -25,7 +25,7 @@ const RANK_LABELS: Record<Rank, string> = {
   legend: 'Legend',
 }
 
-function optionLabel(t: CardTemplate): string {
+function optionLabel(t: UnitCardTemplate): string {
   return `${t.name} — ${UNIT_TYPE_LABELS[t.unitType]} (${RANK_LABELS[t.rank]})`
 }
 
@@ -35,7 +35,7 @@ function formatTtk(ttk: number): string {
 
 interface SideResultProps {
   title: string
-  template: CardTemplate
+  template: UnitCardTemplate
   stats: EffectiveCard
   result: DuelBreakdown['attacker']
   isWinner: boolean
