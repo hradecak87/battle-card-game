@@ -581,20 +581,36 @@ maximally atomic**: each task bundles writing code + its test + running it
   condition isn't yet met. It inserts the next `battle_rounds` row with
   `round_number = current_round + 1`: picks a random available (per Task
   4's rest logic) card from `battle_attacker_roster` still owned by the
-  attacker for `attacker_card_instance_id`; for an NPC battle
-  (`defender_id is null`), also immediately picks the defender's card via
-  Task 3's `pickNpcDefenderCard` logic (ported into this same SQL helper —
-  loop candidate NPC cards through the same TTK comparison `_resolve_round`
-  uses, pick the first winner or fall back to `random()`) and calls
-  `_resolve_round` synchronously in the same call, looping until the win
-  condition is met; for a PvP battle, leaves `defender_card_instance_id
-  null` and sets `battles.round_deadline = now() + interval '120
-  seconds'`, then returns (waiting for `pick_defender_card` or a future
+  attacker for `attacker_card_instance_id`. Then, **before** picking a
+  defender card, check defender-side availability symmetrically for
+  *both* battle types (not just PvP): for an NPC battle, count available
+  (per Task 4's rest logic) unit-category `card_instances` stationed at
+  `territory_id` with `owner_id is null` — do not call Task 3's
+  `pickNpcDefenderCard` logic at all if this count is zero, since that
+  function explicitly throws on an empty candidate list ("caller's
+  responsibility to only call this when the NPC has at least one
+  available card") and an unhandled exception here would leave the
+  battle stuck, re-crashing on every subsequent lazy-resolution call;
+  for a PvP battle, count available unit-category `card_instances`
+  stationed there owned by `defender_id`. If an NPC defender pick *is*
+  available, pick it via Task 3's `pickNpcDefenderCard` logic (ported
+  into this same SQL helper — loop candidate NPC cards through the same
+  TTK comparison `_resolve_round` uses, pick the first winner or fall
+  back to `random()`) and call `_resolve_round` synchronously in the
+  same call, looping until the win condition is met; for a PvP battle
+  with an available defender card, leave `defender_card_instance_id
+  null` and set `battles.round_deadline = now() + interval '120
+  seconds'`, then return (waiting for `pick_defender_card` or a future
   `resolve_due_battles()` auto-pick). If no attacker card is available
-  (all resting), or (for PvP) no defender card is available, marks the
-  round `skipped=true` immediately, still increments `current_round`, and
-  recurses into `_start_next_round` again for the following round (spec
-  §2's skip rule — a skipped round still ticks rest counters down).
+  (all resting), **or no defender card is available on either side**
+  (this is the realistic case the win condition's own "irrespective of
+  resting status" rule, Task 12, deliberately keeps the battle alive
+  through — e.g. a small, tightly-rested NPC garrison can have every
+  remaining card resting simultaneously for a round without being
+  "gone"), marks the round `skipped=true` immediately, still increments
+  `current_round`, and recurses into `_start_next_round` again for the
+  following round (spec §2's skip rule — a skipped round still ticks
+  rest counters down).
 - [ ] Commit: `feat: add shared round-resolution and round-start SQL helpers`
 
 ### Task 12: `resolve_due_battles()` — round-timeout auto-pick + win-condition finalize (cases 2-3 of spec §3.6)
@@ -604,7 +620,10 @@ maximally atomic**: each task bundles writing code + its test + running it
 
 - [ ] Extend `resolve_due_battles()` with the `active`-battle branch,
   built on Task 11's two helpers:
-  1. For every `status='active'` battle whose current round still has no
+  1. For every `status='active'` battle whose pending round (the
+     `battle_rounds` row where `round_number = battles.current_round + 1`
+     — recall `battles.current_round` always holds the last *resolved*
+     round's number, never the in-progress one, per Task 11) still has no
      `defender_card_instance_id` and `round_deadline <= now()`: auto-pick
      a random available defender card (Task 4's rest logic) and call
      `_resolve_round(..., auto_picked=true)`.
@@ -641,7 +660,13 @@ maximally atomic**: each task bundles writing code + its test + running it
   no-op, to guard against future regressions reintroducing a dependency
   on it); a skip-round fixture (attacker's roster fully resting for one round,
   confirm the round is logged `skipped=true` and rest counters still
-  decrement) — same manual-checklist convention as every other RPC task
+  decrement) **and a second skip-round fixture specifically for a small,
+  2-card NPC garrison where both cards end up resting simultaneously**
+  (confirm the round is skipped rather than throwing on an empty NPC
+  candidate list, and that the battle correctly continues to the
+  following round once rest clears — this exercises Task 11's fix for
+  the previously-unhandled all-resting-NPC-defender case) — same
+  manual-checklist convention as every other RPC task
   in this plan.
 - [ ] Commit: `feat: add resolve_due_battles round resolution and win-condition finalize`
 
@@ -688,12 +713,14 @@ maximally atomic**: each task bundles writing code + its test + running it
 - [ ] Write `pick_defender_card(battle_id uuid, card_instance_id uuid)
   returns void`: call `resolve_due_battles()` first; raise if caller
   isn't the battle's *current* `defender_id`; raise if `status !=
-  'active'` or the current round already has a
-  `defender_card_instance_id` assigned; validate `card_instance_id` is
-  currently owned by the caller, `status='stationed'` at `territory_id`,
-  unit-category, and not resting (Task 4's `isAvailable` logic, ported to
-  SQL); then call Task 11's `_resolve_round` helper directly, passing
-  `auto_picked=false`.
+  'active'` or the pending round (the `battle_rounds` row where
+  `round_number = battles.current_round + 1` — see Task 11/12's note that
+  `battles.current_round` itself always lags one round behind) already
+  has a `defender_card_instance_id` assigned; validate `card_instance_id`
+  is currently owned by the caller, `status='stationed'` at
+  `territory_id`, unit-category, and not resting (Task 4's `isAvailable`
+  logic, ported to SQL); then call Task 11's `_resolve_round` helper
+  directly, passing `auto_picked=false`.
 - [ ] Append to `0003_battles.verification.sql`: valid pick resolves the
   round and (if it's a win-condition round) finalizes the battle
   identically to Task 12's fixtures; picking a resting/foreign/non-unit
