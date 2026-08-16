@@ -40,7 +40,7 @@ export default function GarrisonModal({ territory, instances, error, onClose }: 
     >
       <div
         data-testid="garrison-modal"
-        className="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-950 p-6"
+        className="max-h-[85vh] w-full max-w-4xl overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-950 p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -66,7 +66,7 @@ export default function GarrisonModal({ territory, instances, error, onClose }: 
         )}
 
         {!error && instances !== null && instances.length > 0 && (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
             {instances.map((instance) => {
               const row = instance.card_templates
               const unitTemplate = row ? toUnitTemplate(row) : null
@@ -76,7 +76,6 @@ export default function GarrisonModal({ territory, instances, error, onClose }: 
                     <TradingCard
                       template={unitTemplate}
                       stats={applyRank(unitTemplate.baseStats, unitTemplate.rank)}
-                      compact
                     />
                   ) : (
                     <div className="flex aspect-[5/7] w-full flex-col items-center justify-center gap-1 rounded-xl border border-zinc-700 bg-zinc-900 p-2 text-center">
