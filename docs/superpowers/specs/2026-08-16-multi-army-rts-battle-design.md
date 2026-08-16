@@ -28,7 +28,13 @@ This spec covers exactly what subsystem #3 explicitly deferred:
   home territory, is never blocked by the cap).
 - Contested empty-land claims: a second player attacking a tile another
   player is still occupying (subsystem #3 §6) triggers this same
-  battle flow between the two claimants.
+  battle flow between the two claimants. This requires amending
+  subsystem #3's `start_claim` guard (§3.6 below).
+- **Bugfix carried over from subsystem #3**: `start_claim` currently only
+  checks `owner_id is null and claim_locked_by is null` — it does not
+  check for an NPC garrison, so today a player could peacefully "claim" a
+  castle/village tile that has NPC defenders stationed on it, with no
+  combat at all. This spec closes that gap (§3.6).
 - Applying Castle/Village structure bonuses (already computed and sitting
   idle in `lib/territories/structureBonus.ts`) and the four still-unapplied
   nation combat perks (England/Francia/HRE/Byzantium — Mongol Horde and
@@ -108,8 +114,8 @@ rules as any other battle.
 create table battles (
   id uuid primary key default gen_random_uuid(),
   territory_id integer not null references territories(id),
-  attacker_id uuid not null references auth.users(id),
-  defender_id uuid references auth.users(id),   -- null = NPC-garrisoned target
+  attacker_id uuid not null references players(id),
+  defender_id uuid references players(id),      -- null = NPC-garrisoned target
   is_home_target boolean not null default false,
   movement_id uuid not null references troop_movements(id),
   status text not null check (status in ('awaiting_ready','active','resolved','expired')),
@@ -118,25 +124,38 @@ create table battles (
   ready_deadline timestamptz not null,          -- arrival + 10 days
   current_round integer not null default 0,
   round_deadline timestamptz,                    -- set once status='active'; null otherwise
-  winner_id uuid references auth.users(id),      -- null until resolved; NPC-target win => null defender means "attacker" or "npc" tracked via winner_side below
-  winner_side text check (winner_side in ('attacker','defender')),
+  winner_side text check (winner_side in ('attacker','defender')),  -- null until resolved
   resolved_at timestamptz,
   created_at timestamptz not null default now()
 );
 ```
 
+`winner_id` is deliberately not a separate column — the winning *player*
+(if any; an NPC defender has none) is always derivable as
+`case winner_side when 'attacker' then attacker_id when 'defender' then defender_id end`,
+and storing it separately would risk it drifting out of sync.
+
 `troop_movements.kind` gains a new allowed value: `'attack'` (alongside the
 existing `'transfer'` and `'claim'`), using the exact same
 `transferHours(distance, nation)` formula and arrival mechanics subsystem
-#3 already built — no new travel-time logic needed. On arrival, a
-`battles` row is created (status `awaiting_ready`, or `active` immediately
+#3 already built — no new travel-time logic needed, and no
+`occupation_hrs` component (that concept is specific to peaceful
+empty-land claims, not combat). On arrival, `resolve_due_movements()` (§3.6)
+creates the `battles` row (status `awaiting_ready`, or `active` immediately
 if `defender_id is null`).
 
-Map visibility: a battle in `awaiting_ready` or `active` status marks its
-`territory_id` as "under attack" the same way subsystem #3 already surfaces
-`claim_locked_by` in `get_viewport`/`get_minimap_overview` — extend those
-functions to also return an `under_attack` flag (no need to expose *who*,
-same privacy stance subsystem #3 took for in-progress claims).
+Map visibility: extend `territories` with a new nullable
+`battle_locked_by uuid references players(id)` column, set to the
+attacker's id the moment `declare_attack` is called (before troops even
+arrive — stricter than `claim_locked_by`, which only locks once travel
+completes, but appropriate here since the target is already
+owned/garrisoned rather than empty land). `get_viewport` /
+`get_minimap_overview` already return `claim_locked_by`; extend both to
+also return `battle_locked_by` the same way — subsystem #3 already
+surfaces the claimant's identity publicly (`claim_locked_by` is a real
+player id, not anonymized), so `battle_locked_by` follows the same
+existing convention rather than introducing a new privacy stance.
+`battle_locked_by` is cleared when the battle resolves or expires.
 
 ### 3.2 `battle_attacker_roster`
 
@@ -223,6 +242,133 @@ defender — this is about who *owns* the card right now, not its role):
 resolveDuel(attackerEffective, defenderEffective)   // subsystem #1, unchanged
 ```
 
+Each multiplication is applied in sequence to the already-integer,
+already-rank-scaled stat, then the *combined* result is rounded once
+(`Math.round`, floor of 0) right before being passed into `resolveDuel` —
+mirroring `applyRank`'s own rounding convention (subsystem #1
+§3/`lib/cards/combat.ts`) rather than rounding after every individual
+multiplier, which would compound rounding error across up to three
+stacked bonuses (structure defense/attack + nation perk).
+
+### 3.6 RPC interfaces and lazy resolution
+
+Mirrors subsystem #3's existing convention exactly: every RPC below calls
+a `resolve_due_battles()` function first (analogous to the existing
+`resolve_due_movements()`, itself unchanged in signature but extended —
+see below), so no cron job is needed; all mutating RPCs are
+`security definer` and independently re-check `auth.uid()` against the
+relevant participant column.
+
+- **`declare_attack(origin_territory_id integer, target_territory_id integer, card_instance_ids uuid[])`**
+  Validates the caller owns `origin_territory_id` and every
+  `card_instance_ids` entry is a `status='stationed'`, unit-category card
+  the caller owns there (identical validation shape to `start_claim`).
+  Classifies `target_territory_id` into exactly one of:
+  - **Occupied**: `owner_id is not null` and `!= caller` → `defender_id =
+    owner_id`, `is_home_target = target.is_home`.
+  - **NPC-garrisoned**: `owner_id is null` and at least one unit-category
+    `card_instances` row with `owner_id is null` is stationed there →
+    `defender_id = null`.
+  - **Contested claim**: `owner_id is null`, `claim_locked_by is not
+    null`, `claim_locked_by != caller`, and no existing
+    non-`resolved`/`expired` `battles` row already targets this territory
+    → `defender_id = claim_locked_by`, `is_home_target = false`.
+  - Anything else (truly empty land, or the caller's own claim/territory)
+    → raise; the caller should use `start_claim`/`transfer_troops`
+    instead.
+  If the classification could result in capture (not `is_home_target` and
+  not a contested-claim case where the caller already owns nothing new —
+  capture is always possible in the occupied/NPC/contested cases) and the
+  caller is already at 32 owned+claimed territories (`§5`), raises the
+  same `territory ownership cap (32) reached` error `start_claim` already
+  raises. Otherwise inserts a `troop_movements` row (`kind='attack'`,
+  `transfer_arrives_at` per `transferHours`), links `card_instance_ids` via
+  the existing `troop_movement_units` table, and sets
+  `territories.battle_locked_by = caller` immediately.
+
+- **`resolve_due_movements()`** (existing function, extended): its
+  existing arrival-handling branch (currently keyed on `kind = 'transfer'`
+  vs `kind = 'claim'`) gains a third branch for `kind = 'attack'`: on
+  arrival, flips the moved `card_instances` to `status='stationed'` at the
+  destination (identical to a `transfer`'s arrival — unchanged), marks the
+  movement `completed`, inserts the `battles` row (`awaiting_ready` +
+  `ready_deadline = now() + interval '10 days'`, or `active` +
+  `round_deadline = now() + interval '120 seconds'` immediately if
+  `defender_id is null`), and populates `battle_attacker_roster` from the
+  movement's `troop_movement_units`. For a newly `active` NPC battle, it
+  additionally invokes the round-resolution loop below synchronously
+  (still one server-side pass, still logs every round to `battle_rounds`
+  for client replay — §4).
+
+- **`resolve_due_battles()`** (new function, called at the top of every
+  RPC in this section, same lazy-resolution convention):
+  1. For `awaiting_ready` battles past `ready_deadline`: resolves per the
+     tie-break rules in §2 (neither ready → `status='expired'`, no
+     capture, no card loss, `battle_locked_by` cleared, and the
+     attacker's roster is sent home via a new return `troop_movements`
+     row, `kind='transfer'`, same `transferHours` formula, back to
+     `origin_territory_id`; only one side ever readied → that side wins
+     outright; both readied but their `*_ready_at` windows never both
+     fell inside "player is online," defined identically to subsystem
+     #2's existing convention — `players.last_seen_at` within the last 2
+     minutes (§6, `2026-08-15-players-accounts-design.md` §6) — at the
+     same instant → attacker wins outright).
+  2. For `active` battles whose `round_deadline` has passed with the
+     current round still missing a `defender_card_instance_id`: auto-picks
+     a random available defender card, resolves that round
+     (`auto_picked=true`).
+  3. After any round resolves (explicit pick, auto-pick, or the NPC loop),
+     re-evaluates the win condition — attacker's roster has zero
+     rows still owned by the attacker, or the defender/NPC has zero
+     unit-category `card_instances` left stationed at the territory
+     (checked irrespective of resting status; only *this round's*
+     eligibility cares about resting) — and if met, finalizes: sets
+     `status='resolved'`, `winner_side`, clears `battle_locked_by`,
+     applies the territory-capture rule (§5), and — whenever the attacker
+     did **not** end up owning the territory (defender won, or attacker
+     was blocked from taking a territory it lost first-declaration
+     eligibility for — cannot happen given the §5 check at declare time,
+     but re-verified here defensively) — returns any surviving,
+     still-attacker-owned roster cards home via the same kind of return
+     `troop_movements` row used in case 1. If the round wasn't the last,
+     instead starts the next round: for `defender_id is null` (NPC),
+     immediately continues the loop; otherwise picks the next random
+     available attacker card (or marks the round `skipped` per §2's
+     skip rule) and sets a fresh `round_deadline`.
+
+- **`mark_ready(battle_id uuid)`** — caller must be `attacker_id` or
+  `defender_id`; sets the corresponding `*_ready_at = now()`. If the other
+  side's `*_ready_at` is already set, and both players'
+  `players.last_seen_at` are within the last 2 minutes of this call
+  (i.e. both are online *right now*, not just at some point since
+  `awaiting_ready` began), flips `status='active'` and sets the first
+  `round_deadline`.
+
+- **`pick_defender_card(battle_id uuid, card_instance_id uuid)`** —
+  caller must be the battle's current `defender_id`; validates the card
+  is currently owned by the caller, stationed at `territory_id`,
+  unit-category, and not resting; resolves the pending round exactly as
+  in `resolve_due_battles()` case 2/3 above, but via an explicit pick
+  instead of a timeout auto-pick.
+
+**Amendment to `start_claim`** (subsystem #3, closes the bugfix noted in
+§1): its destination-availability check
+(`owner_id is null and claim_locked_by is null`) gains a third condition —
+also reject if any unit-category `card_instances` row with `owner_id is
+null` is stationed at the destination (an NPC garrison is present). Such a
+tile must go through `declare_attack` instead.
+
+**RLS**: `battles`, `battle_attacker_roster`, `battle_rounds`, and
+`battle_unit_rest` all get `enable row level security` plus a public
+`select using (true)` policy — identical convention to every existing
+table in `0002_territories.sql` (`card_instances`, `troop_movements`,
+`territories` are all already publicly readable; nothing in this spec
+introduces a new sensitive-data category). "No spectating" (§1) is
+enforced at the *mutation* layer, not the read layer: `mark_ready` and
+`pick_defender_card` both check `auth.uid()` against the battle's
+`attacker_id`/`defender_id` and raise if the caller is neither, so a third
+party can look but never act.
+
 ## 4. NPC defense AI
 
 NPC-garrisoned targets never need a human to be online, so their battles
@@ -240,7 +386,7 @@ two stat sets, so this is a plain loop, no extra randomness).
 
 ## 5. Territory ownership cap enforcement
 
-`start_attack` (the RPC that declares an attack) must check, at
+`declare_attack` (§3.6) must check, at
 declaration time, whether resolving this attack in the attacker's favor
 *would* result in a new owned territory (i.e. `is_home_target = false` and
 the target isn't already owned by the attacker, which can't happen anyway
