@@ -2,6 +2,7 @@ import {
   DIFFICULTY_WEIGHTS,
   npcGarrisonSize,
   pickDifficulty,
+  pickGarrisonRank,
   preSeededStructureRank,
   shouldPlaceCastle,
   shouldPlaceVillage,
@@ -93,6 +94,37 @@ describe('npcGarrisonSize', () => {
     for (const d of [1, 2, 3, 4, 5] as const) {
       expect(npcGarrisonSize(d)).toBeGreaterThan(0)
     }
+  })
+
+  it('reaches 20 at the hardest difficulty', () => {
+    expect(npcGarrisonSize(5)).toBe(20)
+  })
+})
+
+describe('pickGarrisonRank', () => {
+  it('only ever returns common, uncommon, or rare (never epic/legend)', () => {
+    const rand = mulberry32(17)
+    const valid = ['common', 'uncommon', 'rare']
+    for (const d of [1, 2, 3, 4, 5] as const) {
+      for (let i = 0; i < 1000; i++) {
+        expect(valid).toContain(pickGarrisonRank(d, rand))
+      }
+    }
+  })
+
+  it('shifts weight toward rare as difficulty increases', () => {
+    const samples = 10000
+    function rarePct(difficulty: 1 | 2 | 3 | 4 | 5, seed: number) {
+      const rand = mulberry32(seed)
+      let rareCount = 0
+      for (let i = 0; i < samples; i++) {
+        if (pickGarrisonRank(difficulty, rand) === 'rare') rareCount++
+      }
+      return rareCount / samples
+    }
+    const easyRare = rarePct(1, 21)
+    const hardRare = rarePct(5, 22)
+    expect(hardRare).toBeGreaterThan(easyRare)
   })
 })
 
