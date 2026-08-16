@@ -6,8 +6,11 @@ import { getMinimapOverview, getViewport, Territory } from '@/lib/territories/ap
 import MapViewport from '@/components/territories/MapViewport'
 import { useSession } from '@/lib/supabase/useSession'
 
-const VIEW_SIZE = 15
-const HALF = Math.floor(VIEW_SIZE / 2)
+// Capped below Supabase/PostgREST's default 1000-row response limit
+// (viewSize² must stay under that, confirmed live: a 35×35=1225 request
+// silently truncated to 1000 rows, dropping the last several columns).
+const ZOOM_LEVELS = [7, 11, 15, 19, 23, 27]
+const DEFAULT_ZOOM_INDEX = 2 // 15 tiles per side, same as the previous fixed size
 const MAP_MIN = 0
 const MAP_MAX = 255
 
@@ -19,16 +22,20 @@ export default function MapPage() {
   const { user } = useSession()
   const [centerX, setCenterX] = useState(128)
   const [centerY, setCenterY] = useState(128)
+  const [zoomIndex, setZoomIndex] = useState(DEFAULT_ZOOM_INDEX)
   const [territories, setTerritories] = useState<Territory[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selectedTile, setSelectedTile] = useState<Territory | null>(null)
   const [homeStatus, setHomeStatus] = useState<'idle' | 'searching' | 'not-found'>('idle')
 
-  const loadViewport = useCallback((x: number, y: number) => {
-    const x1 = clamp(x - HALF)
-    const x2 = clamp(x + HALF)
-    const y1 = clamp(y - HALF)
-    const y2 = clamp(y + HALF)
+  const viewSize = ZOOM_LEVELS[zoomIndex]
+
+  const loadViewport = useCallback((x: number, y: number, size: number) => {
+    const tileHalf = Math.floor(size / 2)
+    const x1 = clamp(x - tileHalf)
+    const x2 = clamp(x + tileHalf)
+    const y1 = clamp(y - tileHalf)
+    const y2 = clamp(y + tileHalf)
     getViewport(x1, y1, x2, y2).then(({ data, error: rpcError }) => {
       if (rpcError) {
         setError(rpcError.message)
@@ -40,8 +47,8 @@ export default function MapPage() {
   }, [])
 
   useEffect(() => {
-    loadViewport(centerX, centerY)
-  }, [centerX, centerY, loadViewport])
+    loadViewport(centerX, centerY, viewSize)
+  }, [centerX, centerY, viewSize, loadViewport])
 
   function handlePan(dx: number, dy: number) {
     setCenterX((x) => clamp(x + dx))
@@ -51,6 +58,14 @@ export default function MapPage() {
   function handleJump(x: number, y: number) {
     setCenterX(clamp(x))
     setCenterY(clamp(y))
+  }
+
+  function handleZoomIn() {
+    setZoomIndex((i) => Math.max(0, i - 1))
+  }
+
+  function handleZoomOut() {
+    setZoomIndex((i) => Math.min(ZOOM_LEVELS.length - 1, i + 1))
   }
 
   async function handleFindHome() {
@@ -104,11 +119,15 @@ export default function MapPage() {
             territories={territories}
             centerX={centerX}
             centerY={centerY}
-            viewSize={VIEW_SIZE}
+            viewSize={viewSize}
             currentUserId={user?.id ?? null}
             onPan={handlePan}
             onJump={handleJump}
             onSelectTile={setSelectedTile}
+            onZoomIn={handleZoomIn}
+            onZoomOut={handleZoomOut}
+            canZoomIn={zoomIndex > 0}
+            canZoomOut={zoomIndex < ZOOM_LEVELS.length - 1}
           />
         )}
 

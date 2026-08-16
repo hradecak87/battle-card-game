@@ -20,6 +20,10 @@ export interface MapViewportProps {
   onPan: (dx: number, dy: number) => void
   onJump: (x: number, y: number) => void
   onSelectTile?: (territory: Territory) => void
+  onZoomIn?: () => void
+  onZoomOut?: () => void
+  canZoomIn?: boolean
+  canZoomOut?: boolean
 }
 
 function getOwnerLabel(tile: Territory, currentUserId?: string | null) {
@@ -43,6 +47,10 @@ export default function MapViewport({
   onPan,
   onJump,
   onSelectTile,
+  onZoomIn,
+  onZoomOut,
+  canZoomIn = true,
+  canZoomOut = true,
 }: MapViewportProps) {
   const [jumpX, setJumpX] = useState(String(centerX))
   const [jumpY, setJumpY] = useState(String(centerY))
@@ -108,6 +116,29 @@ export default function MapViewport({
           <span />
         </div>
 
+        {(onZoomIn || onZoomOut) && (
+          <div className="flex flex-col gap-1">
+            <button
+              type="button"
+              aria-label="Přiblížit"
+              onClick={onZoomIn}
+              disabled={!canZoomIn}
+              className="rounded bg-zinc-800 px-2 py-1 disabled:opacity-40"
+            >
+              🔍+
+            </button>
+            <button
+              type="button"
+              aria-label="Oddálit"
+              onClick={onZoomOut}
+              disabled={!canZoomOut}
+              className="rounded bg-zinc-800 px-2 py-1 disabled:opacity-40"
+            >
+              🔍−
+            </button>
+          </div>
+        )}
+
         <form onSubmit={handleJumpSubmit} className="flex items-end gap-2">
           <label className="flex flex-col text-sm text-zinc-400">
             X
@@ -159,17 +190,37 @@ export default function MapViewport({
                 onMouseEnter={() => setHoveredTile({ x, y })}
                 onMouseLeave={() => setHoveredTile((current) => (current?.x === x && current?.y === y ? null : current))}
                 data-owned-by-me={isOwnedByMe ? 'true' : 'false'}
-                className={`relative aspect-square border text-[10px] flex flex-col items-center justify-center ${color} ${
+                className={`relative aspect-square min-w-0 min-h-0 border flex flex-col items-center justify-center gap-0.5 overflow-visible ${color} ${
                   isOwnedByMe
                     ? 'border-sky-200 ring-2 ring-sky-400 ring-inset'
                     : 'border-zinc-800'
                 }`}
               >
-                {tile?.is_home && <span title="Domov">🏠</span>}
-                {tile?.castle_rank && <span title="Hrad">🏰</span>}
-                {tile?.village_rank && <span title="Vesnice">🏘️</span>}
-                {tile?.owner_id && !tile?.is_home && <span title="Vlastník">🚩</span>}
-                {tile?.claim_locked_by && <span title="Probíhá zábor">⏳</span>}
+                {tile?.is_home && (
+                  <span title="Domov" className="text-lg leading-none drop-shadow">
+                    🏠
+                  </span>
+                )}
+                {tile?.castle_rank && (
+                  <span title="Hrad" className="text-xl leading-none drop-shadow">
+                    🏰
+                  </span>
+                )}
+                {tile?.village_rank && (
+                  <span title="Vesnice" className="text-xl leading-none drop-shadow">
+                    🏘️
+                  </span>
+                )}
+                {tile?.owner_id && !tile?.is_home && (
+                  <span title="Vlastník" className="text-lg leading-none drop-shadow">
+                    🚩
+                  </span>
+                )}
+                {tile?.claim_locked_by && (
+                  <span title="Probíhá zábor" className="text-lg leading-none drop-shadow">
+                    ⏳
+                  </span>
+                )}
                 {isHovered && (
                   <div className="pointer-events-none absolute left-1/2 top-0 z-20 w-40 -translate-x-1/2 -translate-y-[calc(100%+6px)] rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-left text-xs text-zinc-100 shadow-lg">
                     <p className="font-semibold">
