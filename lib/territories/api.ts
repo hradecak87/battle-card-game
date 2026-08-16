@@ -81,9 +81,14 @@ export interface CardInstanceWithTemplate {
   card_templates: {
     id: string
     name: string
+    flavor_text: string
     rank: string
     category: 'unit' | 'castle' | 'village'
     unit_type: string | null
+    base_stats: { str: number; lng: number; def: number; hp: number } | null
+    total_supply: number | null
+    defense_bonus_pct: number | null
+    attack_bonus_pct: number | null
   } | null
 }
 
@@ -91,7 +96,7 @@ export async function getCardInstancesAtTerritory(territoryId: number) {
   return supabase
     .from('card_instances')
     .select(
-      'instance_id, template_id, owner_id, stationed_territory_id, status, card_templates(id, name, rank, category, unit_type)'
+      'instance_id, template_id, owner_id, stationed_territory_id, status, card_templates(id, name, flavor_text, rank, category, unit_type, base_stats, total_supply, defense_bonus_pct, attack_bonus_pct)'
     )
     .eq('stationed_territory_id', territoryId) as unknown as Promise<{
     data: CardInstanceWithTemplate[] | null

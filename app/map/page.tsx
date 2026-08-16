@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { getMinimapOverview, getViewport, getCardInstancesAtTerritory, CardInstanceWithTemplate, Territory } from '@/lib/territories/api'
 import MapViewport from '@/components/territories/MapViewport'
+import GarrisonModal from '@/components/territories/GarrisonModal'
 import { useSession } from '@/lib/supabase/useSession'
 
 // Capped below Supabase/PostgREST's default 1000-row response limit
@@ -146,25 +147,12 @@ export default function MapPage() {
         )}
 
         {selectedTile && (
-          <div data-testid="selected-tile" className="flex flex-col gap-2 text-sm text-zinc-400">
-            <p>
-              Vybráno území ({selectedTile.x}, {selectedTile.y})
-            </p>
-            {garrisonError && <p className="text-red-400">{garrisonError}</p>}
-            {garrison === null && !garrisonError && <p>Načítám posádku…</p>}
-            {garrison !== null && garrison.length === 0 && <p>Žádná vojska na tomto území.</p>}
-            {garrison !== null && garrison.length > 0 && (
-              <ul className="flex flex-col gap-1">
-                {garrison.map((instance) => (
-                  <li key={instance.instance_id}>
-                    {instance.card_templates?.name ?? instance.template_id}
-                    {instance.card_templates?.rank ? ` (${instance.card_templates.rank})` : ''}
-                    {instance.status === 'in_transit' ? ' — na cestě' : ''}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <GarrisonModal
+            territory={selectedTile}
+            instances={garrison}
+            error={garrisonError}
+            onClose={() => setSelectedTile(null)}
+          />
         )}
       </div>
     </main>

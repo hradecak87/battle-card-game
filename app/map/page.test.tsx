@@ -85,7 +85,18 @@ describe('MapPage', () => {
           owner_id: 'me',
           stationed_territory_id: 999,
           status: 'stationed',
-          card_templates: { id: 'archers-common-01', name: 'Lučištníci', rank: 'common', category: 'unit', unit_type: 'archers' },
+          card_templates: {
+            id: 'archers-common-01',
+            name: 'Lučištníci',
+            flavor_text: 'Přesní stateční střelci.',
+            rank: 'common',
+            category: 'unit',
+            unit_type: 'archers',
+            base_stats: { str: 2, lng: 8, def: 3, hp: 5 },
+            total_supply: null,
+            defense_bonus_pct: null,
+            attack_bonus_pct: null,
+          },
         },
       ],
       error: null,
@@ -96,8 +107,8 @@ describe('MapPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Území 128,128' }))
 
     expect(getCardInstancesAtTerritory).toHaveBeenCalledWith(mockTerritory(128, 128).id)
-    await waitFor(() => expect(screen.getByText(/Lučištníci/)).toBeInTheDocument())
-    expect(screen.getByText(/common/)).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByTestId('garrison-modal')).toBeInTheDocument())
+    expect(screen.getAllByText(/Lučištníci/).length).toBeGreaterThan(0)
   })
 
   it('shows a message when the selected tile has no garrison', async () => {
@@ -108,5 +119,17 @@ describe('MapPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Území 128,128' }))
 
     await waitFor(() => expect(screen.getByText('Žádná vojska na tomto území.')).toBeInTheDocument())
+  })
+
+  it('closes the garrison popup when the close button is clicked', async () => {
+    getCardInstancesAtTerritory.mockResolvedValueOnce({ data: [], error: null })
+    render(<MapPage />)
+    await waitFor(() => expect(screen.getByTestId('map-viewport')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: 'Území 128,128' }))
+    await waitFor(() => expect(screen.getByTestId('garrison-modal')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zavřít' }))
+    expect(screen.queryByTestId('garrison-modal')).not.toBeInTheDocument()
   })
 })
