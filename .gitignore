@@ -37,3 +37,6 @@ next-env.d.ts
 
 # brainstorming skill artifacts
 /.superpowers/
+
+# one-time migration script data backups (not source, may contain live data)
+scripts/_backup-*.json
