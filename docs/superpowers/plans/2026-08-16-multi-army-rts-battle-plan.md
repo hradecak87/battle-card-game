@@ -266,7 +266,15 @@ maximally atomic**: each task bundles writing code + its test + running it
      already targeting it (`exists (select 1 from battles where
      territory_id = target_territory_id and status not in ('resolved',
      'expired'))`) — this check is now reliable precisely because step 1
-     already flushed any stale battle state.
+     already flushed any stale battle state. Perform this check (and the
+     following steps that write) under `select ... for update` on the
+     `territories` row for `target_territory_id`, re-checking the same
+     condition immediately after acquiring the lock, mirroring
+     `start_claim`'s existing row-locking + re-check convention
+     (`2026-08-15-territory-map-plan.md` Task 6) — this closes the race
+     where two simultaneous `declare_attack` calls against the same
+     target could otherwise both pass the "no existing battle" check
+     before either commits.
   5. Best-effort 32-cap pre-check: if this attack is plausibly capturable
      (target isn't the caller's own home — always true here since step 3
      already excluded own territory) and the caller already owns 32
@@ -387,18 +395,27 @@ maximally atomic**: each task bundles writing code + its test + running it
      `battle_attacker_roster` from the movement's `troop_movement_units`
      in every combat case.
   5. For a newly `active` NPC battle (`defender_id is null`)
-     specifically, immediately call `resolve_due_battles()` (Task
-     10/12's function, defined later in this same migration file — safe
-     forward reference for the same reason explained in Task 7: plpgsql
-     resolves called-function references at execution time, not creation
-     time, and the whole migration is applied before the app ever calls
-     any of these RPCs at runtime) so the entire round sequence plays out
-     synchronously, in the same transaction, before `declare_attack`
-     returns to its caller (spec §4: NPC battles "resolve every round
-     automatically and immediately", no 120-second wait, no separate
-     trigger needed). `battle_rounds` still gets a full replay trail for
-     the client to animate afterward — only the *server-side* resolution
-     is synchronous, the UI still paces its own replay.
+     specifically, immediately call Task 11's `_start_next_round(battle_id)`
+     helper (defined later in this same migration file — safe forward
+     reference for the same reason explained in Task 7: plpgsql resolves
+     called-function references at execution time, not creation time,
+     and the whole migration is applied before the app ever calls any of
+     these RPCs at runtime). `_start_next_round` itself contains the full
+     NPC loop (Task 11: pick attacker card, pick NPC defender card via
+     the ported smart-counter logic, call `_resolve_round`, recurse into
+     the next round) so this single call plays out the entire battle to
+     its win condition synchronously, in the same transaction, before
+     `resolve_due_movements()`/`declare_attack` returns to its caller
+     (spec §4: NPC battles "resolve every round automatically and
+     immediately", no 120-second wait, no separate trigger needed). Do
+     **not** call `resolve_due_battles()` here instead — its
+     `active`-battle branch (Task 12) only auto-picks a *missing* pick on
+     an *already-existing* round past its deadline; a freshly-`active`
+     battle has no `battle_rounds` row yet, so `resolve_due_battles()`
+     would be a no-op and the battle would never start. `battle_rounds`
+     still gets a full replay trail for the client to animate afterward —
+     only the *server-side* resolution is synchronous, the UI still
+     paces its own replay.
 - [ ] Commit: `feat: extend resolve_due_movements for attack arrivals`
 
 ---
@@ -483,7 +500,15 @@ maximally atomic**: each task bundles writing code + its test + running it
   transaction so concurrent RPC calls can't race past each other, so a
   client-side-only implementation isn't an option; duplicating the ~15
   lines of arithmetic in SQL is simpler and more auditable than round-
-  tripping to an edge function per round). It: looks up both cards'
+  tripping to an edge function per round). Acquire `select ... for
+  update` on the `battles` row for `battle_id` as the function's first
+  statement, and re-check `current_round`/the round's existing
+  `defender_card_instance_id` immediately after acquiring the lock,
+  mirroring `start_claim`'s row-locking + re-check convention
+  (`2026-08-15-territory-map-plan.md` Task 6) — this closes the race
+  where two near-simultaneous calls (e.g. a defender's `pick_defender_card`
+  racing an auto-pick from `resolve_due_battles()`) could otherwise both
+  attempt to resolve the same round. It: looks up both cards'
   `card_templates`/`card_instances` rows, the territory's
   `castle_rank`/`village_rank`, and each card's *current owner's* nation;
   applies rank scaling, structure bonus (defender side only), nation perk,
@@ -507,7 +532,7 @@ maximally atomic**: each task bundles writing code + its test + running it
 - [ ] For **starting** a round (as opposed to resolving one already in
   progress): write a second small internal helper, `_start_next_round(battle_id
   uuid) returns void`, called (a) immediately when a battle flips to
-  `active` (from `mark_ready`, Task 12, or from an NPC arrival in Task 9),
+  `active` (from `mark_ready`, Task 13, or from an NPC arrival in Task 9),
   and (b) immediately after `_resolve_round` finishes and the win
   condition isn't yet met. It inserts the next `battle_rounds` row with
   `round_number = current_round + 1`: picks a random available (per Task
@@ -560,9 +585,13 @@ maximally atomic**: each task bundles writing code + its test + running it
   backdated `round_deadline` to simulate timeouts, hand-check the final
   `status='resolved'`/`winner_side`/territory ownership/card ownership
   against a worked-by-hand expected outcome); an NPC battle fixture
-  (single `declare_attack` against an NPC-garrisoned tile followed by one
-  `select resolve_due_battles();` call resolves the entire battle); a
-  skip-round fixture (attacker's roster fully resting for one round,
+  (single `declare_attack` against an NPC-garrisoned tile — per Task 9,
+  this alone already resolves the entire battle synchronously via
+  `_start_next_round`'s NPC loop, so no separate `resolve_due_battles()`
+  call is needed to observe `status='resolved'`; additionally confirm
+  that calling `resolve_due_battles()` afterward anyway is a harmless
+  no-op, to guard against future regressions reintroducing a dependency
+  on it); a skip-round fixture (attacker's roster fully resting for one round,
   confirm the round is logged `skipped=true` and rest counters still
   decrement) — same manual-checklist convention as every other RPC task
   in this plan.
