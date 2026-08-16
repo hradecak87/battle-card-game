@@ -72,6 +72,33 @@ export async function getMyMovements() {
   }>
 }
 
+export interface CardInstanceWithTemplate {
+  instance_id: string
+  template_id: string
+  owner_id: string | null
+  stationed_territory_id: number | null
+  status: 'stationed' | 'in_transit'
+  card_templates: {
+    id: string
+    name: string
+    rank: string
+    category: 'unit' | 'castle' | 'village'
+    unit_type: string | null
+  } | null
+}
+
+export async function getCardInstancesAtTerritory(territoryId: number) {
+  return supabase
+    .from('card_instances')
+    .select(
+      'instance_id, template_id, owner_id, stationed_territory_id, status, card_templates(id, name, rank, category, unit_type)'
+    )
+    .eq('stationed_territory_id', territoryId) as unknown as Promise<{
+    data: CardInstanceWithTemplate[] | null
+    error: { message: string } | null
+  }>
+}
+
 export async function startClaim(
   originTerritoryId: number,
   destinationTerritoryId: number,

@@ -22,10 +22,12 @@ const getViewport = jest.fn().mockResolvedValue({
   error: null,
 })
 const getMinimapOverview = jest.fn().mockResolvedValue({ data: [], error: null })
+const getCardInstancesAtTerritory = jest.fn().mockResolvedValue({ data: [], error: null })
 
 jest.mock('@/lib/territories/api', () => ({
   getViewport: (...args: unknown[]) => getViewport(...args),
   getMinimapOverview: (...args: unknown[]) => getMinimapOverview(...args),
+  getCardInstancesAtTerritory: (...args: unknown[]) => getCardInstancesAtTerritory(...args),
 }))
 
 jest.mock('@/lib/supabase/useSession', () => ({
@@ -72,5 +74,39 @@ describe('MapPage', () => {
     getViewport.mockResolvedValueOnce({ data: null, error: { message: 'boom' } })
     render(<MapPage />)
     await waitFor(() => expect(screen.getByText('boom')).toBeInTheDocument())
+  })
+
+  it('loads and displays the garrison when a tile is selected', async () => {
+    getCardInstancesAtTerritory.mockResolvedValueOnce({
+      data: [
+        {
+          instance_id: 'inst-1',
+          template_id: 'archers-common-01',
+          owner_id: 'me',
+          stationed_territory_id: 999,
+          status: 'stationed',
+          card_templates: { id: 'archers-common-01', name: 'Lučištníci', rank: 'common', category: 'unit', unit_type: 'archers' },
+        },
+      ],
+      error: null,
+    })
+    render(<MapPage />)
+    await waitFor(() => expect(screen.getByTestId('map-viewport')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: 'Území 128,128' }))
+
+    expect(getCardInstancesAtTerritory).toHaveBeenCalledWith(mockTerritory(128, 128).id)
+    await waitFor(() => expect(screen.getByText(/Lučištníci/)).toBeInTheDocument())
+    expect(screen.getByText(/common/)).toBeInTheDocument()
+  })
+
+  it('shows a message when the selected tile has no garrison', async () => {
+    getCardInstancesAtTerritory.mockResolvedValueOnce({ data: [], error: null })
+    render(<MapPage />)
+    await waitFor(() => expect(screen.getByTestId('map-viewport')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: 'Území 128,128' }))
+
+    await waitFor(() => expect(screen.getByText('Žádná vojska na tomto území.')).toBeInTheDocument())
   })
 })

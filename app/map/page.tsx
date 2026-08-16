@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { getMinimapOverview, getViewport, Territory } from '@/lib/territories/api'
+import { getMinimapOverview, getViewport, getCardInstancesAtTerritory, CardInstanceWithTemplate, Territory } from '@/lib/territories/api'
 import MapViewport from '@/components/territories/MapViewport'
 import { useSession } from '@/lib/supabase/useSession'
 
@@ -26,6 +26,8 @@ export default function MapPage() {
   const [territories, setTerritories] = useState<Territory[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selectedTile, setSelectedTile] = useState<Territory | null>(null)
+  const [garrison, setGarrison] = useState<CardInstanceWithTemplate[] | null>(null)
+  const [garrisonError, setGarrisonError] = useState<string | null>(null)
   const [homeStatus, setHomeStatus] = useState<'idle' | 'searching' | 'not-found'>('idle')
 
   const viewSize = ZOOM_LEVELS[zoomIndex]
@@ -85,6 +87,18 @@ export default function MapPage() {
     handleJump(home.x, home.y)
   }
 
+  async function handleSelectTile(tile: Territory) {
+    setSelectedTile(tile)
+    setGarrison(null)
+    setGarrisonError(null)
+    const { data, error: rpcError } = await getCardInstancesAtTerritory(tile.id)
+    if (rpcError) {
+      setGarrisonError(rpcError.message)
+      return
+    }
+    setGarrison(data ?? [])
+  }
+
   return (
     <main className="min-h-screen p-8 flex flex-col items-center gap-6">
       <div className="w-full max-w-4xl flex flex-col gap-4">
@@ -123,7 +137,7 @@ export default function MapPage() {
             currentUserId={user?.id ?? null}
             onPan={handlePan}
             onJump={handleJump}
-            onSelectTile={setSelectedTile}
+            onSelectTile={handleSelectTile}
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}
             canZoomIn={zoomIndex > 0}
@@ -132,9 +146,25 @@ export default function MapPage() {
         )}
 
         {selectedTile && (
-          <p data-testid="selected-tile" className="text-sm text-zinc-400">
-            Vybráno území ({selectedTile.x}, {selectedTile.y})
-          </p>
+          <div data-testid="selected-tile" className="flex flex-col gap-2 text-sm text-zinc-400">
+            <p>
+              Vybráno území ({selectedTile.x}, {selectedTile.y})
+            </p>
+            {garrisonError && <p className="text-red-400">{garrisonError}</p>}
+            {garrison === null && !garrisonError && <p>Načítám posádku…</p>}
+            {garrison !== null && garrison.length === 0 && <p>Žádná vojska na tomto území.</p>}
+            {garrison !== null && garrison.length > 0 && (
+              <ul className="flex flex-col gap-1">
+                {garrison.map((instance) => (
+                  <li key={instance.instance_id}>
+                    {instance.card_templates?.name ?? instance.template_id}
+                    {instance.card_templates?.rank ? ` (${instance.card_templates.rank})` : ''}
+                    {instance.status === 'in_transit' ? ' — na cestě' : ''}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         )}
       </div>
     </main>
