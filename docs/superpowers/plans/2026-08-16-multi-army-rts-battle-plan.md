@@ -275,12 +275,18 @@ maximally atomic**: each task bundles writing code + its test + running it
      where two simultaneous `declare_attack` calls against the same
      target could otherwise both pass the "no existing battle" check
      before either commits.
-  5. Best-effort 32-cap pre-check: if this attack is plausibly capturable
-     (target isn't the caller's own home — always true here since step 3
-     already excluded own territory) and the caller already owns 32
-     territories (reuse whatever count query `start_claim` uses), raise
-     the same `territory ownership cap (32) reached` error text
-     `start_claim` raises (copy the exact error string for consistency).
+  5. Best-effort 32-cap pre-check per spec §5: "plausibly capturable"
+     requires **both** (a) `target_territory_id`'s `territories.is_home =
+     false` (query it directly — attacking a *defender's* home territory
+     is loot-only and never blocked by the cap, per spec §1/§5, this is
+     independent of and not implied by step 4's caller's-own-territory
+     exclusion) and (b) the target isn't already owned by the attacker
+     (trivially true here, already excluded by step 4). Only when both
+     hold, and the caller already owns 32 territories (reuse whatever
+     count query `start_claim` uses), raise the same `territory
+     ownership cap (32) reached` error text `start_claim` raises (copy
+     the exact error string for consistency). If the target is a home
+     territory, skip the cap check entirely and let the attack proceed.
   6. Insert a `troop_movements` row with `kind='attack'`,
      `transfer_arrives_at` computed via the existing `transferHours`
      logic already used by `start_transfer`/`start_claim` (same SQL
@@ -370,7 +376,8 @@ maximally atomic**: each task bundles writing code + its test + running it
        (`defender_id = claim_locked_by`, `is_home_target = false`) —
        explicitly do **not** touch `claim_locked_by` or the original
        claimant's `troop_movements` row here (spec §2's walkthrough: no
-       pausing, resolved entirely at battle-resolution time in Task 11).
+       pausing, resolved entirely at battle-resolution time in Task
+       10/12's `_finalize_battle` helper).
      - **NPC-garrisoned** (`owner_id is null and claim_locked_by is null`
        and at least one unit-category `card_instances` row with
        `owner_id is null` stationed there): insert `battles` (`defender_id
