@@ -368,11 +368,12 @@ maximally atomic**: each task bundles writing code + its test + running it
        `owner_id is null` stationed there): insert `battles` (`defender_id
        = null`).
      - **Now truly empty** (state changed during travel): clear
-       `territories.battle_locked_by` (no battle will exist for this
-       arrival — this was the missing piece flagged in spec review round
-       3), re-verify the 32-cap defensively, and fall back to exactly
-       `start_claim`'s effect: set `claim_locked_by = attacker` and start
-       a normal claim occupation (reuse whatever `start_claim` does for
+       `territories.battle_locked_by` (no battle exists for this
+       arrival — the lock must not linger once the contested state that
+       justified it has resolved), re-verify the 32-cap defensively, and
+       fall back to exactly `start_claim`'s effect: set `claim_locked_by
+       = attacker` and start a normal claim occupation (reuse whatever
+       `start_claim` does for
        this — factor the shared logic into a small internal helper
        function if it's more than a couple of lines, to avoid duplicating
        `start_claim`'s occupation-timer math).
@@ -441,6 +442,18 @@ maximally atomic**: each task bundles writing code + its test + running it
       §2's uniform rule again — no duels ran, so it's the whole roster,
       identical mechanically to the "neither ready" case).
   - In every sub-case: `resolved_at = now()`.
+- [ ] Note on test coverage: spec §8 lists ready-deadline tie-break logic
+  and the 32-cap check as testable behaviors, but per this project's
+  established convention (no `lib/`-side duplication of DB-only business
+  rules — see `2026-08-15-territory-map-plan.md`'s occupation-timer and
+  cap-check logic, which are also SQL-only), this logic lives directly in
+  `resolve_due_battles()`/`declare_attack` and is covered exclusively by
+  this task's manual `.verification.sql` fixtures, not a `lib/battles/`
+  pure-function unit test — unlike combat-stat stacking and NPC AI (Task
+  2/3), which are extracted into pure functions specifically because
+  their math is intricate enough to warrant fast, DB-free Jest iteration.
+  The ready-timeout/cap checks are simple conditionals better verified
+  directly against real rows.
 - [ ] Append to `0003_battles.verification.sql` (Task 6): fixture-driven
   smoke queries for these 4 sub-cases — seed a `battles` row directly at
   various `ready_deadline`/`*_ready_at` combinations (including
@@ -570,7 +583,8 @@ maximally atomic**: each task bundles writing code + its test + running it
   caller isn't `attacker_id` or `defender_id`; raise if `status !=
   'awaiting_ready'`; set the caller's own `*_ready_at = now()`
   **idempotently** (always overwrites, re-callable any number of times —
-  spec §3.6's explicit re-callability fix from review round 2); then, if
+  needed because either side may call `mark_ready` multiple times before
+  both are online simultaneously, per spec §3.6); then, if
   the other side's `*_ready_at` is already set and both players'
   `last_seen_at` are within 2 minutes of `now()`, flip
   `status='active'` and call Task 11's `_start_next_round` to create the
@@ -670,8 +684,11 @@ maximally atomic**: each task bundles writing code + its test + running it
   battle's ready-timeout or round-timeout gets resolved lazily the moment
   the battle screen loads or polls, matching the existing project-wide
   lazy-resolution convention — NPC battles no longer depend on this call
-  specifically, since Task 9 now resolves them synchronously at
-  `declare_attack` time, but PvP battles still do), then returns
+  specifically, since Task 9 now resolves them synchronously already,
+  inside `resolve_due_movements()` at the moment the attack *arrives*
+  (whenever that function is next lazily triggered after the travel
+  window elapses — not at the earlier `declare_attack` moment when the
+  attack was first declared), but PvP battles still do), then returns
   everything the battle screen (Task 18) needs to render both roster
   strips and the duel stage in one round-trip:
   - the `battles` row itself (status, `current_round`, `round_deadline`,
@@ -804,8 +821,12 @@ maximally atomic**: each task bundles writing code + its test + running it
   `claim_locked_by` already has, adjusted so the two states are
   distinguishable, e.g. a different border color/icon) to the hover
   tooltip and tile rendering.
-- [ ] Add a click-through: clicking a `battle_locked_by`-flagged tile the
-  caller is a participant in navigates to `app/battles/[id]`.
+- [ ] Add a click-through: clicking any `battle_locked_by`-flagged tile
+  navigates to `app/battles/[id]`, for **any** viewer, not just its two
+  participants — spec §3.6's RLS is explicitly public-read, and "no
+  spectating" only means no *interference* (enforced at the RPC layer by
+  `mark_ready`/`pick_defender_card`'s caller checks), not restricted
+  *viewing*. Do not gate this navigation by participant identity.
 - [ ] Component test(s) for the new hover-tooltip/tile-styling branch,
   following the existing test file's conventions.
 - [ ] Commit: `feat: show battle_locked_by on the territory map`
@@ -831,4 +852,11 @@ maximally atomic**: each task bundles writing code + its test + running it
   and surviving cards return home correctly per the uniform cleanup rule.
 - [ ] Update `docs/superpowers/PROGRESS.md` to mark subsystem #4 as
   implemented (per that file's own stated "update as you go" convention).
-- [ ] Commit: `docs: mark subsystem #4 implemented in PROGRESS.md`
+- [ ] **Hard gate, even after every automated check above passes:** do
+  not commit or push any of this chunk's changes until the user has
+  explicitly reviewed and approved the working feature end-to-end
+  (mirrors `2026-08-15-territory-map-plan.md`'s equivalent final-task
+  gate) — this project's standing convention requires explicit sign-off
+  before any commit, not just green tests.
+- [ ] Commit (only after the user's explicit approval above):
+  `docs: mark subsystem #4 implemented in PROGRESS.md`
