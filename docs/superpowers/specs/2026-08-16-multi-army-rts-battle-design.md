@@ -93,9 +93,29 @@ live round loop (status='active')
       still counts as "remaining", only "available this round" excludes it)
       ▼
 battle resolved: status='resolved', winner_side set
-      - is_home_target=true                  → no ownership change (never capturable); every card_instance currently owned by the attacker and stationed at territory_id (fixed roster survivors *and* any defender cards captured mid-battle) is sent home via a return troop_movement
-      - otherwise, attacker wins & not at the 32-territory cap → territory ownership transfers to attacker (owner_id=attacker, claim_locked_by and battle_locked_by both cleared); every card_instance stationed at territory_id simply stays there as the new garrison (all of them are, by the win condition below, already owned by the attacker — no travel needed)
-      - otherwise (defender wins, or attacker capped)          → territory stays with defender/NPC; by the win condition below the attacker has zero cards left owned by them at territory_id, so there is nothing left to send home
+      - attacker ends up owning the territory (attacker wins & not
+        is_home_target & not at the 32-territory cap) → territory
+        ownership transfers to attacker (owner_id=attacker,
+        claim_locked_by and battle_locked_by both cleared); every
+        card_instance stationed at territory_id simply stays there as
+        the new garrison (all of them are, by the win condition below,
+        already owned by the attacker — no travel needed)
+      - attacker does NOT end up owning the territory (is_home_target,
+        or defender/NPC wins, or attacker wins but is blocked by the
+        32-cap) → territory ownership unchanged (stays with
+        defender/NPC); **one uniform rule covers every card in this
+        branch**: every card_instance currently owned by the attacker
+        and stationed at territory_id is sent home via a return
+        troop_movement. This single rule is what's actually correct in
+        all three sub-cases: for a genuine defender/NPC combat win the
+        attacker already has zero cards left there (win condition), so
+        it's a no-op; for is_home_target or a cap-blocked *combat* win,
+        the attacker has captured every defender card there (win
+        condition again) and all of them go home; for a cap-blocked or
+        lopsided *outright* (no-combat, ready-timeout) win, the
+        attacker's entire untouched roster goes home. No special-casing
+        needed per scenario — just "send home whatever the attacker
+        currently owns there."
 ```
 
 **Contested empty-land claims** (subsystem #3 §6): classification of
@@ -354,23 +374,26 @@ relevant participant column.
        (defined identically to subsystem #2's existing convention —
        `players.last_seen_at` within the last 2 minutes, §6 /
        `2026-08-15-players-accounts-design.md` §6 — at the same instant):
-       attacker wins outright. If not `is_home_target` and not at the
-       32-cap, territory ownership transfers to the attacker exactly as
-       in a combat win (§5): `owner_id=attacker`, `claim_locked_by` and
-       `battle_locked_by` both cleared. Since no duels ran, no card
-       ownership changed — so the defender's own cards, still owned by
-       the defender, are no longer on their own territory once it's
-       captured: they are sent home via a return `troop_movements` row
-       to `(select id from territories where owner_id = defender_id and
-       is_home)` (the defender's home territory; this path only occurs
-       for PvP battles — an NPC "defender" always fights immediately per
-       §4, so it never reaches `awaiting_ready`, let alone this branch).
-       The attacker's roster needs no movement — it simply becomes the
-       new garrison in place, same as a combat-resolved capture. If
-       `is_home_target` or the cap blocks capture, no territory or card
-       ownership changes at all; only `battle_locked_by` is cleared
-       (nothing to return home in this case, since the "win" here isn't
-       a card-loot win — it produced no card captures either).
+       attacker wins outright, `winner_side='attacker'`. Since no duels
+       ran, no card ownership ever changed, so §2's uniform
+       does-the-attacker-end-up-owning-the-territory rule applies exactly
+       as it would after combat:
+       - If not `is_home_target` and not at the 32-cap: territory
+         ownership transfers to the attacker (`owner_id=attacker`,
+         `claim_locked_by` and `battle_locked_by` both cleared). The
+         attacker's roster needs no movement (becomes the new garrison in
+         place); the defender's own cards, still owned by the defender,
+         are sent home to `(select id from territories where owner_id =
+         defender_id and is_home)` (the defender's home territory — this
+         path only occurs for PvP battles, since an NPC "defender" always
+         fights immediately per §4 and never reaches `awaiting_ready`).
+       - If `is_home_target` or the cap blocks capture: territory
+         ownership is unchanged, `battle_locked_by` is cleared, and the
+         attacker's entire (untouched) roster is sent home via a return
+         `troop_movements` row exactly as in the "neither ready" case
+         above — same uniform rule as §2 ("send home whatever the
+         attacker currently owns there"), which here is simply its whole
+         roster since no duels captured anything.
   2. For `active` battles whose `round_deadline` has passed with the
      current round still missing a `defender_card_instance_id`: auto-picks
      a random available defender card, resolves that round
