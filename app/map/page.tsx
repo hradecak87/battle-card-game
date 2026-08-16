@@ -2,9 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { getMinimapOverview, getViewport, getCardInstancesAtTerritory, CardInstanceWithTemplate, Territory } from '@/lib/territories/api'
 import MapViewport from '@/components/territories/MapViewport'
 import GarrisonModal from '@/components/territories/GarrisonModal'
+import DeclareAttackModal from '@/components/territories/DeclareAttackModal'
+import { useTerritoryBattleChannel } from '@/lib/battles/useTerritoryBattleChannel'
 import { useSession } from '@/lib/supabase/useSession'
 
 // Capped below Supabase/PostgREST's default 1000-row response limit
@@ -20,6 +23,7 @@ function clamp(value: number) {
 }
 
 export default function MapPage() {
+  const router = useRouter()
   const { user } = useSession()
   const [centerX, setCenterX] = useState(128)
   const [centerY, setCenterY] = useState(128)
@@ -30,6 +34,7 @@ export default function MapPage() {
   const [garrison, setGarrison] = useState<CardInstanceWithTemplate[] | null>(null)
   const [garrisonError, setGarrisonError] = useState<string | null>(null)
   const [homeStatus, setHomeStatus] = useState<'idle' | 'searching' | 'not-found'>('idle')
+  const [showAttackModal, setShowAttackModal] = useState(false)
 
   const viewSize = ZOOM_LEVELS[zoomIndex]
 
@@ -48,6 +53,14 @@ export default function MapPage() {
       setTerritories(data ?? [])
     })
   }, [])
+
+  // Task 15/20: push live battle_locked_by/battle_id changes for the
+  // currently-visible viewport, so "under attack" flags appear/disappear
+  // without requiring a pan/zoom to trigger a refetch.
+  useTerritoryBattleChannel(
+    (territories ?? []).map((t) => t.id),
+    () => loadViewport(centerX, centerY, viewSize)
+  )
 
   useEffect(() => {
     loadViewport(centerX, centerY, viewSize)
@@ -89,6 +102,14 @@ export default function MapPage() {
   }
 
   async function handleSelectTile(tile: Territory) {
+    // Task 20: any battle-locked tile click-throughs straight to the
+    // battle screen, for any viewer (spectating is allowed — only acting
+    // in someone else's battle isn't, and that's enforced at the RPC
+    // layer, not here).
+    if (tile.battle_id) {
+      router.push(`/battles/${tile.battle_id}`)
+      return
+    }
     setSelectedTile(tile)
     setGarrison(null)
     setGarrisonError(null)
@@ -152,6 +173,19 @@ export default function MapPage() {
             instances={garrison}
             error={garrisonError}
             onClose={() => setSelectedTile(null)}
+            myPlayerId={user?.id ?? null}
+            onAttack={() => setShowAttackModal(true)}
+          />
+        )}
+
+        {selectedTile && showAttackModal && (
+          <DeclareAttackModal
+            territory={selectedTile}
+            myPlayerId={user?.id ?? null}
+            onClose={() => setShowAttackModal(false)}
+            onDeclared={() => {
+              loadViewport(centerX, centerY, viewSize)
+            }}
           />
         )}
       </div>

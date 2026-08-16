@@ -21,8 +21,8 @@ each with its own spec → plan → implementation cycle:
 
 1. **Card Collection & Combat Core** ← **✅ FULLY IMPLEMENTED AND VERIFIED** (all 9 plan steps done, 30/30 tests pass, `npm run build` clean, viewable at `/`, `/collection`, `/arena`)
 2. Players & Accounts (registration, nation classes/perks, XP/levels, matchmaking by level) ← **✅ FULLY IMPLEMENTED** — data/logic layer + Supabase migration applied to a live project + all pages (register/login/reset-password/onboarding/profile/leaderboard) built and tested (61/61 tests); manual browser verification with the user still pending (see §7 below)
-3. Territory Map (256×256 grid, occupation timers, castles/villages, troop transfers)
-4. Multi-army RTS Battle (real-time, both players online, timeouts, rest-area cooldowns, reuses subsystem #1's `resolveDuel` as its per-duel building block)
+3. Territory Map (256×256 grid, occupation timers, castles/villages, troop transfers) ← **✅ FULLY IMPLEMENTED** — migration applied to the live project, world generated (65,536 territories), all pages built and tested (119/119 tests at the time); see §8 below
+4. Multi-army RTS Battle (real-time, both players online, timeouts, rest-area cooldowns, reuses subsystem #1's `resolveDuel` as its per-duel building block) ← **✅ FULLY IMPLEMENTED, MIGRATION DEPLOYED & LIVE-SMOKE-TESTED** — full plan (21 tasks / 8 chunks) implemented, `tsc` clean, 171/171 tests; `0003_battles.sql` applied to the live project and both an NPC-attack and a full PvP round-loop smoke test passed end-to-end (test data fully cleaned up afterward); nothing committed yet — awaiting the user's explicit review/sign-off before commit; see §9 below
 5. Trading/Exchange (offer a card, others counter-offer with cards, accept/reject)
 6. Notifications (attack alerts, trade offers — email and/or push, mechanism not yet decided)
 
@@ -765,3 +765,178 @@ go-ahead**:
   insert) and the 4 mutating-RPC rejection-path tests (need a real
   authenticated player, and no one has signed up yet) — low priority,
   can be exercised once real players/onboarding exist.
+
+## 9. Subsystem #4: Multi-Army RTS Battle — implemented, self-verified, awaiting sign-off before commit
+
+Spec written to
+`docs/superpowers/specs/2026-08-16-multi-army-rts-battle-design.md` via the
+`brainstorming` skill, then plan written to
+`docs/superpowers/plans/2026-08-16-multi-army-rts-battle-plan.md` (21 tasks
+across 8 chunks). Both documents already existed going into this session's
+implementation work.
+
+**Key mechanics locked into the spec/plan** (see the spec file for the full
+Q&A): attacker picks a roster up front, but each round one of the
+attacker's cards is chosen at random while the defender picks their
+responder reactively (defender's informational advantage); rounds continue
+until one side hits 0 cards; winning/surviving cards get a 2-round rest
+cooldown before they can fight again; both players must be online and
+`mark_ready` to start a round-resolution tick (true RTS, not turn-by-turn
+polling); a 10-day no-show timeout auto-resolves to whichever side readied
+up at least once (attacker wins outright if neither side ever confirms
+readiness after both declared, since the defender failed to defend); cards
+captured in battle transfer between players' collections (never destroyed);
+NPC-garrisoned tiles use a simple deterministic AI so PvE resolves without
+needing a second human; home territories can never be lost.
+
+**Implementation status: all 21 plan tasks complete, self-verified, NOT
+committed** (per the user's explicit "commitneme až po chunku 7 a 8"
+instruction — everything below is real, working, on-disk code, but no git
+commit has been made yet, pending the user's end-to-end review):
+
+- **Chunk 1 (pure logic)**: nation combat perks (`lib/battles/
+  nationCombatPerk.ts`), effective-stats computation incl. castle/village
+  bonuses (`lib/battles/effectiveStats.ts` + a parity test proving it
+  matches subsystem #1's original formula for the no-bonus case), rest-
+  cooldown bookkeeping (`lib/battles/restCooldown.ts`), and NPC-defender AI
+  (`lib/battles/npcAi.ts`) — all pure TypeScript, fully unit-tested,
+  reusing subsystem #1's `resolveDuel` as the actual per-duel resolver.
+- **Chunk 2 (DB schema)**: `battles`/`battle_rosters`/`battle_rounds` tables
+  plus a `battle_locked_by` column on `territories`, RLS (public-read, no
+  direct write), added to `supabase/migrations/0003_battles.sql`.
+- **Chunk 3**: `declare_attack` RPC (validates roster ownership, distance/
+  transfer-time-derived arrival, the 32-territory cap, and locks the target
+  territory via `battle_locked_by`) plus amendments to subsystem #3's
+  `get_viewport`/`start_claim`/etc. so claim and battle locks can't race
+  each other.
+- **Chunk 4**: `resolve_due_movements()` extended so an arriving attack
+  movement actually starts the battle (creates the `battles` row and
+  initial rosters) instead of just delivering troops, and folds in the
+  claim-downgrade case (an empty-tile claim gets contested by a rival
+  attacker).
+- **Chunk 5 (core engine)**: `resolve_due_battles()` — the lazy-resolution
+  round engine (random attacker-card draw, defender's reactive pick or NPC
+  AI's pick, `resolveDuel` call, rest-cooldown bookkeeping, win-condition
+  detection, card capture, uniform post-battle cleanup returning surviving
+  cards home). This was rewritten directly by hand after a background
+  agent hallucinated an entire fake schema for it — see this session's
+  history for the full incident; it is not delegated to agents from this
+  point forward, only written directly with `tsc`/`jest` verification
+  after every change.
+- **Chunk 6**: `mark_ready` (both-players-online RTS gate, 10-day timeout
+  auto-resolution per the rules above) and `pick_defender_card` (the
+  defender's reactive per-round choice) RPCs.
+- **Chunk 7 (realtime + UI)**: Postgres `postgres_changes` realtime
+  publication for `battles`/`battle_rounds`/`territories` (no realtime
+  infrastructure existed anywhere in the codebase before this); `get_battle`
+  aggregate RPC; `lib/battles/api.ts` typed client wrappers;
+  `useBattleChannel`/`useTerritoryBattleChannel` realtime hooks;
+  `DeclareAttackModal` (wired into `GarrisonModal`'s new "⚔️ Zaútočit"
+  button, since `TerritoryDetailPanel` — the component the plan assumed —
+  turned out not to actually be wired into `app/map/page.tsx` at all; the
+  attack entry point was added to whichever component is actually live);
+  the full battle screen (`RosterStrip`/`DuelStage`/`RoundHistory`/
+  `BattleScreen` at `app/battles/[id]`), responsive by Tailwind breakpoints
+  in the same components (no separate mobile file, matching this project's
+  existing convention); `battle_locked_by`/`battle_id` map visual
+  treatment and click-through navigation to the battle screen for any
+  viewer (spectating is allowed, only interference is blocked, per spec).
+- **Chunk 8 (this task)**: final `tsc`/full-suite verification (below) and
+  this PROGRESS.md update.
+
+**Verification**: `npx tsc --noEmit` clean and full `npx jest --ci`
+**171/171 tests passing** across 26 suites, run fresh at the end of this
+session.
+
+**Not yet done / explicitly deferred**:
+- **Nothing has been committed or pushed.** Per the user's explicit
+  instruction this session ("commitneme až po chunku 7 a 8") and this
+  project's standing convention (mirrors the territory-map plan's
+  equivalent final-task gate), a commit will only happen after the user
+  has reviewed and explicitly approved the feature.
+
+**Live smoke test performed this session (against the live project
+`yjmvktpsczmabcpwcyoa`, with explicit user go-ahead — "nahraj to do
+produkční databáze... zatím jsme ve vývoji hry")**:
+- Full backup of `players`/`card_templates`/`card_instances`/`territories`/
+  `troop_movements` taken first (`scripts/backups/pre-0003-battles-*.json`,
+  gitignored, 17.4 MB, 4 tables × exact row counts before any change).
+- `0003_battles.sql` applied directly against the live Postgres instance
+  via the Session/Transaction Pooler connection string (`SUPABASE_DB_URL`
+  in `.env.local`, not committed) using the `pg` npm package (added as a
+  new devDependency) — no Supabase CLI auth token or scratch/second
+  project was needed once a direct DB connection was available.
+- **Bug found and fixed during this deployment**: `get_viewport` and
+  `get_minimap_overview`'s `create or replace function` statements failed
+  live with `cannot change return type of existing function` — Postgres
+  requires an explicit `drop function` first when a function's return
+  columns change (adding `battle_id`), which `create or replace` alone
+  cannot do. Fixed by adding `drop function if exists ...` immediately
+  before each redefinition in `0003_battles.sql`. Migration re-ran clean
+  after the fix (verified via a fresh `BEGIN`/`COMMIT` transaction, so the
+  first failed attempt made zero live changes).
+- Post-apply verification: all 4 new tables (`battles`,
+  `battle_attacker_roster`, `battle_rounds`, `battle_unit_rest`), all 7 new
+  RPCs, the `territories.battle_locked_by` column, and the
+  `battles`/`battle_rounds`/`territories` realtime publication all confirmed
+  present live via direct SQL queries.
+- **NPC attack smoke test**: two throwaway test accounts were created via
+  the Supabase Admin API (`smoketest-attacker@battlecardgame.test`,
+  `smoketest-defender@battlecardgame.test`), onboarded through the real
+  `complete_kingdom_onboarding` RPC (impersonated via a
+  `set_config('request.jwt.claims', ...)` session-JWT spoof over the direct
+  DB connection — the same mechanism PostgREST uses internally, so
+  `auth.uid()` resolves exactly as it would through the real API/app).
+  The attacker declared a real `declare_attack` call against a nearby
+  NPC-garrisoned village tile (3-card NPC garrison), the resulting
+  `troop_movements` row was fast-forwarded (its `transfer_arrives_at` set
+  to the past — the only test-only shortcut used; every RPC call itself
+  was the genuine production code path) and `resolve_due_movements()` was
+  invoked. Result: the battle auto-created and fully auto-resolved in the
+  same call (9 rounds, NPC path per spec §4), `winner_side = 'attacker'`,
+  the tile's `owner_id` flipped to the attacker, and all 3 NPC cards were
+  captured (attacker's roster at that tile went from 6 → 9, NPC garrison
+  → 0) — capture-on-win confirmed working end-to-end.
+- **PvP attack smoke test**: using the same two test accounts (the
+  attacker's newly-captured tile as origin against a second, manually
+  pre-granted non-home territory owned by the defender with a 3-card
+  garrison), a real `declare_attack` was issued, fast-forwarded to
+  arrival, both players' `last_seen_at` set to "now" (simulating both
+  online) and `mark_ready` called by each in turn — the battle correctly
+  stayed `awaiting_ready` after only one side readied, then flipped to
+  `active` and started round 1 the moment both had. The full round loop
+  was then played out purely through the real `pick_defender_card` RPC
+  (defender picking a random eligible card each round, exactly as the real
+  UI would), with `resolve_due_battles()`'s and `_start_next_round`'s
+  internal logic handling everything else (attacker's random per-round
+  draw, `resolveDuel` calls, rest bookkeeping). Result: 7 rounds total (2
+  correctly auto-skipped when both sides had every card resting — proof
+  the skip-round path works), a card was seen returning to the fight in
+  round 6 after resting through rounds 4-5 exactly per the 2-round rest
+  rule, `winner_side = 'attacker'`, the tile's ownership flipped to the
+  attacker, all 3 of the defender's cards at that tile were captured
+  (attacker's final roster there: 9 + 3 = 12), and the defender's
+  untouched 3 home-based cards were correctly left alone. 7
+  `battle_unit_rest` rows were recorded, confirming cooldown bookkeeping
+  fired on every resolved round.
+- **Full cleanup performed immediately after**: both test battles' rows
+  (`battle_unit_rest`/`battle_rounds`/`battle_attacker_roster`/`battles`)
+  and both test `troop_movements` deleted; the 3 originally-NPC card
+  instances restored to `owner_id = null` (identified via exact
+  `instance_id` match against the pre-migration backup, not recreated —
+  no new card instances were minted to "undo" the capture); the 12
+  starter-minted test-player card instances deleted outright (they never
+  existed before this session); all 4 touched territories reset to
+  `owner_id = null` / `is_home = false`; both test `players` rows deleted;
+  both test `auth.users` accounts deleted via the Admin API. Final counts
+  verified to exactly match the pre-migration backup
+  (`players: 1, card_templates: 258, card_instances: 13404, territories:
+  65536, troop_movements: 0, battles: 0`) — the live project is back to
+  its exact pre-test state, with only the schema itself (tables/RPCs/
+  realtime) now new and permanent.
+- **Not covered by this smoke test**: the real-time push-to-two-browsers
+  UI experience (Task 15's live subscription) and the actual React UI
+  components (`DeclareAttackModal`/`BattleScreen`) were exercised only via
+  their Jest unit tests, not against this live data — this pass tested the
+  SQL/RPC layer end-to-end, not the browser UI, since no browser is
+  available in this environment.

@@ -21,6 +21,16 @@ export interface Territory {
   claim_started_at: string | null
   claim_transfer_arrives_at: string | null
   claim_occupation_completes_at: string | null
+  /** Attacker's player id if a battle is currently in progress here (subsystem #4). */
+  battle_locked_by: string | null
+  /**
+   * The in-progress battle's id, for click-through navigation to
+   * app/battles/[id] (subsystem #4, Task 20). Only populated by
+   * `getViewport`/`getMinimapOverview` (both compute it fresh); plain
+   * `getTerritory` still returns the raw row without it, so treat as
+   * optional/absent there.
+   */
+  battle_id?: string | null
 }
 
 export interface MinimapTile {
@@ -30,6 +40,8 @@ export interface MinimapTile {
   castle_rank: string | null
   village_rank: string | null
   claim_locked_by: string | null
+  battle_locked_by: string | null
+  battle_id: string | null
 }
 
 export interface TroopMovement {

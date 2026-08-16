@@ -181,6 +181,7 @@ export default function MapViewport({
             const color = tile ? DIFFICULTY_COLOR[tile.difficulty] : 'bg-zinc-900'
             const isHovered = hoveredTile?.x === x && hoveredTile?.y === y
             const isOwnedByMe = Boolean(tile?.owner_id && currentUserId && tile.owner_id === currentUserId)
+            const isUnderAttack = Boolean(tile?.battle_locked_by)
             return (
               <button
                 key={`${x},${y}`}
@@ -190,8 +191,11 @@ export default function MapViewport({
                 onMouseEnter={() => setHoveredTile({ x, y })}
                 onMouseLeave={() => setHoveredTile((current) => (current?.x === x && current?.y === y ? null : current))}
                 data-owned-by-me={isOwnedByMe ? 'true' : 'false'}
+                data-under-attack={isUnderAttack ? 'true' : 'false'}
                 className={`relative aspect-square min-w-0 min-h-0 border flex flex-col items-center justify-center gap-0.5 overflow-visible ${color} ${
-                  isOwnedByMe
+                  isUnderAttack
+                    ? 'border-red-500 ring-2 ring-red-500 ring-inset animate-pulse'
+                    : isOwnedByMe
                     ? 'border-sky-200 ring-2 ring-sky-400 ring-inset'
                     : 'border-zinc-800'
                 }`}
@@ -221,6 +225,11 @@ export default function MapViewport({
                     ⏳
                   </span>
                 )}
+                {tile?.battle_locked_by && (
+                  <span title="Probíhá boj" className="text-lg leading-none drop-shadow">
+                    ⚔️
+                  </span>
+                )}
                 {isHovered && (
                   <div className="pointer-events-none absolute left-1/2 top-0 z-20 w-40 -translate-x-1/2 -translate-y-[calc(100%+6px)] rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-left text-xs text-zinc-100 shadow-lg">
                     <p className="font-semibold">
@@ -233,6 +242,7 @@ export default function MapViewport({
                         {tile.castle_rank && <p>{`Hrad: ${tile.castle_rank}`}</p>}
                         {tile.village_rank && <p>{`Vesnice: ${tile.village_rank}`}</p>}
                         {tile.claim_locked_by && <p>Probíhá zábor</p>}
+                        {tile.battle_locked_by && <p className="text-red-400">Probíhá boj — klikni pro zobrazení</p>}
                       </>
                     ) : null}
                   </div>

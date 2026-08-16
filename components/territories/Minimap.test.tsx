@@ -3,10 +3,10 @@ import Minimap from './Minimap'
 import { MinimapTile } from '@/lib/territories/api'
 
 const tiles: MinimapTile[] = [
-  { x: 10, y: 10, owner_id: 'me', castle_rank: null, village_rank: null, claim_locked_by: null },
-  { x: 20, y: 20, owner_id: 'other', castle_rank: null, village_rank: null, claim_locked_by: null },
-  { x: 30, y: 30, owner_id: null, castle_rank: 'rare', village_rank: null, claim_locked_by: null },
-  { x: 40, y: 40, owner_id: null, castle_rank: null, village_rank: null, claim_locked_by: 'someone' },
+  { x: 10, y: 10, owner_id: 'me', castle_rank: null, village_rank: null, claim_locked_by: null, battle_locked_by: null, battle_id: null },
+  { x: 20, y: 20, owner_id: 'other', castle_rank: null, village_rank: null, claim_locked_by: null, battle_locked_by: null, battle_id: null },
+  { x: 30, y: 30, owner_id: null, castle_rank: 'rare', village_rank: null, claim_locked_by: null, battle_locked_by: null, battle_id: null },
+  { x: 40, y: 40, owner_id: null, castle_rank: null, village_rank: null, claim_locked_by: 'someone', battle_locked_by: null, battle_id: null },
 ]
 
 describe('Minimap', () => {

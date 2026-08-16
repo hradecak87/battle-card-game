@@ -40,3 +40,4 @@ next-env.d.ts
 
 # one-time migration script data backups (not source, may contain live data)
 scripts/_backup-*.json
+scripts/backups/

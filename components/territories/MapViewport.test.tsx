@@ -16,6 +16,7 @@ function makeTerritory(overrides: Partial<Territory> = {}): Territory {
     claim_started_at: null,
     claim_transfer_arrives_at: null,
     claim_occupation_completes_at: null,
+    battle_locked_by: null,
     ...overrides,
   }
 }

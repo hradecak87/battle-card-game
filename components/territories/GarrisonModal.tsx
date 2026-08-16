@@ -10,6 +10,8 @@ export interface GarrisonModalProps {
   instances: CardInstanceWithTemplate[] | null
   error: string | null
   onClose: () => void
+  myPlayerId?: string | null
+  onAttack?: () => void
 }
 
 /** Rebuilds the `UnitCardTemplate` shape `TradingCard` expects from the flat DB row. */
@@ -32,7 +34,12 @@ function toUnitTemplate(row: NonNullable<CardInstanceWithTemplate['card_template
  * renders the garrison stationed there as actual `TradingCard` visuals
  * instead of a plain text list, reusing subsystem #1's card art/frame.
  */
-export default function GarrisonModal({ territory, instances, error, onClose }: GarrisonModalProps) {
+export default function GarrisonModal({ territory, instances, error, onClose, myPlayerId, onAttack }: GarrisonModalProps) {
+  const canAttack =
+    Boolean(myPlayerId) &&
+    territory.owner_id !== myPlayerId &&
+    territory.claim_locked_by !== myPlayerId &&
+    !territory.battle_locked_by
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
@@ -47,14 +54,28 @@ export default function GarrisonModal({ territory, instances, error, onClose }: 
           <h2 className="text-lg font-bold">
             Posádka — území ({territory.x}, {territory.y})
           </h2>
-          <button
-            type="button"
-            aria-label="Zavřít"
-            onClick={onClose}
-            className="rounded-full px-3 py-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
-          >
-            ✕
-          </button>
+          <div className="flex items-center gap-2">
+            {canAttack && onAttack && (
+              <button
+                type="button"
+                onClick={onAttack}
+                className="rounded bg-red-700 hover:bg-red-600 px-3 py-1 text-sm font-semibold text-white"
+              >
+                ⚔️ Zaútočit
+              </button>
+            )}
+            {territory.battle_locked_by && (
+              <span className="text-xs text-red-400">Toto území je právě v boji</span>
+            )}
+            <button
+              type="button"
+              aria-label="Zavřít"
+              onClick={onClose}
+              className="rounded-full px-3 py-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         {error && <p className="text-red-400 text-sm">{error}</p>}

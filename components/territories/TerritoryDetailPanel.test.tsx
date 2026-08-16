@@ -13,6 +13,7 @@ const baseTerritory: Territory = {
   owner_id: null,
   is_home: false,
   claim_locked_by: null,
+  battle_locked_by: null,
   claim_started_at: null,
   claim_transfer_arrives_at: null,
   claim_occupation_completes_at: null,

@@ -1,6 +1,11 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import MapPage from './page'
 
+const routerPush = jest.fn()
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: routerPush }),
+}))
+
 const mockTerritory = (x: number, y: number, overrides: Partial<Record<string, unknown>> = {}) => ({
   id: y * 256 + x + 1,
   x,
@@ -14,6 +19,7 @@ const mockTerritory = (x: number, y: number, overrides: Partial<Record<string, u
   claim_started_at: null,
   claim_transfer_arrives_at: null,
   claim_occupation_completes_at: null,
+  battle_locked_by: null,
   ...overrides,
 })
 
@@ -32,6 +38,14 @@ jest.mock('@/lib/territories/api', () => ({
 
 jest.mock('@/lib/supabase/useSession', () => ({
   useSession: () => ({ user: null, player: null, loading: false }),
+}))
+
+jest.mock('@/lib/battles/api', () => ({
+  declareAttack: jest.fn().mockResolvedValue({ data: null, error: null }),
+}))
+
+jest.mock('@/lib/battles/useTerritoryBattleChannel', () => ({
+  useTerritoryBattleChannel: jest.fn(),
 }))
 
 describe('MapPage', () => {
