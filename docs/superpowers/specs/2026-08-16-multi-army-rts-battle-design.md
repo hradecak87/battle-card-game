@@ -317,8 +317,9 @@ relevant participant column.
     null` is stationed there → `defender_id = null`.
   - **Now truly empty** (state changed during travel — e.g. the earlier
     claimant cancelled): re-verifying the 32-cap (defensively, per
-    above), it falls back to exactly `start_claim`'s own effect: sets
-    `claim_locked_by = attacker` and starts a normal claim occupation
+    above), it falls back to exactly `start_claim`'s own effect: clears
+    `battle_locked_by` (no battle will exist for this arrival) and sets
+    `claim_locked_by = attacker`, starting a normal claim occupation
     timer for the arrived troops — no `battles` row, no combat. This is
     the one case where "attack" silently becomes "claim" rather than a
     battle, since there's no one left to fight.
@@ -334,16 +335,42 @@ relevant participant column.
 - **`resolve_due_battles()`** (new function, called at the top of every
   RPC in this section, same lazy-resolution convention):
   1. For `awaiting_ready` battles past `ready_deadline`: resolves per the
-     tie-break rules in §2 (neither ready → `status='expired'`, no
-     capture, no card loss, `battle_locked_by` cleared, and the
-     attacker's roster is sent home via a new return `troop_movements`
-     row, `kind='transfer'`, same `transferHours` formula, back to
-     `origin_territory_id`; only one side ever readied → that side wins
-     outright; both readied but their `*_ready_at` windows never both
-     fell inside "player is online," defined identically to subsystem
-     #2's existing convention — `players.last_seen_at` within the last 2
-     minutes (§6, `2026-08-15-players-accounts-design.md` §6) — at the
-     same instant → attacker wins outright).
+     tie-break rules in §2, all no-combat outcomes (no duels ever ran, so
+     no card ownership ever changed — only territory ownership and troop
+     *location* are at stake):
+     - **Neither ever readied**: `status='expired'`, `winner_side = null`,
+       no capture, `battle_locked_by` cleared, and the attacker's entire
+       roster is sent home via a return `troop_movements` row
+       (`kind='transfer'`, same `transferHours` formula, back to
+       `origin_territory_id`). The defender's own cards were never
+       displaced and are left untouched.
+     - **Only the defender ever readied**: defender wins outright — same
+       cleanup as "neither ready" above (territory stays with defender,
+       attacker's roster returns home, defender's cards untouched); the
+       only difference is `winner_side='defender'` is recorded for the
+       audit trail.
+     - **Only the attacker ever readied, or both readied but their
+       `*_ready_at` windows never both fell inside "player is online"**
+       (defined identically to subsystem #2's existing convention —
+       `players.last_seen_at` within the last 2 minutes, §6 /
+       `2026-08-15-players-accounts-design.md` §6 — at the same instant):
+       attacker wins outright. If not `is_home_target` and not at the
+       32-cap, territory ownership transfers to the attacker exactly as
+       in a combat win (§5): `owner_id=attacker`, `claim_locked_by` and
+       `battle_locked_by` both cleared. Since no duels ran, no card
+       ownership changed — so the defender's own cards, still owned by
+       the defender, are no longer on their own territory once it's
+       captured: they are sent home via a return `troop_movements` row
+       to `(select id from territories where owner_id = defender_id and
+       is_home)` (the defender's home territory; this path only occurs
+       for PvP battles — an NPC "defender" always fights immediately per
+       §4, so it never reaches `awaiting_ready`, let alone this branch).
+       The attacker's roster needs no movement — it simply becomes the
+       new garrison in place, same as a combat-resolved capture. If
+       `is_home_target` or the cap blocks capture, no territory or card
+       ownership changes at all; only `battle_locked_by` is cleared
+       (nothing to return home in this case, since the "win" here isn't
+       a card-loot win — it produced no card captures either).
   2. For `active` battles whose `round_deadline` has passed with the
      current round still missing a `defender_card_instance_id`: auto-picks
      a random available defender card, resolves that round
