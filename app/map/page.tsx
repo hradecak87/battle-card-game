@@ -105,6 +105,7 @@ export default function MapPage() {
             centerX={centerX}
             centerY={centerY}
             viewSize={VIEW_SIZE}
+            currentUserId={user?.id ?? null}
             onPan={handlePan}
             onJump={handleJump}
             onSelectTile={setSelectedTile}

@@ -16,9 +16,16 @@ export interface MapViewportProps {
   centerX: number
   centerY: number
   viewSize?: number
+  currentUserId?: string | null
   onPan: (dx: number, dy: number) => void
   onJump: (x: number, y: number) => void
   onSelectTile?: (territory: Territory) => void
+}
+
+function getOwnerLabel(tile: Territory, currentUserId?: string | null) {
+  if (!tile.owner_id) return 'Neobsazeno'
+  if (currentUserId && tile.owner_id === currentUserId) return 'Tvé území'
+  return 'Cizí hráč'
 }
 
 /**
@@ -32,12 +39,14 @@ export default function MapViewport({
   centerX,
   centerY,
   viewSize = 15,
+  currentUserId,
   onPan,
   onJump,
   onSelectTile,
 }: MapViewportProps) {
   const [jumpX, setJumpX] = useState(String(centerX))
   const [jumpY, setJumpY] = useState(String(centerY))
+  const [hoveredTile, setHoveredTile] = useState<{ x: number; y: number } | null>(null)
   const dragStart = useRef<{ x: number; y: number } | null>(null)
 
   const half = Math.floor(viewSize / 2)
@@ -139,19 +148,44 @@ export default function MapViewport({
             const y = y1 + row
             const tile = byCoord.get(`${x},${y}`)
             const color = tile ? DIFFICULTY_COLOR[tile.difficulty] : 'bg-zinc-900'
+            const isHovered = hoveredTile?.x === x && hoveredTile?.y === y
+            const isOwnedByMe = Boolean(tile?.owner_id && currentUserId && tile.owner_id === currentUserId)
             return (
               <button
                 key={`${x},${y}`}
                 type="button"
                 aria-label={`Území ${x},${y}`}
                 onClick={() => tile && onSelectTile?.(tile)}
-                className={`aspect-square border border-zinc-800 text-[10px] flex flex-col items-center justify-center ${color}`}
+                onMouseEnter={() => setHoveredTile({ x, y })}
+                onMouseLeave={() => setHoveredTile((current) => (current?.x === x && current?.y === y ? null : current))}
+                data-owned-by-me={isOwnedByMe ? 'true' : 'false'}
+                className={`relative aspect-square border text-[10px] flex flex-col items-center justify-center ${color} ${
+                  isOwnedByMe
+                    ? 'border-sky-200 ring-2 ring-sky-400 ring-inset'
+                    : 'border-zinc-800'
+                }`}
               >
                 {tile?.is_home && <span title="Domov">🏠</span>}
                 {tile?.castle_rank && <span title="Hrad">🏰</span>}
                 {tile?.village_rank && <span title="Vesnice">🏘️</span>}
                 {tile?.owner_id && !tile?.is_home && <span title="Vlastník">🚩</span>}
                 {tile?.claim_locked_by && <span title="Probíhá zábor">⏳</span>}
+                {isHovered && (
+                  <div className="pointer-events-none absolute left-1/2 top-0 z-20 w-40 -translate-x-1/2 -translate-y-[calc(100%+6px)] rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-left text-xs text-zinc-100 shadow-lg">
+                    <p className="font-semibold">
+                      ({x}, {y})
+                    </p>
+                    {tile ? (
+                      <>
+                        <p>{getOwnerLabel(tile, currentUserId)}</p>
+                        <p>{`Obtížnost: ${tile.difficulty}/5`}</p>
+                        {tile.castle_rank && <p>{`Hrad: ${tile.castle_rank}`}</p>}
+                        {tile.village_rank && <p>{`Vesnice: ${tile.village_rank}`}</p>}
+                        {tile.claim_locked_by && <p>Probíhá zábor</p>}
+                      </>
+                    ) : null}
+                  </div>
+                )}
               </button>
             )
           })
