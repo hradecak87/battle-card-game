@@ -141,17 +141,24 @@ maximally atomic**: each task bundles writing code + its test + running it
 
 - [ ] Implement `isAvailable(restingUntilRound: number | undefined,
   currentRound: number): boolean` (spec §3.4: unavailable if
-  `restingUntilRound !== undefined && currentRound < restingUntilRound`)
-  and `nextRestingUntilRound(currentRound: number): number` (`currentRound
-  + 2`, spec §2/§3.4 — both cards in every resolved round rest 2 rounds
-  regardless of win/loss). Keep these as two tiny pure functions rather
-  than one — they're independently reused: availability is checked every
-  round for both attacker and defender pools; the "until round" write
-  happens once per card per resolved round.
+  `restingUntilRound !== undefined && restingUntilRound >= currentRound`
+  — a `battle_unit_rest` row makes a card unavailable for as long as
+  `resting_until_round >= current_round`; it becomes available again only
+  once `currentRound > restingUntilRound`) and `nextRestingUntilRound(
+  currentRound: number): number` (`currentRound + 2`, spec §2/§3.4 — both
+  cards in every resolved round rest 2 rounds regardless of win/loss).
+  Keep these as two tiny pure functions rather than one — they're
+  independently reused: availability is checked every round for both
+  attacker and defender pools; the "until round" write happens once per
+  card per resolved round.
 - [ ] Test boundary cases: `currentRound === restingUntilRound` is
-  available again (rest has "ticked down" past); `currentRound ===
-  restingUntilRound - 1` is not; `undefined` is always available;
-  `nextRestingUntilRound(0) === 2`, `nextRestingUntilRound(5) === 7`.
+  **still resting** (not yet available — spec §3.4's `>=` condition);
+  `currentRound === restingUntilRound + 1` is available again; `undefined`
+  is always available; `nextRestingUntilRound(0) === 2`,
+  `nextRestingUntilRound(5) === 7`. Concretely, a card that fights in
+  round 1 gets `resting_until_round = 3` (`nextRestingUntilRound(1)`) and
+  sits out rounds 2 and 3, becoming available again only in round 4 — 2
+  full rounds of rest as spec §2/§3.4 require, not 1.
 - [ ] Run `npx jest lib/battles/restCooldown.test.ts` — expect PASS.
 - [ ] Commit: `feat: add rest-cooldown availability helper`
 
@@ -262,11 +269,21 @@ maximally atomic**: each task bundles writing code + its test + running it
      instead of whatever filter `start_claim` uses — confirm by reading
      that function body before writing this).
   4. Reject if `target_territory_id` is the caller's own owned/claimed
-     territory, or if it has a non-`resolved`/`expired` `battles` row
-     already targeting it (`exists (select 1 from battles where
-     territory_id = target_territory_id and status not in ('resolved',
-     'expired'))`) — this check is now reliable precisely because step 1
-     already flushed any stale battle state. Perform this check (and the
+     territory, or if `territories.battle_locked_by is not null` on
+     `target_territory_id` (spec §3.6's actual operative up-front
+     condition — **not** a `battles`-table lookup: `battle_locked_by` is
+     set at `declare_attack` time, before travel, while the `battles` row
+     itself isn't created until arrival in Task 9's
+     `resolve_due_movements()` branch; checking `battles` directly here
+     would be false for the entire travel window of an already-in-flight
+     first attack, letting a second attacker's `declare_attack` slip
+     through and later create two `battles` rows for the same territory
+     — `battle_locked_by` is the one flag that's true throughout, from
+     declare through resolution, so it's what both this check and Task
+     8's amended `start_claim` must test) — this check is now reliable
+     precisely because step 1 already flushed any stale battle state via
+     `resolve_due_battles()`, which clears `battle_locked_by` whenever a
+     battle actually finishes. Perform this check (and the
      following steps that write) under `select ... for update` on the
      `territories` row for `target_territory_id`, re-checking the same
      condition immediately after acquiring the lock, mirroring
@@ -843,9 +860,12 @@ maximally atomic**: each task bundles writing code + its test + running it
   `battle_locked_by` (the attacker's player id, matching exactly how
   `claim_locked_by` is already returned, spec §3.1) **and** the
   in-progress `battles.id` for that territory (a scalar subquery — `id`
-  from the same non-`resolved`/`expired` `battles` row `declare_attack`/
-  `resolve_due_movements()` already guarantee is unique per territory,
-  Task 5's `battles_territory_idx`) so the client has a concrete battle
+  from the same non-`resolved`/`expired` `battles` row that's guaranteed
+  unique per territory by `declare_attack`'s `battle_locked_by`
+  check-and-lock logic (Task 7), not by `Task 5`'s `battles_territory_idx`
+  itself, which is a plain lookup index with no uniqueness constraint —
+  the actual one-in-progress-battle-per-territory invariant is enforced
+  at the RPC layer) so the client has a concrete battle
   id to navigate to without a second round-trip.
 - [ ] Wire Task 15's `useTerritoryBattleChannel` hook into the map
   viewport component so `battle_locked_by`/battle-id changes for
