@@ -465,12 +465,21 @@ maximally atomic**: each task bundles writing code + its test + running it
     cards are untouched (no query needed — nothing about them changes).
   - **Only `defender_ready_at` set**: same cleanup as above, but
     `winner_side='defender'`.
-  - **Only `attacker_ready_at` set, OR both set but not simultaneously
-    "online"** (join against `players.last_seen_at` for both
-    `attacker_id`/`defender_id`, checking both are within 2 minutes of
-    `greatest(attacker_ready_at, defender_ready_at)` — spec §3.6's exact
-    tie-break condition, matching `2026-08-15-players-accounts-design.md`
-    §6's online definition): `winner_side='attacker'`. Then branch again
+  - **Only `attacker_ready_at` set, OR both set**: `winner_side='attacker'`.
+    (Both-set doesn't need a separate online-overlap recheck here:
+    `mark_ready`, Task 13, is the only place `*_ready_at` gets written,
+    and it already re-evaluates the live joint-`last_seen_at`-within-2-
+    minutes condition at the exact moment of every call — flipping
+    `status='active'` immediately the instant that check ever succeeds.
+    So if `resolve_due_battles()` ever observes `status` still
+    `awaiting_ready` with both `*_ready_at` set, that already
+    mathematically proves no `mark_ready` call found simultaneous
+    online-ness before the deadline; recomputing overlap here against
+    stale `last_seen_at`/synthetic reference timestamps would be
+    logically disconnected from the real event and could produce a false
+    positive with no defined branch to handle it, leaving the battle
+    stuck past its deadline. Trust `mark_ready`'s own real-time check
+    instead of re-deriving it.) Then branch again
     on capture eligibility (not `is_home_target` and not at 32-cap):
     - **Captures**: `owner_id=attacker`, clear `claim_locked_by` and
       `battle_locked_by`; attacker's roster needs no movement (spec §2's
@@ -497,15 +506,18 @@ maximally atomic**: each task bundles writing code + its test + running it
   directly against real rows.
 - [ ] Append to `0003_battles.verification.sql` (Task 6): fixture-driven
   smoke queries for these 4 sub-cases — seed a `battles` row directly at
-  various `ready_deadline`/`*_ready_at` combinations (including
-  backdating `players.last_seen_at` to simulate offline/online), call
+  `ready_deadline <= now()` with each of the 4 `*_ready_at` combinations
+  (neither set, only-defender, only-attacker, both set), call
   `select resolve_due_battles();`, and assert the resulting
   `status`/`winner_side`/`territories.owner_id`/`battle_locked_by`/new
   return `troop_movements` rows match by hand-checking the query output —
   same manual-checklist acceptance pattern as Task 6/7/8 (this project
   has no automated RPC-level test harness yet, per
   `0002_territories.sql`'s own Task 4a/6 convention; do not invent a new
-  Jest/pgTAP harness for this plan alone).
+  Jest/pgTAP harness for this plan alone). The joint-online overlap check
+  itself belongs to `mark_ready` (Task 13), not this task — verify it
+  there instead (a `mark_ready` call with one side's `last_seen_at`
+  backdated past 2 minutes should not flip `status` to `active`).
 - [ ] Commit: `feat: add resolve_due_battles ready-timeout resolution`
 
 ### Task 11: A shared SQL round-resolution helper (combat math + NPC AI, ported from `lib/battles/`)
@@ -540,9 +552,17 @@ maximally atomic**: each task bundles writing code + its test + running it
   writes the `battle_rounds` row (`winner_card_instance_id` = the losing
   card's new owner's card, i.e. the round's winning side's card instance);
   flips the loser's `card_instances.owner_id` to the winner's current
-  owner; upserts `battle_unit_rest` for both cards
-  (`resting_until_round = battles.current_round + 2`); increments
-  `battles.current_round`.
+  owner; **increments `battles.current_round` first** (it currently holds
+  `round_number - 1`, the last-*resolved* round, since `_start_next_round`
+  only sets `round_number = current_round + 1` on insert without bumping
+  `current_round` itself — so incrementing now makes `current_round`
+  equal this round's own `round_number`), **then** upserts
+  `battle_unit_rest` for both cards using the now-incremented value
+  (`resting_until_round = battles.current_round + 2`). Getting this order
+  right matters: swapping it computes `resting_until_round` one round too
+  low, silently cutting the spec's 2-round rest down to 1 (concretely, a
+  card fighting in round 1 must end up with `resting_until_round = 3` —
+  matching Task 4's `nextRestingUntilRound(1) === 3` — not `2`).
 - [ ] Write `lib/battles/effectiveStats.parity.test.ts`: a small,
   hand-picked table of ~8 sample inputs (varying rank, nation, presence of
   castle/village) run through `computeEffectiveStats` (TypeScript) with
@@ -608,7 +628,11 @@ maximally atomic**: each task bundles writing code + its test + running it
   cards, call `select resolve_due_battles();` repeatedly with a
   backdated `round_deadline` to simulate timeouts, hand-check the final
   `status='resolved'`/`winner_side`/territory ownership/card ownership
-  against a worked-by-hand expected outcome); an NPC battle fixture
+  against a worked-by-hand expected outcome — **explicitly include an
+  assertion on `battle_unit_rest.resting_until_round`'s exact value**
+  after round 1 resolves (must equal `1 + 2 = 3`, not `2`), since this
+  round-arithmetic is SQL-only with no `lib/battles/` Jest test to catch
+  a regression here); an NPC battle fixture
   (single `declare_attack` against an NPC-garrisoned tile — per Task 9,
   this alone already resolves the entire battle synchronously via
   `_start_next_round`'s NPC loop, so no separate `resolve_due_battles()`
