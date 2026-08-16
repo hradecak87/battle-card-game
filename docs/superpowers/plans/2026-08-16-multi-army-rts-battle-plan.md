@@ -242,34 +242,46 @@ maximally atomic**: each task bundles writing code + its test + running it
 - [ ] Write `declare_attack(origin_territory_id integer,
   target_territory_id integer, card_instance_ids uuid[]) returns uuid`
   (returns the new `troop_movements.id`) per spec §3.6:
-  1. Resolve `caller := auth.uid()`.
-  2. Validate `origin_territory_id` is owned by `caller` and every id in
+  1. **Call `resolve_due_battles()` first** (Task 10/12's function,
+     defined later in this same migration file — Postgres/plpgsql
+     doesn't resolve a called function's existence until the calling
+     function is actually *executed*, not when it's *created*, so this
+     forward reference is safe as long as the whole migration file is
+     applied — and therefore every function in it created — before the
+     app ever calls `declare_attack` at runtime; do not reorder chunks to
+     avoid this). This prevents a stale, logically-already-due
+     `battles`/`battle_locked_by` row from incorrectly blocking a new
+     attack (spec §3.6's intro sentence: "every RPC below calls
+     `resolve_due_battles()` first").
+  2. Resolve `caller := auth.uid()`.
+  3. Validate `origin_territory_id` is owned by `caller` and every id in
      `card_instance_ids` is a `status='stationed'` unit-category
      `card_instances` row stationed there and owned by `caller` (copy
      `start_claim`'s existing validation query shape from
      `0002_territories.sql` lines ~315-340, adjusted for "unit-category"
      instead of whatever filter `start_claim` uses — confirm by reading
      that function body before writing this).
-  3. Reject if `target_territory_id` is the caller's own owned/claimed
+  4. Reject if `target_territory_id` is the caller's own owned/claimed
      territory, or if it has a non-`resolved`/`expired` `battles` row
      already targeting it (`exists (select 1 from battles where
      territory_id = target_territory_id and status not in ('resolved',
-     'expired'))`).
-  4. Best-effort 32-cap pre-check: if this attack is plausibly capturable
+     'expired'))`) — this check is now reliable precisely because step 1
+     already flushed any stale battle state.
+  5. Best-effort 32-cap pre-check: if this attack is plausibly capturable
      (target isn't the caller's own home — always true here since step 3
      already excluded own territory) and the caller already owns 32
      territories (reuse whatever count query `start_claim` uses), raise
      the same `territory ownership cap (32) reached` error text
      `start_claim` raises (copy the exact error string for consistency).
-  5. Insert a `troop_movements` row with `kind='attack'`,
+  6. Insert a `troop_movements` row with `kind='attack'`,
      `transfer_arrives_at` computed via the existing `transferHours`
      logic already used by `start_transfer`/`start_claim` (same SQL
      expression/pattern — do not reintroduce `occupation_hrs`, this is
      explicitly transfer-only per spec §3.1).
-  6. Insert into `troop_movement_units` for each `card_instance_ids`
+  7. Insert into `troop_movement_units` for each `card_instance_ids`
      entry (same as `start_transfer` does).
-  7. Flip those `card_instances.status = 'in_transit'`.
-  8. Set `territories.battle_locked_by = caller` on `target_territory_id`.
+  8. Flip those `card_instances.status = 'in_transit'`.
+  9. Set `territories.battle_locked_by = caller` on `target_territory_id`.
 - [ ] Append to `0003_battles.verification.sql` (Task 6): one query
   exercising `declare_attack`'s main rejection paths (attacking a
   territory that already has a non-resolved battle on it, attacking one's
@@ -284,24 +296,28 @@ maximally atomic**: each task bundles writing code + its test + running it
 - Modify: `supabase/migrations/0003_battles.sql` (append)
 
 - [ ] `create or replace function start_claim(...)` — copy the existing
-  function body from `0002_territories.sql` verbatim, and change only the
-  destination-availability `where` clause (currently `owner_id is null
-  and claim_locked_by is null`, per `0002_territories.sql` line ~352) to
-  additionally require: no unit-category `card_instances` row with
-  `owner_id is null` stationed at the destination (NPC garrison check,
-  closing the bugfix from spec §1), **and** `battle_locked_by is null`
-  (spec §3.6's amendment). Everything else in the function body is
-  unchanged.
+  function body from `0002_territories.sql` verbatim, add a new first
+  step calling `resolve_due_battles()` (so a stale `battle_locked_by`
+  from an already-resolved/expired battle can't wrongly block a claim),
+  and change the destination-availability `where` clause (currently
+  `owner_id is null and claim_locked_by is null`, per
+  `0002_territories.sql` line ~352) to additionally require: no
+  unit-category `card_instances` row with `owner_id is null` stationed at
+  the destination (NPC garrison check, closing the bugfix from spec §1),
+  **and** `battle_locked_by is null` (spec §3.6's amendment). Everything
+  else in the function body is unchanged.
 - [ ] `create or replace function cancel_claim(territory_id integer)` —
-  copy the existing body, add one new early check: raise if `exists
+  copy the existing body, add a new first step calling
+  `resolve_due_battles()`, then one new early check: raise if `exists
   (select 1 from battles where battles.territory_id = territory_id and
   defender_id = caller and status not in ('resolved', 'expired'))` (spec
   §3.6 — can't cancel a claim currently being defended in a contested-claim
   battle).
 - [ ] `create or replace function build_structure(territory_id integer,
-  card_instance_id uuid)` — copy the existing body, add one new early
-  check: raise if `exists (select 1 from territories where id =
-  territory_id and battle_locked_by is not null)` (spec §3.6).
+  card_instance_id uuid)` — copy the existing body, add a new first step
+  calling `resolve_due_battles()`, then one new early check: raise if
+  `exists (select 1 from territories where id = territory_id and
+  battle_locked_by is not null)` (spec §3.6).
 - [ ] Explicitly confirm (comment in the migration, and verify by reading
   `0002_territories.sql`'s `start_transfer` body) that `start_transfer`
   needs **no** amendment — reinforcing an owned territory under attack is
@@ -369,20 +385,19 @@ maximally atomic**: each task bundles writing code + its test + running it
      decision window it has no human for), and populate
      `battle_attacker_roster` from the movement's `troop_movement_units`
      in every combat case.
-  5. Deliberately **do not** call `resolve_due_battles()` (Task 10/11)
-     from inside this function — that would create a forward reference to
-     a function this migration hasn't defined yet at this point in the
-     file. Instead, rely on the existing lazy-resolution convention (spec
-     §3.6: "every RPC ... calls `resolve_due_battles()` first"): a
-     newly-`active` NPC battle with an already-due `round_deadline` gets
-     fully resolved, round by round including the full NPC smart-counter
-     loop, the very next time *any* battle RPC runs `resolve_due_battles()`
-     — which for a normal client flow is immediately after `declare_attack`
-     resolves, since the client's own subsequent poll/read of the battle
-     (or its next `mark_ready`/`pick_defender_card` call) triggers it. No
-     round is skipped or lost — `battle_rounds` still gets a full replay
-     trail regardless of which RPC call happened to trigger the
-     resolution (spec §4).
+  5. For a newly `active` NPC battle (`defender_id is null`)
+     specifically, immediately call `resolve_due_battles()` (Task
+     10/12's function, defined later in this same migration file — safe
+     forward reference for the same reason explained in Task 7: plpgsql
+     resolves called-function references at execution time, not creation
+     time, and the whole migration is applied before the app ever calls
+     any of these RPCs at runtime) so the entire round sequence plays out
+     synchronously, in the same transaction, before `declare_attack`
+     returns to its caller (spec §4: NPC battles "resolve every round
+     automatically and immediately", no 120-second wait, no separate
+     trigger needed). `battle_rounds` still gets a full replay trail for
+     the client to animate afterward — only the *server-side* resolution
+     is synchronous, the UI still paces its own replay.
 - [ ] Commit: `feat: extend resolve_due_movements for attack arrivals`
 
 ---
@@ -599,7 +614,7 @@ maximally atomic**: each task bundles writing code + its test + running it
 
 ## Chunk 7: Realtime + UI
 
-### Task 14: Realtime channel wiring
+### Task 15: Realtime channel wiring (battle screen + map)
 
 **Files:**
 - Modify: `supabase/migrations/0003_battles.sql` (append, or a short
@@ -608,22 +623,38 @@ maximally atomic**: each task bundles writing code + its test + running it
   did, and match that exact mechanism)
 - Create: `lib/battles/useBattleChannel.ts` (or match whatever
   hook/subscription naming convention `components/territories/` already
-  uses for its map-realtime subscription, if one exists — check before
-  naming this)
+  uses for realtime subscriptions, if one exists — check before naming
+  this)
+- Create: `lib/battles/useTerritoryBattleChannel.ts` (map-side
+  subscription — separate hook from the battle-screen one above, since
+  it has a different scope: many territories in a viewport, not one
+  battle)
 
-- [ ] Enable replication on `battles` and `battle_rounds` (spec §6).
-- [ ] Implement a small client hook/helper that subscribes to
-  `postgres_changes` on `battles` (filtered to one `battle_id`) and
-  `battle_rounds` (insert events, filtered to one `battle_id`), mirroring
-  whatever pattern the territory map already uses for its own realtime
-  subscription (reuse, don't reinvent, if a shared subscription utility
-  already exists in `lib/` or `components/territories/`).
+- [ ] Enable replication on `battles`, `battle_rounds`, and `territories`
+  (spec §6 explicitly requires **both** the live 120-second round window
+  *and* the map's "under attack" visibility to push without polling —
+  this is new scope this spec adds on top of the map, not conditional on
+  whether the map's existing `claim_locked_by` display already had
+  realtime).
+- [ ] `useBattleChannel(battleId)`: subscribes to `postgres_changes` on
+  `battles` (filtered to one `battle_id`) and `battle_rounds` (insert
+  events, filtered to one `battle_id`) — used by the battle screen (Task
+  18).
+- [ ] `useTerritoryBattleChannel(territoryIds)`: subscribes to
+  `postgres_changes` `UPDATE` events on `territories` filtered to the
+  currently-visible viewport's territory ids, specifically watching
+  `battle_locked_by` transitions — used by the map (Task 20) so "under
+  attack" flags appear/disappear live as battles are declared/resolved,
+  without requiring the user to pan/zoom to trigger a refetch.
 - [ ] Manual verification: two browser sessions against a live
   `awaiting_ready` battle, confirm marking ready in one session updates
-  the other without a page refresh.
-- [ ] Commit: `feat: add battle realtime subscription`
+  the other without a page refresh; separately, confirm a third session
+  viewing the map sees the target tile's "under attack" indicator appear
+  the moment `declare_attack` runs in another session, with no manual
+  refresh.
+- [ ] Commit: `feat: add battle realtime subscriptions for battle screen and map`
 
-### Task 15: `get_battle` read RPC
+### Task 16: `get_battle` read RPC
 
 **Files:**
 - Modify: `supabase/migrations/0003_battles.sql` (append)
@@ -635,22 +666,36 @@ maximally atomic**: each task bundles writing code + its test + running it
   table (...)` matching this project's existing read-RPC return-shape
   convention — check `get_viewport`'s exact return style in
   `0002_territories.sql` and match it, not `jsonb` if the convention is
-  typed columns): **calls `resolve_due_battles()` first**, then returns
-  the joined `battles` row plus its `battle_rounds` and
-  `battle_attacker_roster`. This closes a real gap: without a read RPC
-  that triggers lazy resolution, an NPC battle's `active` status (set by
-  `resolve_due_movements()` in Task 9 with an already-due
-  `round_deadline`) would never actually get processed until some other
-  RPC happened to run — `get_battle` is what the battle screen (Task 17)
-  calls on load and is what makes the "resolves the moment anything next
-  calls `resolve_due_battles()`" claim in Task 9 concretely true in
-  practice, not just in theory.
+  typed columns): **calls `resolve_due_battles()` first** (so a PvP
+  battle's ready-timeout or round-timeout gets resolved lazily the moment
+  the battle screen loads or polls, matching the existing project-wide
+  lazy-resolution convention — NPC battles no longer depend on this call
+  specifically, since Task 9 now resolves them synchronously at
+  `declare_attack` time, but PvP battles still do), then returns
+  everything the battle screen (Task 18) needs to render both roster
+  strips and the duel stage in one round-trip:
+  - the `battles` row itself (status, `current_round`, `round_deadline`,
+    `ready_deadline`, `winner_side`, `attacker_id`/`defender_id`,
+    `is_home_target`).
+  - `battle_attacker_roster` joined with `card_instances`/
+    `card_templates` (rank, base stats, current owner) and a computed
+    `is_resting` flag per card (per Task 4's `isAvailable` logic, applied
+    against `battle_unit_rest` and the battle's `current_round`) — this
+    is the left `RosterStrip`'s data source.
+  - the defender's *currently available* pool: unit-category
+    `card_instances` stationed at `territory_id`, owned by the current
+    `defender_id` (or `owner_id is null` for an NPC target), with the
+    same computed `is_resting` flag — this is the right `RosterStrip`'s
+    data source (spec §3.4: this pool is never fixed, recomputed fresh
+    each call).
+  - the full `battle_rounds` history (for `RoundHistory`).
 - [ ] Append to `0003_battles.verification.sql`: calling `get_battle` on
-  a freshly-`declare_attack`-ed NPC battle returns it already
-  `status='resolved'` (confirming the lazy trigger works end-to-end).
+  a PvP battle past its `ready_deadline` with no ready confirmations
+  returns it already `status='expired'` (confirming the lazy trigger
+  works end-to-end for the read path too, not just the mutating RPCs).
 - [ ] Commit: `feat: add get_battle read RPC`
 
-### Task 16: Declare-attack UI entry point
+### Task 17: Declare-attack UI entry point
 
 **Files:**
 - Modify: `components/territories/TerritoryDetailPanel.tsx` (add an
@@ -667,6 +712,16 @@ maximally atomic**: each task bundles writing code + its test + running it
   second one) and a subset of that origin's stationed unit-category cards
   (reuse `GarrisonModal.tsx`'s card-grid rendering, in a selectable-checkbox
   mode) via a "select cards to send" step, then calls `declare_attack`.
+  On success (the RPC returns the new `troop_movements.id`, and — via
+  Task 15's map realtime channel — the target tile's `battle_locked_by`
+  will already reflect the attack), navigate the caller to
+  `app/battles/[id]`. Since `declare_attack` itself only returns the
+  `troop_movements.id`, not a `battles.id` (the `battles` row doesn't
+  exist yet until arrival — spec §2/§3.6), this navigation target must
+  instead be the territory detail view (already open) rather than the
+  battle screen; the caller reaches the actual `app/battles/[id]` screen
+  later via the click-through built in Task 20, once the attack has
+  arrived and a `battles` row exists.
 - [ ] Surface `declare_attack`'s rejection errors (32-cap, own territory,
   already-battling territory) as inline modal errors, not generic toasts
   — match whatever error-display convention `start_claim`'s existing
@@ -676,7 +731,7 @@ maximally atomic**: each task bundles writing code + its test + running it
   call).
 - [ ] Commit: `feat: add declare-attack UI entry point`
 
-### Task 17: Battle screen — desktop layout
+### Task 18: Battle screen — desktop layout
 
 **Files:**
 - Create: `app/battles/[id]/page.tsx`
@@ -694,15 +749,16 @@ maximally atomic**: each task bundles writing code + its test + running it
   `battle_rounds` (reuse the existing `TradingCard` component from
   subsystem #1, same as `GarrisonModal.tsx` already does — do not build a
   new card-rendering component).
-- [ ] Load initial state via Task 15's `get_battle` on mount, then wire
-  `mark_ready`/`pick_defender_card` calls and the Task 14 realtime hook
-  so the screen updates live without polling after that.
+- [ ] Load initial state via Task 16's `get_battle` on mount, then wire
+  `mark_ready`/`pick_defender_card` calls and Task 15's
+  `useBattleChannel` hook so the screen updates live without polling
+  after that.
 - [ ] Component test(s) following existing RTL conventions used
   elsewhere in the project (check `components/territories/*.test.tsx`
   for the exact setup/mocking pattern before writing new ones).
 - [ ] Commit: `feat: add desktop battle screen`
 
-### Task 18: Battle screen — mobile layout
+### Task 19: Battle screen — mobile layout
 
 **Files:**
 - Modify: `components/battles/BattleScreen.tsx` (or extract a
@@ -720,7 +776,7 @@ maximally atomic**: each task bundles writing code + its test + running it
   remain usable via scroll.
 - [ ] Commit: `feat: add mobile battle screen layout`
 
-### Task 19: Map integration — `battle_locked_by` visibility
+### Task 20: Map integration — `battle_locked_by` visibility
 
 **Files:**
 - Modify: whichever component currently renders `claim_locked_by`'s
@@ -730,16 +786,19 @@ maximally atomic**: each task bundles writing code + its test + running it
   `get_minimap_overview` client-side types
 
 - [ ] Extend `get_viewport`/`get_minimap_overview` SQL functions (in
-  `0003_battles.sql`) to also `select` and `return` `battle_locked_by`,
-  matching exactly how `claim_locked_by` is already returned (spec
-  §3.1). No realtime subscription is needed for the map itself — confirm
-  first that the existing map viewport has no realtime/polling of its
-  own (it currently only refetches on explicit user actions like
-  pan/zoom/navigation, per this project's established convention); if
-  so, `battle_locked_by` simply appears next time the viewport refetches,
-  same as `claim_locked_by` already does today. Do not add realtime to
-  the map as part of this task — that would be new scope beyond what the
-  spec asks for.
+  `0003_battles.sql`) to also `select` and `return` **both**
+  `battle_locked_by` (the attacker's player id, matching exactly how
+  `claim_locked_by` is already returned, spec §3.1) **and** the
+  in-progress `battles.id` for that territory (a scalar subquery — `id`
+  from the same non-`resolved`/`expired` `battles` row `declare_attack`/
+  `resolve_due_movements()` already guarantee is unique per territory,
+  Task 5's `battles_territory_idx`) so the client has a concrete battle
+  id to navigate to without a second round-trip.
+- [ ] Wire Task 15's `useTerritoryBattleChannel` hook into the map
+  viewport component so `battle_locked_by`/battle-id changes for
+  currently-visible tiles push live, per spec §6 (this task's map
+  changes and Task 15's channel are companion pieces — do not consider
+  either done without the other).
 - [ ] Add a distinct "under attack" visual treatment (spec doesn't
   mandate an exact style — reuse whatever visual language
   `claim_locked_by` already has, adjusted so the two states are
@@ -755,7 +814,7 @@ maximally atomic**: each task bundles writing code + its test + running it
 
 ## Chunk 8: Final integration pass
 
-### Task 20: End-to-end smoke test + `tsc`/full suite
+### Task 21: End-to-end smoke test + `tsc`/full suite
 
 **Files:** none new — verification only
 
