@@ -436,6 +436,7 @@ export default function MapViewport({
                     </p>
                     {tile ? (
                       <>
+                        {tile.name && <p className="font-semibold text-zinc-50">{tile.name}</p>}
                         <p>{getOwnerLabel(tile, currentUserId)}</p>
                         <p>{`Obtížnost: ${tile.difficulty}/5`}</p>
                         {tile.castle_rank && <p>{`Hrad: ${tile.castle_rank}`}</p>}

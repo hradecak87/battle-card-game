@@ -20,6 +20,7 @@ const mockTerritory = (x: number, y: number, overrides: Partial<Record<string, u
   claim_transfer_arrives_at: null,
   claim_occupation_completes_at: null,
   battle_locked_by: null,
+  name: null,
   ...overrides,
 })
 
@@ -38,6 +39,7 @@ const getMyMovements = jest.fn().mockResolvedValue({ data: [], error: null })
 const getTerritoriesByIds = jest.fn().mockResolvedValue({ data: [], error: null })
 const getMyActiveBattles = jest.fn().mockResolvedValue({ data: [], error: null })
 const getMyRecentlyResolvedBattles = jest.fn().mockResolvedValue({ data: [], error: null })
+const renameTerritory = jest.fn().mockResolvedValue({ data: null, error: null })
 
 jest.mock('@/lib/territories/api', () => ({
   getViewport: (...args: unknown[]) => getViewport(...args),
@@ -52,6 +54,7 @@ jest.mock('@/lib/territories/api', () => ({
   getTerritoriesByIds: (...args: unknown[]) => getTerritoriesByIds(...args),
   getMyActiveBattles: (...args: unknown[]) => getMyActiveBattles(...args),
   getMyRecentlyResolvedBattles: (...args: unknown[]) => getMyRecentlyResolvedBattles(...args),
+  renameTerritory: (...args: unknown[]) => renameTerritory(...args),
 }))
 
 let sessionUser: { id: string } | null = null

@@ -10,6 +10,7 @@ import {
   getIncomingAttackArrival,
   getPlayerPublicInfo,
   getMyTerritories,
+  renameTerritory,
   CardInstanceWithTemplate,
   PlayerPublicInfo,
   MyTerritory,
@@ -308,6 +309,10 @@ export default function MapPage() {
             ownerInfoLoading={ownerInfoLoading}
             ownerInfoError={ownerInfoError}
             incomingAttackArrivesAt={incomingAttackArrivesAt}
+            onRename={async (territoryId, newName) => {
+              await renameTerritory(territoryId, newName)
+              loadViewport(centerX, centerY, viewSize)
+            }}
           />
         )}
 

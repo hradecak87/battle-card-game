@@ -29,6 +29,7 @@ const territory: Territory = {
   claim_transfer_arrives_at: null,
   claim_occupation_completes_at: null,
   battle_locked_by: null,
+  name: null,
 }
 
 const myCard = {

@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { CardInstanceWithTemplate, Territory } from '@/lib/territories/api'
 import { TradingCard } from '@/components/cards/TradingCard'
 import { applyRank } from '@/lib/cards/combat'
@@ -36,6 +37,8 @@ export interface GarrisonModalProps {
    * this tile navigates straight to the battle screen instead).
    */
   incomingAttackArrivesAt?: string | null
+  /** Called when the owner saves a new name (or an empty string to clear). */
+  onRename: (territoryId: number, newName: string) => Promise<void>
 }
 
 /** Rebuilds the `UnitCardTemplate` shape `TradingCard` expects from the flat DB row. */
@@ -74,7 +77,12 @@ export default function GarrisonModal({
   ownerInfoLoading,
   ownerInfoError,
   incomingAttackArrivesAt,
+  onRename,
 }: GarrisonModalProps) {
+  const [renaming, setRenaming] = useState(false)
+  const [renameValue, setRenameValue] = useState(territory.name ?? '')
+  const [renameLoading, setRenameLoading] = useState(false)
+
   const canAttack =
     Boolean(myPlayerId) &&
     territory.owner_id !== myPlayerId &&
@@ -82,6 +90,14 @@ export default function GarrisonModal({
     !territory.battle_locked_by
   const canTransfer = Boolean(myPlayerId) && territory.owner_id === myPlayerId
   const showsOtherOwnerInfo = Boolean(territory.owner_id && territory.owner_id !== myPlayerId)
+
+  async function handleRenameSave() {
+    setRenameLoading(true)
+    await onRename(territory.id, renameValue)
+    setRenameLoading(false)
+    setRenaming(false)
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
@@ -93,9 +109,14 @@ export default function GarrisonModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold">
-            Posádka — území ({territory.x}, {territory.y})
-          </h2>
+          <div className="flex flex-col gap-0.5">
+            {territory.name && (
+              <h2 className="text-lg font-bold" data-testid="territory-name">{territory.name}</h2>
+            )}
+            <p className={territory.name ? 'text-sm text-zinc-400' : 'text-lg font-bold'}>
+              Posádka — území ({territory.x}, {territory.y})
+            </p>
+          </div>
           <div className="flex items-center gap-2">
             {canTransfer && onTransfer && (
               <button
@@ -104,6 +125,17 @@ export default function GarrisonModal({
                 className="rounded bg-emerald-700 hover:bg-emerald-600 px-3 py-1 text-sm font-semibold text-white"
               >
                 Přesunout vojska
+              </button>
+            )}
+            {canTransfer && !renaming && (
+              <button
+                type="button"
+                aria-label="Přejmenovat území"
+                onClick={() => { setRenameValue(territory.name ?? ''); setRenaming(true) }}
+                className="rounded bg-zinc-700 hover:bg-zinc-600 px-3 py-1 text-sm font-semibold text-white"
+                title="Přejmenovat území"
+              >
+                ✏️
               </button>
             )}
             {canAttack && onAttack && (
@@ -133,6 +165,36 @@ export default function GarrisonModal({
           </div>
         </div>
 
+        {canTransfer && renaming && (
+          <div className="mb-4 flex items-center gap-2" data-testid="rename-form">
+            <input
+              aria-label="Nové jméno území"
+              type="text"
+              value={renameValue}
+              maxLength={40}
+              onChange={(e) => setRenameValue(e.target.value)}
+              placeholder="Jméno hradu nebo vesnice (max 40 znaků)"
+              className="flex-1 rounded bg-zinc-900 border border-zinc-700 px-2 py-1 text-sm text-zinc-100"
+              disabled={renameLoading}
+            />
+            <button
+              type="button"
+              onClick={handleRenameSave}
+              disabled={renameLoading}
+              className="rounded bg-sky-700 hover:bg-sky-600 px-3 py-1 text-sm font-semibold text-white disabled:opacity-50"
+            >
+              {renameLoading ? '…' : 'Uložit'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setRenaming(false)}
+              disabled={renameLoading}
+              className="rounded bg-zinc-700 hover:bg-zinc-600 px-3 py-1 text-sm text-white disabled:opacity-50"
+            >
+              Zrušit
+            </button>
+          </div>
+        )}
         <div className="mb-4 grid gap-2 rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 text-sm text-zinc-300 sm:grid-cols-2">
           <p>Obtížnost: {territory.difficulty}</p>
           <p>Souřadnice: ({territory.x}, {territory.y})</p>

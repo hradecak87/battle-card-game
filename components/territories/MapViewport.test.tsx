@@ -18,6 +18,7 @@ function makeTerritory(overrides: Partial<Territory> = {}): Territory {
     claim_transfer_arrives_at: null,
     claim_occupation_completes_at: null,
     battle_locked_by: null,
+    name: null,
     ...overrides,
   }
 }
@@ -224,5 +225,24 @@ describe('MapViewport', () => {
     expect(screen.getByText('Hrad: rare')).toBeInTheDocument()
     expect(screen.getByText('Vesnice: common')).toBeInTheDocument()
     expect(screen.getByText('Probíhá zábor')).toBeInTheDocument()
+  })
+
+  it('shows the territory name in the tooltip when set', () => {
+    renderViewport(
+      [makeTerritory({ name: 'Hrad Blaník' })],
+      'me'
+    )
+
+    fireEvent.mouseEnter(screen.getByRole('button', { name: 'Území 10,10' }))
+
+    expect(screen.getByText('Hrad Blaník')).toBeInTheDocument()
+  })
+
+  it('does not show a name line in the tooltip when name is null', () => {
+    renderViewport([makeTerritory()], 'me')
+
+    fireEvent.mouseEnter(screen.getByRole('button', { name: 'Území 10,10' }))
+
+    expect(screen.queryByText('Hrad Blaník')).not.toBeInTheDocument()
   })
 })
