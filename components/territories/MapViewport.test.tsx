@@ -212,6 +212,29 @@ describe('MapViewport', () => {
     expect(onPan).toHaveBeenCalledWith(-2, 1)
   })
 
+  it('keeps the outer map frame static while the inner grid translates during a drag', () => {
+    renderViewport([], 'me')
+
+    const frame = screen.getByTestId('map-frame')
+    const grid = screen.getByTestId('map-grid')
+
+    fireEvent.mouseDown(grid, { clientX: 10, clientY: 10 })
+    fireEvent.mouseMove(grid, { clientX: 16, clientY: 6 })
+
+    expect(frame).not.toHaveStyle({ transform: 'translate(6px,-4px)' })
+    expect(grid).toHaveStyle({ transform: 'translate(6px,-4px)' })
+  })
+
+  it('clamps only the visual drag translate so large drags do not expose blank space', () => {
+    renderViewport([], 'me')
+
+    const grid = screen.getByTestId('map-grid')
+    fireEvent.mouseDown(grid, { clientX: 0, clientY: 0 })
+    fireEvent.mouseMove(grid, { clientX: 200, clientY: -200 })
+
+    expect(grid).toHaveStyle({ transform: 'translate(11px,-11px)' })
+  })
+
   it('does NOT call onPan for a near-zero mouse drag (tile click)', () => {
     const onPan = jest.fn()
     const onSelectTile = jest.fn()
