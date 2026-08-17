@@ -1,3 +1,37 @@
+## Latest update — 2026-08-17h (structure icons worktree `feature/structure-icons`)
+
+Map structure markers no longer use plain emoji for home / castle /
+village in the `bcg-structure-icons` worktree. New inline SVG icon set in
+`components/territories/icons/StructureIcons.tsx` adds:
+
+- `HomeIcon` (single medieval homestead design)
+- `CastleIcon` variants: `ruin`, `chateau`, `tower`
+- `VillageIcon` variants: `stone`, `romanesque`, `timber`
+- deterministic `pickVariant(seed, variants)` using the same `hash =
+  (hash * 31 + charCode) | 0` pattern already used in `MapViewport`
+
+`components/territories/MapViewport.tsx` now renders those SVGs instead
+of `🏠 / 🏰 / 🏘️`, preserving the existing compact array-driven render path,
+the exact accessible titles `Domov` / `Hrad` / `Vesnice`, the under-attack
+dimming, and the old size-shrink behavior by translating the computed
+`structureFontSize` into explicit SVG `width`/`height`. Castle and village
+variants are stable per tile id (pure hash-based selection, no random).
+
+`components/territories/GarrisonModal.tsx` now uses the new icons in the
+build-structure UI and in the non-unit structure-card placeholder tiles
+(`chateau` castle default, `stone` village default).
+
+Tests:
+- New `components/territories/icons/StructureIcons.test.tsx`
+- `MapViewport.test.tsx` updated for SVG sizing semantics
+- `GarrisonModal.test.tsx` extended to assert the new build-row icons
+
+Verification in this worktree:
+- Baseline Jest count before changes: **297**
+- Final Jest count: **300/300**
+- `npx tsc --noEmit` ✅
+- `npm run build` ✅ (with placeholder public Supabase vars in `.env.local`)
+
 ## Latest update — 2026-08-17c (claim-completion XP migration prepared in feature/claim-xp)
 
 **Territory-claim XP follow-up implemented in this worktree** (not applied
@@ -1958,4 +1992,3 @@ overlay-span `data-testid="highlight-{edge}-{x},{y}"` elements) plus 3 new
 tests for foreign highlight, combined structure icons, and the battle-icon
 overlay — **13/13 passing**; full suite **249/249 passing** across 38 suites;
 `npm run build` clean.
-

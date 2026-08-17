@@ -121,8 +121,8 @@ describe('MapViewport', () => {
   it('renders combined castle + village icons compactly instead of overlapping', () => {
     renderViewport([makeTerritory({ castle_rank: 'basic', village_rank: 'basic' })], 'me')
 
-    expect(screen.getByTitle('Hrad')).toBeInTheDocument()
-    expect(screen.getByTitle('Vesnice')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Hrad' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Vesnice' })).toBeInTheDocument()
   })
 
   it('shows the battle icon as a blinking overlay on top of structure icons', () => {
@@ -167,7 +167,7 @@ describe('MapViewport', () => {
       />
     )
 
-    const zoomedInIcon = screen.getByTitle('Domov')
+    const zoomedInIcon = screen.getByRole('img', { name: 'Domov' })
 
     rerender(
       <MapViewport
@@ -182,10 +182,12 @@ describe('MapViewport', () => {
       />
     )
 
-    const zoomedOutIcon = screen.getByTitle('Domov')
+    const zoomedOutIcon = screen.getByRole('img', { name: 'Domov' })
 
-    expect(Number.parseFloat(zoomedInIcon instanceof HTMLElement ? zoomedInIcon.style.fontSize : '')).toBeGreaterThan(
-      Number.parseFloat(zoomedOutIcon instanceof HTMLElement ? zoomedOutIcon.style.fontSize : '')
+    expect(
+      Number.parseFloat(zoomedInIcon instanceof SVGElement ? zoomedInIcon.style.width : '')
+    ).toBeGreaterThan(
+      Number.parseFloat(zoomedOutIcon instanceof SVGElement ? zoomedOutIcon.style.width : '')
     )
   })
 

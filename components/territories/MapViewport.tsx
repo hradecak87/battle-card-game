@@ -1,7 +1,15 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { ReactNode, useEffect, useRef, useState } from 'react'
 import { Territory } from '@/lib/territories/api'
+import {
+  CASTLE_VARIANTS,
+  CastleIcon,
+  HomeIcon,
+  pickVariant,
+  VillageIcon,
+  VILLAGE_VARIANTS,
+} from '@/components/territories/icons/StructureIcons'
 
 const DIFFICULTY_COLOR: Record<1 | 2 | 3 | 4 | 5, string> = {
   1: 'bg-green-900',
@@ -437,14 +445,54 @@ export default function MapViewport({
             // stacked in one small tile used to overflow it. Shown side by
             // side and shrunk when there's more than one, this reads as a
             // single "these structures are here" unit sized to fit the tile.
-            const structureIcons: Array<{ key: string; icon: string; title: string }> = []
-            if (tile?.is_home) structureIcons.push({ key: 'home', icon: '🏠', title: 'Domov' })
-            if (tile?.castle_rank) structureIcons.push({ key: 'castle', icon: '🏰', title: 'Hrad' })
-            if (tile?.village_rank) structureIcons.push({ key: 'village', icon: '🏘️', title: 'Vesnice' })
+            const structureIcons: Array<{ key: string; node: ReactNode }> = []
             const structureFontSize =
-              structureIcons.length > 1
+              [
+                tile?.is_home,
+                tile?.castle_rank,
+                tile?.village_rank,
+              ].filter(Boolean).length > 1
                 ? `${Math.max(8, Math.round(parseInt(iconStyle.fontSize, 10) * 0.62))}px`
                 : iconStyle.fontSize
+            const structureIconStyle = { width: structureFontSize, height: structureFontSize }
+            if (tile?.is_home) {
+              structureIcons.push({
+                key: 'home',
+                node: (
+                  <HomeIcon
+                    title="Domov"
+                    className="text-amber-200 drop-shadow"
+                    style={structureIconStyle}
+                  />
+                ),
+              })
+            }
+            if (tile?.castle_rank) {
+              structureIcons.push({
+                key: 'castle',
+                node: (
+                  <CastleIcon
+                    variant={pickVariant(String(tile.id), CASTLE_VARIANTS)}
+                    title="Hrad"
+                    className="text-stone-200 drop-shadow"
+                    style={structureIconStyle}
+                  />
+                ),
+              })
+            }
+            if (tile?.village_rank) {
+              structureIcons.push({
+                key: 'village',
+                node: (
+                  <VillageIcon
+                    variant={pickVariant(`${tile.id}-village`, VILLAGE_VARIANTS)}
+                    title="Vesnice"
+                    className="text-stone-300 drop-shadow"
+                    style={structureIconStyle}
+                  />
+                ),
+              })
+            }
 
               return (
                 <button
@@ -472,8 +520,8 @@ export default function MapViewport({
                 {structureIcons.length > 0 && (
                   <div className={`flex flex-row items-center justify-center gap-0.5 ${isUnderAttack ? 'opacity-40' : ''}`}>
                     {structureIcons.map((s) => (
-                      <span key={s.key} title={s.title} className="leading-none drop-shadow" style={{ fontSize: structureFontSize }}>
-                        {s.icon}
+                      <span key={s.key} className="leading-none">
+                        {s.node}
                       </span>
                     ))}
                   </div>

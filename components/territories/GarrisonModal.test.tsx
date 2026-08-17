@@ -332,6 +332,7 @@ describe('GarrisonModal', () => {
       />
     )
     expect(screen.getByTestId('build-castle-row')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Hrad' })).toBeInTheDocument()
   })
 
   it('shows village build row when village is missing', () => {
@@ -347,6 +348,7 @@ describe('GarrisonModal', () => {
       />
     )
     expect(screen.getByTestId('build-village-row')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Vesnice' })).toBeInTheDocument()
   })
 
   it('shows disabled hint when player has no castle card and castle is missing', () => {
