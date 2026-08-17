@@ -83,9 +83,9 @@ describe('MapViewport', () => {
       'me'
     )
 
-    expect(screen.getByRole('button', { name: 'Území 10,10' }).className).toContain('border-r-transparent')
+    expect(screen.getByRole('button', { name: 'Území 10,10' }).className).toContain('border-r border-r-zinc-800')
     expect(screen.getByRole('button', { name: 'Území 10,10' }).className).toContain('border-l-sky-400')
-    expect(screen.getByRole('button', { name: 'Území 11,10' }).className).toContain('border-l-transparent')
+    expect(screen.getByRole('button', { name: 'Území 11,10' }).className).toContain('border-l border-l-zinc-800')
     expect(screen.getByRole('button', { name: 'Území 11,10' }).className).toContain('border-r-sky-400')
   })
 
@@ -156,12 +156,12 @@ describe('MapViewport', () => {
     expect(onJump).toHaveBeenCalledWith(0, 255)
   })
 
-  it('uses a stacked mobile-friendly toolbar layout and compact coordinate inputs', () => {
+  it('uses a compact single-row toolbar layout with narrow coordinate inputs', () => {
     renderViewport([])
 
-    expect(screen.getByTestId('map-toolbar').className).toContain('flex-col')
-    expect(screen.getByLabelText('Souřadnice X').className).toContain('w-16')
-    expect(screen.getByLabelText('Souřadnice Y').className).toContain('w-16')
+    expect(screen.getByTestId('map-toolbar').className).toContain('flex-row')
+    expect(screen.getByLabelText('Souřadnice X').className).toContain('w-11')
+    expect(screen.getByLabelText('Souřadnice Y').className).toContain('w-11')
   })
 
   it('shows castle, village, and claim-in-progress details in the tooltip', () => {

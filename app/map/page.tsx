@@ -238,31 +238,35 @@ export default function MapPage() {
                 Domovské území nenalezeno (možná ještě nemáš dokončený onboarding).
               </p>
             )}
-            <div className="flex flex-col gap-2">
-              <h2 className="text-sm font-semibold text-zinc-200">Tvoje území</h2>
+            <div className="flex items-center gap-2">
+              <label htmlFor="owned-territory-select" className="text-sm font-semibold text-zinc-200 shrink-0">
+                Tvoje území
+              </label>
               {ownedTerritories === null ? (
                 <p className="text-xs text-zinc-500">Načítám tvá území…</p>
               ) : ownedTerritories.length === 0 ? (
                 <p className="text-xs text-zinc-500">Zatím nevlastníš žádné území.</p>
               ) : (
-                <div className="flex flex-wrap gap-2">
+                <select
+                  id="owned-territory-select"
+                  aria-label="Zaostřit na vlastní území"
+                  defaultValue=""
+                  onChange={(e) => {
+                    const territory = ownedTerritories.find((t) => String(t.id) === e.target.value)
+                    if (territory) handleJump(territory.x, territory.y)
+                    e.target.value = ''
+                  }}
+                  className="flex-1 rounded bg-zinc-900 border border-zinc-700 px-2 py-1 text-xs text-zinc-100"
+                >
+                  <option value="" disabled>
+                    Vyber území k zaostření…
+                  </option>
                   {ownedTerritories.map((territory) => (
-                    <div
-                      key={territory.id}
-                      className="flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1 text-xs"
-                    >
-                      <span>{`${getTerritoryMarker(territory)} (${territory.x}, ${territory.y})`}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleJump(territory.x, territory.y)}
-                        aria-label={`Zaostřit ${territory.x},${territory.y}`}
-                        className="rounded-full border border-zinc-600 px-2 py-0.5 font-semibold text-zinc-100 hover:border-zinc-400"
-                      >
-                        Zaostřit
-                      </button>
-                    </div>
+                    <option key={territory.id} value={territory.id}>
+                      {`${getTerritoryMarker(territory)} (${territory.x}, ${territory.y})`}
+                    </option>
                   ))}
-                </div>
+                </select>
               )}
             </div>
           </div>

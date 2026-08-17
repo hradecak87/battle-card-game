@@ -16,29 +16,37 @@ const MAP_MAX = 255
 
 type HighlightColor = 'sky' | 'red' | 'transparent'
 
+// 'inner' = shared edge between two tiles of the same highlighted group:
+// keep the normal thin grid line instead of erasing it, so only the
+// *outer* perimeter of a connected owned/attacked region gets the thick
+// colored outline.
 const BORDER_CLASSES: Record<
   'top' | 'right' | 'bottom' | 'left',
-  Record<HighlightColor, string>
+  Record<HighlightColor | 'inner', string>
 > = {
   top: {
     sky: 'border-t-2 border-t-sky-400',
     red: 'border-t-2 border-t-red-500',
     transparent: 'border-t-2 border-t-transparent',
+    inner: 'border-t border-t-zinc-800',
   },
   right: {
     sky: 'border-r-2 border-r-sky-400',
     red: 'border-r-2 border-r-red-500',
     transparent: 'border-r-2 border-r-transparent',
+    inner: 'border-r border-r-zinc-800',
   },
   bottom: {
     sky: 'border-b-2 border-b-sky-400',
     red: 'border-b-2 border-b-red-500',
     transparent: 'border-b-2 border-b-transparent',
+    inner: 'border-b border-b-zinc-800',
   },
   left: {
     sky: 'border-l-2 border-l-sky-400',
     red: 'border-l-2 border-l-red-500',
     transparent: 'border-l-2 border-l-transparent',
+    inner: 'border-l border-l-zinc-800',
   },
 }
 
@@ -150,37 +158,37 @@ export default function MapViewport({
   return (
     <div className="flex flex-col gap-3" data-testid="map-viewport">
       <div
-        className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between"
+        className="flex flex-row flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:justify-between"
         data-testid="map-toolbar"
       >
-        <div className="grid grid-cols-3 gap-1 w-24 self-center sm:self-auto">
+        <div className="grid grid-cols-3 gap-0.5 w-[4.5rem] shrink-0">
           <span />
-          <button aria-label="Posunout nahoru" onClick={() => onPan(0, -1)} className="rounded bg-zinc-800 px-2 py-1">
+          <button aria-label="Posunout nahoru" onClick={() => onPan(0, -1)} className="rounded bg-zinc-800 px-1.5 py-0.5 text-sm leading-none">
             ↑
           </button>
           <span />
-          <button aria-label="Posunout doleva" onClick={() => onPan(-1, 0)} className="rounded bg-zinc-800 px-2 py-1">
+          <button aria-label="Posunout doleva" onClick={() => onPan(-1, 0)} className="rounded bg-zinc-800 px-1.5 py-0.5 text-sm leading-none">
             ←
           </button>
           <span />
-          <button aria-label="Posunout doprava" onClick={() => onPan(1, 0)} className="rounded bg-zinc-800 px-2 py-1">
+          <button aria-label="Posunout doprava" onClick={() => onPan(1, 0)} className="rounded bg-zinc-800 px-1.5 py-0.5 text-sm leading-none">
             →
           </button>
           <span />
-          <button aria-label="Posunout dolů" onClick={() => onPan(0, 1)} className="rounded bg-zinc-800 px-2 py-1">
+          <button aria-label="Posunout dolů" onClick={() => onPan(0, 1)} className="rounded bg-zinc-800 px-1.5 py-0.5 text-sm leading-none">
             ↓
           </button>
           <span />
         </div>
 
         {(onZoomIn || onZoomOut) && (
-          <div className="flex flex-row justify-center gap-2 sm:flex-col sm:gap-1">
+          <div className="flex flex-row gap-1 shrink-0">
             <button
               type="button"
               aria-label="Přiblížit"
               onClick={onZoomIn}
               disabled={!canZoomIn}
-              className="rounded bg-zinc-800 px-2 py-1 disabled:opacity-40"
+              className="rounded bg-zinc-800 px-2 py-1 text-sm disabled:opacity-40"
             >
               🔍+
             </button>
@@ -189,37 +197,37 @@ export default function MapViewport({
               aria-label="Oddálit"
               onClick={onZoomOut}
               disabled={!canZoomOut}
-              className="rounded bg-zinc-800 px-2 py-1 disabled:opacity-40"
+              className="rounded bg-zinc-800 px-2 py-1 text-sm disabled:opacity-40"
             >
               🔍−
             </button>
           </div>
         )}
 
-        <form onSubmit={handleJumpSubmit} className="grid grid-cols-2 gap-2 sm:flex sm:items-end">
-          <label className="flex flex-col text-sm text-zinc-400">
+        <form onSubmit={handleJumpSubmit} className="flex flex-row items-center gap-1.5 shrink-0">
+          <label className="flex items-center gap-1 text-xs text-zinc-400">
             X
             <input
               aria-label="Souřadnice X"
               type="number"
               value={jumpX}
               onChange={(e) => setJumpX(e.target.value)}
-              className="w-16 rounded bg-zinc-900 border border-zinc-700 px-2 py-1"
+              className="w-11 rounded bg-zinc-900 border border-zinc-700 px-1.5 py-1 text-sm"
             />
           </label>
-          <label className="flex flex-col text-sm text-zinc-400">
+          <label className="flex items-center gap-1 text-xs text-zinc-400">
             Y
             <input
               aria-label="Souřadnice Y"
               type="number"
               value={jumpY}
               onChange={(e) => setJumpY(e.target.value)}
-              className="w-16 rounded bg-zinc-900 border border-zinc-700 px-2 py-1"
+              className="w-11 rounded bg-zinc-900 border border-zinc-700 px-1.5 py-1 text-sm"
             />
           </label>
           <button
             type="submit"
-            className="col-span-2 rounded bg-zinc-100 text-zinc-900 px-3 py-1 font-semibold sm:col-span-1"
+            className="rounded bg-zinc-100 text-zinc-900 px-3 py-1 text-sm font-semibold"
           >
             Přejít
           </button>
@@ -277,10 +285,10 @@ export default function MapViewport({
 
             const borderClasses = highlightColor
               ? [
-                  BORDER_CLASSES.top[matchingHighlight(neighbors.top) ? 'transparent' : highlightColor],
-                  BORDER_CLASSES.right[matchingHighlight(neighbors.right) ? 'transparent' : highlightColor],
-                  BORDER_CLASSES.bottom[matchingHighlight(neighbors.bottom) ? 'transparent' : highlightColor],
-                  BORDER_CLASSES.left[matchingHighlight(neighbors.left) ? 'transparent' : highlightColor],
+                  BORDER_CLASSES.top[matchingHighlight(neighbors.top) ? 'inner' : highlightColor],
+                  BORDER_CLASSES.right[matchingHighlight(neighbors.right) ? 'inner' : highlightColor],
+                  BORDER_CLASSES.bottom[matchingHighlight(neighbors.bottom) ? 'inner' : highlightColor],
+                  BORDER_CLASSES.left[matchingHighlight(neighbors.left) ? 'inner' : highlightColor],
                 ].join(' ')
               : 'border-zinc-800'
 

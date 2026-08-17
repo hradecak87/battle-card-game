@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react'
 import MapPage from './page'
 
 const routerPush = jest.fn()
@@ -179,11 +179,12 @@ describe('MapPage', () => {
     render(<MapPage />)
 
     expect(await screen.findByText('Tvoje území')).toBeInTheDocument()
-    expect(screen.getByText('🏠 (10, 20)')).toBeInTheDocument()
-    expect(screen.getByText('🏰 (33, 44)')).toBeInTheDocument()
+    const select = screen.getByLabelText('Zaostřit na vlastní území')
+    expect(within(select).getByText('🏠 (10, 20)')).toBeInTheDocument()
+    expect(within(select).getByText('🏰 (33, 44)')).toBeInTheDocument()
 
     getViewport.mockClear()
-    fireEvent.click(screen.getByRole('button', { name: 'Zaostřit 33,44' }))
+    fireEvent.change(select, { target: { value: '2' } })
 
     await waitFor(() => expect(getViewport).toHaveBeenCalledWith(26, 37, 40, 51))
   })
