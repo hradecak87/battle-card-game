@@ -58,6 +58,19 @@ export interface BattleRoundRow {
   auto_picked: boolean
   skipped: boolean
   resolved_at: string | null
+  // Populated by _resolve_round (0005_battle_round_breakdown.sql); null for
+  // skipped rounds and for rounds resolved before that migration existed.
+  attacker_atk: number | null
+  attacker_dmg_dealt: number | null
+  attacker_ttk: number | null // null also means "infinite" (0 damage dealt)
+  defender_atk: number | null
+  defender_dmg_dealt: number | null
+  defender_ttk: number | null
+  // Resolved straight from card_instances/card_templates by id (get_battle),
+  // independent of the live attacker_roster/defender_pool arrays — stays
+  // correct even after the card is captured or dies in a later round.
+  attacker_card: { instance_id: string; template: BattleCardTemplate } | null
+  defender_card: { instance_id: string; template: BattleCardTemplate } | null
 }
 
 export interface GetBattleResult {

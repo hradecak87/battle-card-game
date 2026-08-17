@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { BattleCard } from '@/lib/battles/api'
+import { BattleCard, BattleCardTemplate } from '@/lib/battles/api'
 import { TradingCard } from '@/components/cards/TradingCard'
 import { applyRank } from '@/lib/cards/combat'
 import { Rank, UnitType, UnitCardTemplate } from '@/lib/cards/types'
@@ -15,8 +15,7 @@ export interface DuelStageProps {
   lastWinnerSide: 'attacker' | 'defender' | null
 }
 
-function toUnitTemplate(card: BattleCard): UnitCardTemplate | null {
-  const t = card.template
+export function toUnitTemplate(t: BattleCardTemplate): UnitCardTemplate | null {
   if (t.category !== 'unit' || !t.base_stats || !t.unit_type) return null
   return {
     id: t.id,
@@ -29,6 +28,7 @@ function toUnitTemplate(card: BattleCard): UnitCardTemplate | null {
     totalSupply: t.total_supply,
   }
 }
+
 
 function useCountdown(deadline: string | null): number | null {
   const [remaining, setRemaining] = useState<number | null>(null)
@@ -64,8 +64,8 @@ export default function DuelStage({
   lastWinnerSide,
 }: DuelStageProps) {
   const remaining = useCountdown(roundDeadline)
-  const attackerTemplate = attackerCard ? toUnitTemplate(attackerCard) : null
-  const defenderTemplate = defenderCard ? toUnitTemplate(defenderCard) : null
+  const attackerTemplate = attackerCard ? toUnitTemplate(attackerCard.template) : null
+  const defenderTemplate = defenderCard ? toUnitTemplate(defenderCard.template) : null
 
   return (
     <div data-testid="duel-stage" className="flex flex-col items-center gap-3">

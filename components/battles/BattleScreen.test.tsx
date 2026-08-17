@@ -74,25 +74,36 @@ function awaitingReadyFixture(): GetBattleResult {
   }
 }
 
+function makeRound(overrides: Partial<GetBattleResult['rounds'][number]> = {}): GetBattleResult['rounds'][number] {
+  return {
+    id: 'round-1',
+    battle_id: 'battle-1',
+    round_number: 1,
+    attacker_card_instance_id: 'atk-1',
+    defender_card_instance_id: null,
+    winner_card_instance_id: null,
+    auto_picked: false,
+    skipped: false,
+    resolved_at: null,
+    attacker_atk: null,
+    attacker_dmg_dealt: null,
+    attacker_ttk: null,
+    defender_atk: null,
+    defender_dmg_dealt: null,
+    defender_ttk: null,
+    attacker_card: null,
+    defender_card: null,
+    ...overrides,
+  }
+}
+
 function activeFixture(): GetBattleResult {
   const fixture = awaitingReadyFixture()
   fixture.battle.status = 'active'
   fixture.battle.attacker_ready_at = new Date().toISOString()
   fixture.battle.defender_ready_at = new Date().toISOString()
   fixture.battle.round_deadline = new Date(Date.now() + 120_000).toISOString()
-  fixture.rounds = [
-    {
-      id: 'round-1',
-      battle_id: 'battle-1',
-      round_number: 1,
-      attacker_card_instance_id: 'atk-1',
-      defender_card_instance_id: null,
-      winner_card_instance_id: null,
-      auto_picked: false,
-      skipped: false,
-      resolved_at: null,
-    },
-  ]
+  fixture.rounds = [makeRound()]
   return fixture
 }
 
@@ -101,6 +112,7 @@ describe('BattleScreen', () => {
     getBattle.mockReset()
     markReady.mockClear()
     pickDefenderCard.mockClear()
+    window.localStorage.clear()
   })
 
   it('shows a ready button for the attacker while awaiting_ready and calls markReady', async () => {
@@ -139,6 +151,36 @@ describe('BattleScreen', () => {
     })
 
     expect(markReady).toHaveBeenCalledWith('battle-1')
+    expect(getBattle).toHaveBeenCalledTimes(2)
+
+    jest.useRealTimers()
+  })
+
+  it('automatically reloads once the round deadline passes, without a manual refresh', async () => {
+    const fixture = activeFixture()
+    fixture.battle.round_deadline = new Date(Date.now() + 5_000).toISOString()
+    getBattle.mockResolvedValue({ data: fixture, error: null })
+
+    jest.useFakeTimers()
+    render(<BattleScreen battleId="battle-1" currentUserId="defender-1" />)
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(getBattle).toHaveBeenCalledTimes(1)
+
+    // Deadline hasn't passed yet — no extra reload.
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(4_000)
+    })
+    expect(getBattle).toHaveBeenCalledTimes(1)
+
+    // Deadline passes — the screen reloads on its own (which, server-side,
+    // is what actually runs resolve_due_battles() and advances the round).
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(2_000)
+    })
     expect(getBattle).toHaveBeenCalledTimes(2)
 
     jest.useRealTimers()
@@ -186,5 +228,51 @@ describe('BattleScreen', () => {
     render(<BattleScreen battleId="battle-1" currentUserId="attacker-1" />)
 
     expect(await screen.findByText('Vítězí útočník')).toBeInTheDocument()
+  })
+
+  it('queues multiple newly-resolved rounds and plays them back one at a time', async () => {
+    const fixture = activeFixture()
+    fixture.rounds = [
+      makeRound({ id: 'round-1', round_number: 1, winner_card_instance_id: 'atk-1' }),
+      makeRound({ id: 'round-2', round_number: 2, winner_card_instance_id: 'def-1' }),
+      makeRound({ id: 'round-3', round_number: 3, skipped: true, winner_card_instance_id: null }),
+    ]
+    getBattle.mockResolvedValue({ data: fixture, error: null })
+    render(<BattleScreen battleId="battle-1" currentUserId="attacker-1" />)
+
+    await waitFor(() => expect(screen.getByTestId('round-result-popup')).toBeInTheDocument())
+    expect(within(screen.getByTestId('round-result-popup')).getByText('Kolo 1')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByTestId('round-result-close'))
+    await waitFor(() =>
+      expect(within(screen.getByTestId('round-result-popup')).getByText('Kolo 2')).toBeInTheDocument()
+    )
+
+    fireEvent.click(screen.getByTestId('round-result-close'))
+    await waitFor(() =>
+      expect(screen.getByText('Kolo přeskočeno – všechny karty odpočívají.')).toBeInTheDocument()
+    )
+
+    fireEvent.click(screen.getByTestId('round-result-close'))
+    await waitFor(() => expect(screen.queryByTestId('round-result-popup')).not.toBeInTheDocument())
+  })
+
+  it('does not replay a round already seen by this browser (per localStorage)', async () => {
+    window.localStorage.setItem('battle-battle-1-last-seen-round', '1')
+    const fixture = activeFixture()
+    fixture.rounds = [makeRound({ id: 'round-1', round_number: 1, winner_card_instance_id: 'atk-1' })]
+    getBattle.mockResolvedValue({ data: fixture, error: null })
+    render(<BattleScreen battleId="battle-1" currentUserId="attacker-1" />)
+
+    await waitFor(() => expect(screen.getByTestId('duel-stage')).toBeInTheDocument())
+    expect(screen.queryByTestId('round-result-popup')).not.toBeInTheDocument()
+  })
+
+  it('does not show a popup for the still-pending (unresolved) round', async () => {
+    getBattle.mockResolvedValue({ data: activeFixture(), error: null })
+    render(<BattleScreen battleId="battle-1" currentUserId="attacker-1" />)
+
+    await waitFor(() => expect(screen.getByTestId('duel-stage')).toBeInTheDocument())
+    expect(screen.queryByTestId('round-result-popup')).not.toBeInTheDocument()
   })
 })

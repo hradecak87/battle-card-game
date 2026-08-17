@@ -1013,7 +1013,92 @@ only ever showed the full static catalog (all templates, no ownership).
 **199/199 tests passing** across 31 suites, run fresh at the end of this
 session.
 
-**Status**: not committed — awaiting the user's browser test of
-`/collection` + `/catalog` and explicit sign-off before any commit
-(covers both this addendum and the §10 bug fixes above).
+**Status**: ✅ Committed (`4187935`) and pushed to `origin/main`
+(`github.com/hradecak87/battle-card-game`) after the user confirmed it
+worked live. Two follow-up Vercel deploy failures were also fixed this
+session: an `.eslintrc.json` unused-vars rule blocking the build
+(commit `8a4f82d`) and a missing `NEXT_PUBLIC_SUPABASE_URL`/
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` Vercel project-settings issue (no code
+change — user added them directly in the Vercel dashboard). The app is
+now live and deploying successfully on Vercel.
+
+## 11. Battle round result popup (subsystem #4 follow-up) — implemented, verified, NOT yet committed
+
+Per-round feedback was missing from the live RTS battle screen: a round
+resolved silently with no visible explanation of who won or why. Full
+design went through the `brainstorming` skill (see
+`docs/superpowers/specs/2026-08-17-battle-round-result-popup-design.md`,
+reviewed 3x by a spec-document-reviewer subagent — 2 real issues found
+and fixed: skip detection must use the existing `battle_rounds.skipped`
+column rather than a null-heuristic, and historical round popups must
+resolve card art via a direct `card_instances`/`card_templates` join in
+`get_battle` rather than the live `attacker_roster`/`defender_pool`
+arrays, which shrink as cards are captured or die). Implementation plan:
+`docs/superpowers/plans/2026-08-17-battle-round-result-popup-plan.md`
+(`writing-plans` skill unavailable in this environment — authored
+directly, same convention as prior plans).
+
+Also bundled in this same pending commit: an earlier-session fix (the
+round-deadline auto-reload `useEffect` in `BattleScreen.tsx`, so an
+expired round auto-advances for anyone with the battle screen open,
+without a manual page refresh) that had been implemented and verified
+but not yet committed when this feature started.
+
+**What was built:**
+- `supabase/migrations/0005_battle_round_breakdown.sql` — adds 6 nullable
+  numeric columns to `battle_rounds` (`attacker_atk`,
+  `attacker_dmg_dealt`, `attacker_ttk`, and the `defender_*` equivalents;
+  `null` TTK means "infinite", i.e. 0 damage dealt); updates
+  `_resolve_round` to populate them from its already-computed
+  `v_atk_eff`/`v_def_eff`/`v_atk_dmg`/`v_def_dmg`/`v_ttk_*` locals (no new
+  computation, previously discarded); updates `get_battle`'s round-row
+  query to also resolve `attacker_card`/`defender_card` (`{instance_id,
+  template}` or `null`) directly from `card_instances`/`card_templates`
+  by id, independent of the live roster/pool arrays. **Deployed to the
+  live production Supabase project** and verified: new columns exist,
+  `get_battle` still returns correctly for a pre-existing battle (older
+  rounds correctly show `null` breakdown fields since they predate the
+  migration; new rounds resolved after this point will have them
+  populated).
+- `lib/battles/api.ts`: `BattleRoundRow` extended with the 6 new fields
+  plus `attacker_card`/`defender_card`.
+- `components/battles/RoundResultPopup.tsx` (new): the modal, styled to
+  match `/arena`'s `SideResult` ATK/DMG/TTK convention — side-by-side
+  cards with the winner highlighted, one plain-language explanation
+  sentence (including a distinct "never dealt damage" phrasing for the
+  infinite-TTK case), a 20s **visible countdown** auto-dismiss, and a
+  manual ✕ close button. Renders a short "Kolo přeskočeno – všechny karty
+  odpočívají." variant (no card art/stats) when `round.skipped`.
+- `components/battles/DuelStage.tsx`: exported its existing
+  `toUnitTemplate` helper (now takes a `BattleCardTemplate` directly
+  instead of a `BattleCard`) so `RoundResultPopup` could reuse it without
+  duplicating the card-template conversion logic.
+- `lib/battles/lastSeenRound.ts` (new): tiny `localStorage`-backed
+  "last seen round number" getter/setter, keyed per battle id
+  (`battle-{id}-last-seen-round`), guarded to no-op during SSR.
+- `components/battles/BattleScreen.tsx`: a new `useEffect` builds a
+  `popupQueue` of every round newer than the last-seen marker that has
+  actually resolved or been skipped (checked via
+  `round.skipped || round.winner_card_instance_id !== null` — NOT
+  `resolved_at`, which is set at round-*start*, not at resolution, so it
+  can't distinguish a still-pending round). Renders `popupQueue[0]` only;
+  dismissing (auto or via ✕) advances the stored last-seen marker and
+  reveals the next queued popup immediately. This single mechanism
+  naturally covers both live PvP (usually one new round at a time) and
+  NPC/PvE battles (which can resolve many rounds in one synchronous
+  server call — all play back in round-number order, one popup at a
+  time, on first view).
+
+**Verification**: `npx tsc --noEmit` clean; full `npx jest --ci`
+**208/208 tests passing** across 32 suites (12 new: 5 in
+`RoundResultPopup.test.tsx`, 3 new in `BattleScreen.test.tsx` on top of
+the existing 7 + the earlier round-deadline test); a full `npm run build`
+also completed cleanly (catches Vercel-only ESLint failures invisible to
+`tsc`/`jest` alone, per this session's earlier lesson).
+
+**Status**: ✅ Implemented and self-verified (automated tests + build
+only). **NOT committed** — per this project's commit policy, holding
+this for the user's live two-account playtest and explicit sign-off once
+they return, even though the spec/plan/implementation work itself was
+done autonomously per their explicit delegation ("buď samostatný").
 

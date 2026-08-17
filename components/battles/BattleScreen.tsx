@@ -1,11 +1,13 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { getBattle, markReady, pickDefenderCard, GetBattleResult, BattleCard } from '@/lib/battles/api'
+import { getBattle, markReady, pickDefenderCard, GetBattleResult, BattleCard, BattleRoundRow } from '@/lib/battles/api'
 import { useBattleChannel } from '@/lib/battles/useBattleChannel'
+import { getLastSeenRound, setLastSeenRound } from '@/lib/battles/lastSeenRound'
 import RosterStrip from './RosterStrip'
 import DuelStage from './DuelStage'
 import RoundHistory from './RoundHistory'
+import RoundResultPopup from './RoundResultPopup'
 
 export interface BattleScreenProps {
   battleId: string
@@ -43,6 +45,7 @@ export default function BattleScreen({ battleId, currentUserId }: BattleScreenPr
   const [readySubmitting, setReadySubmitting] = useState(false)
   const [pickSubmittingId, setPickSubmittingId] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [popupQueue, setPopupQueue] = useState<BattleRoundRow[]>([])
 
   const load = useCallback(() => {
     getBattle(battleId).then(({ data: result, error: rpcError }) => {
@@ -83,6 +86,52 @@ export default function BattleScreen({ battleId, currentUserId }: BattleScreenPr
     }, 20_000)
     return () => clearInterval(interval)
   }, [battleStatus, isParticipant, battleId, load])
+
+  // Every RPC (including the plain read `get_battle`) lazily runs
+  // resolve_due_battles() first, which auto-picks the defender's card and
+  // advances the round once round_deadline has passed — but nothing
+  // calls any RPC on its own once the countdown hits zero, so without
+  // this, a round only actually advances when *someone* happens to
+  // trigger a fresh request (e.g. a manual page reload). Schedule a
+  // single timer per round that fires just after its deadline and calls
+  // load(), so an expired round advances on its own for anyone who has
+  // the battle screen open, no refresh needed.
+  const roundDeadline = battleStatus === 'active' ? data?.battle.round_deadline ?? null : null
+
+  useEffect(() => {
+    if (!roundDeadline) return
+    const delay = Math.max(0, new Date(roundDeadline).getTime() - Date.now()) + 250
+    const timeout = setTimeout(load, delay)
+    return () => clearTimeout(timeout)
+  }, [roundDeadline, load])
+
+  // Queue any round newer than this browser's last-seen marker (see
+  // lib/battles/lastSeenRound.ts) that has actually resolved or been
+  // skipped — `winner_card_instance_id`/`skipped` are the correct
+  // "is this round done?" signals (`resolved_at` is set at round-start,
+  // not at resolution, so it can't be used for this). Sorted ascending so
+  // a first-time view of an already-finished NPC battle (many rounds
+  // resolved in one server call) plays back every round's popup in
+  // sequence, one at a time.
+  useEffect(() => {
+    if (!data) return
+    const lastSeen = getLastSeenRound(battleId)
+    const unseen = data.rounds
+      .filter((r) => r.round_number > lastSeen && (r.skipped || r.winner_card_instance_id !== null))
+      .sort((a, b) => a.round_number - b.round_number)
+    if (unseen.length === 0) return
+    setPopupQueue((prev) => {
+      const alreadyQueued = new Set(prev.map((r) => r.round_number))
+      const toAdd = unseen.filter((r) => !alreadyQueued.has(r.round_number))
+      return toAdd.length > 0 ? [...prev, ...toAdd] : prev
+    })
+  }, [data, battleId])
+
+  function handleDismissPopup() {
+    const [shown, ...rest] = popupQueue
+    if (shown) setLastSeenRound(battleId, shown.round_number)
+    setPopupQueue(rest)
+  }
 
   async function handleMarkReady() {
     setReadySubmitting(true)
@@ -188,6 +237,8 @@ export default function BattleScreen({ battleId, currentUserId }: BattleScreenPr
       </div>
 
       <RoundHistory rounds={rounds} attackerRoster={attackerRoster} defenderPool={defenderPool} />
+
+      {popupQueue[0] && <RoundResultPopup round={popupQueue[0]} onDismiss={handleDismissPopup} />}
     </div>
   )
 }
