@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, act } from '@testing-library/react'
+import { useState } from 'react'
 import RoundResultPopup from './RoundResultPopup'
 import { BattleRoundRow, BattleCardTemplate } from '@/lib/battles/api'
 
@@ -45,6 +46,17 @@ function makeRound(overrides: Partial<BattleRoundRow> = {}): BattleRoundRow {
     },
     ...overrides,
   }
+}
+
+function PopupSequenceHarness() {
+  const [rounds, setRounds] = useState([
+    makeRound({ id: 'round-1', round_number: 1 }),
+    makeRound({ id: 'round-2', round_number: 2 }),
+  ])
+
+  return rounds[0] ? (
+    <RoundResultPopup round={rounds[0]} onDismiss={() => setRounds(([, ...rest]) => rest)} />
+  ) : null
 }
 
 describe('RoundResultPopup', () => {
@@ -137,5 +149,48 @@ describe('RoundResultPopup', () => {
 
     fireEvent.click(screen.getByTestId('round-result-close'))
     expect(onDismiss).toHaveBeenCalledTimes(1)
+  })
+
+  it('restarts the full 20s countdown when manually closing one round and showing the next', () => {
+    render(<PopupSequenceHarness />)
+
+    act(() => {
+      jest.advanceTimersByTime(5_000)
+    })
+    expect(screen.getByTestId('round-result-countdown')).toHaveTextContent('15s')
+
+    fireEvent.click(screen.getByTestId('round-result-close'))
+    expect(screen.getByText('Kolo 2')).toBeInTheDocument()
+    expect(screen.getByTestId('round-result-countdown')).toHaveTextContent('20s')
+
+    act(() => {
+      jest.advanceTimersByTime(19_000)
+    })
+    expect(screen.getByTestId('round-result-popup')).toBeInTheDocument()
+
+    act(() => {
+      jest.advanceTimersByTime(1_000)
+    })
+    expect(screen.queryByTestId('round-result-popup')).not.toBeInTheDocument()
+  })
+
+  it('restarts the full 20s countdown when one round auto-dismisses and the next is shown', () => {
+    render(<PopupSequenceHarness />)
+
+    act(() => {
+      jest.advanceTimersByTime(20_000)
+    })
+    expect(screen.getByText('Kolo 2')).toBeInTheDocument()
+    expect(screen.getByTestId('round-result-countdown')).toHaveTextContent('20s')
+
+    act(() => {
+      jest.advanceTimersByTime(19_000)
+    })
+    expect(screen.getByTestId('round-result-popup')).toBeInTheDocument()
+
+    act(() => {
+      jest.advanceTimersByTime(1_000)
+    })
+    expect(screen.queryByTestId('round-result-popup')).not.toBeInTheDocument()
   })
 })

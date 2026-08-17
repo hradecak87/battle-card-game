@@ -9,6 +9,40 @@ update it as work progresses (not just at the end of a session).
 
 ---
 
+## Latest update — 2026-08-18c (round-result popup timer reset fixed)
+
+**Bug 1 from the TODO batch is now fixed** on worktree branch
+`feature/popup-timer-reset`:
+- Root cause found in the actual code path: `BattleScreen.tsx` keeps
+  rendering the same `RoundResultPopup` component instance while
+  `popupQueue[0]` advances from one historical round to the next, and
+  `RoundResultPopup.tsx`'s `useCountdownSeconds` interval-setup effect was
+  mounted with `[]` dependencies. That meant the 20s countdown was tied to
+  the popup component's first mount, not to the currently displayed round,
+  so manually dismissing round N and immediately showing round N+1 reused
+  the partially-spent timer.
+- Fix: `useCountdownSeconds(...)` now receives the displayed round's unique
+  `round.id` as a reset key and stores which round a given countdown state
+  belongs to, so the timer fully resets whenever the shown round changes
+  and an old `remaining === 0` cannot immediately expire the next round's
+  popup during queue handoff. Duration remains the same 20 seconds and the
+  manual-close behavior is unchanged.
+- Tests: `components/battles/RoundResultPopup.test.tsx` gained a regression
+  test that reproduces the real bug flow (advance 5s on round 1, manually
+  close it, show round 2, assert round 2 starts back at 20s and stays open
+  until a full fresh 20s elapses) plus a second regression test covering
+  the auto-dismiss handoff path (round 1 times out naturally, then round 2
+  still starts from a fresh 20s).
+- Verification: baseline was **274** tests; final full suite is
+  **276/276 passing**. `npx tsc --noEmit` is clean after a successful build.
+  `npm run build` is also clean when the expected Supabase env vars are
+  present (`NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`);
+  this worktree did not have a local `.env` file, so verification used
+  command-scoped placeholder values to satisfy the existing app bootstrap
+  requirement.
+
+---
+
 ## Latest update — 2026-08-18b (building-cards module merged + rank-color swap)
 
 **Building-cards module merged** (`feature/building-cards`, commit
