@@ -9,6 +9,115 @@ update it as work progresses (not just at the end of a session).
 
 ---
 
+## Latest update — 2026-08-18 (territory-name display bug fully fixed; new bug/idea batch logged as TODO)
+
+**Territory rename display bug — now actually fully fixed** (earlier
+session-summary fix only solved half of it):
+- Root cause found: `get_viewport()` (redefined in `0003_battles.sql` with
+  an explicit `returns table (...)` column list, not `setof territories`)
+  was never updated by `0008_territory_names.sql` to include the new
+  `name` column. So the map's main tile fetch (used to populate
+  `selectedTile`/`GarrisonModal`) never returned `name` in production at
+  all — only an optimistic client-side patch (added in the prior fix,
+  commit `7454847`) made a freshly-renamed territory's name appear, and
+  only until the next real refetch (page refresh, pan, revisit), at which
+  point it silently vanished again.
+- Fix: `supabase/migrations/0010_fix_viewport_name.sql` adds `name text`
+  to `get_viewport`'s returned columns (mirrors what `getMyTerritories`/
+  `get_territory` already had). **Applied to the live Supabase project**
+  (verified via direct query: `get_viewport` now returns a `name` column).
+  Commit `07f239d`, pushed directly to `main` (small, isolated SQL-only
+  fix, no worktree needed). 266/266 tests, `tsc`/build clean (no
+  TypeScript changes needed — `Territory` interface already declared
+  `name`).
+- **Lesson for future migrations**: when adding a column to `territories`
+  (or any table with multiple explicit-column-list RPC wrappers), always
+  grep for every `returns table (...)` function that selects from that
+  table — `select *`/`setof` wrappers auto-propagate new columns, but
+  explicit-column-list wrappers (like `get_viewport`,
+  `get_minimap_overview`) do not and must be updated in the same
+  migration. `get_minimap_overview` was checked and does not need `name`
+  (no UI currently shows per-tile names at minimap zoom).
+
+### New TODO batch from user (2026-08-18) — bugs + feature ideas to triage/implement
+
+User sent 8 items in one message, explicitly requesting they all be logged
+here. None are implemented yet except where noted. Answers to the two
+direct questions are given inline; the rest need code changes.
+
+1. **Bug — round-result popup timeout doesn't reset on manual close.**
+   `RoundResultPopup`'s ~20s auto-close timer, when browsing historical
+   battle rounds, does not restart when the user manually closes one
+   round's popup — so viewing e.g. 20 rounds only gives ~20s total instead
+   of ~20s per popup. Expected: timer should reset every time a popup is
+   dismissed (manually or by timeout) and a new one is shown. Not yet
+   investigated in code (`components/battles/RoundResultPopup.tsx` /
+   `BattleScreen.tsx` are the likely owners of the timer).
+2. **Graphical bug — card selection highlight ring too large/clipped.**
+   When picking troop cards for attack/transfer, the selection ring around
+   a chosen card is bigger than the card and gets visually clipped for
+   cards near the edge of the scroll area. Should hug the card's own
+   border tightly instead. Not yet investigated (`RosterStrip.tsx` likely
+   owner — a `ring`/`box-shadow` sizing or offset issue).
+3. **Bug — defender must manually refresh browser to see/join an incoming
+   battle.** No realtime push notifies a defending player that they've
+   been attacked; they can lose to timeout without ever knowing. Note:
+   `useTerritoryBattleChannel` already gives the **map page** a realtime
+   subscription on `territories` UPDATEs (so the "under attack" tile
+   highlight itself should already update live on the map) — the gap is
+   likely that this alone isn't enough to get the player *into* the
+   battle screen/ready-up flow without a manual page load, or the
+   subscription isn't actually mounted/effective everywhere a player might
+   be sitting (e.g., not on other pages, no toast/redirect). Needs
+   investigation of `app/map/page.tsx`'s wiring of this hook plus whether
+   a global (layout-level) notification is needed for players not
+   currently on the map page at all.
+4. **Idea (open discussion) — more ways to get common/uncommon troop
+   cards** beyond PvP combat and attacking NPC garrisons. Assistant's
+   suggestions to discuss with user: daily login streak rewards; XP-level
+   milestone grants (mirrors the structure-card level-reward pattern in
+   the building-cards module); a card shop/market tied to the
+   not-yet-designed trading/exchange subsystem; timed quests/challenges
+   (already in the original game vision, not yet built); or a
+   territory-capture-specific card drop distinct from combat capture.
+5. **Bug — no XP awarded for battle wins at all**, confirmed root cause:
+   `0001_players.sql` explicitly deferred XP-mutation to "later
+   subsystems" and none ever implemented it. Currently being fixed by the
+   in-flight `building-cards-module` background agent (50 XP/win via
+   `_finalize_battle`). **New requirement not in that agent's scope: XP
+   should also be awarded for successfully occupying/capturing an empty
+   territory** (claim completion) — needs a separate small follow-up once
+   `building-cards-module` merges.
+6. **UX complaint — map drag-pan "feels wrong".** User's description is
+   ambiguous ("mapa by při tažení zůstala na svém místě a jen by byl vidět
+   pohyb těch políček") — needs a clarifying question before any redesign
+   of the just-shipped touch/mouse pan feature. Not yet asked.
+7. **Small tweak — swap uncommon/rare border colors.** `uncommon` should
+   become green, `rare` should become blue. Not yet located in code
+   (likely a rank→color map in `components/cards/TradingCard.tsx` or a
+   shared constant) — quick grep-and-swap once picked up.
+8. **Answered directly (no code change needed, but worth noting as a
+   possible future improv.ment):** does the defender's win-probability
+   preview (shown before defender confirms a card) include the attacking/
+   defending player's nation combat perk (e.g., English +15% ranged)?
+   **No — confirmed by reading `BattleScreen.tsx`: `previewProbability`
+   is computed client-side using only `applyRank(baseStats, rank)` on the
+   two cards, with no nation-perk or territory/castle bonus factored in.**
+   This is intentional/labeled: the UI text next to it literally says
+   "Odhad šance obránce na výhru" (i.e. an *estimate*), precisely because
+   only the server-side round resolution (which does include nation/
+   territory modifiers) is authoritative. Possible future improvement:
+   thread the acting players' nation perks into the client preview calc
+   too so the "estimate" is closer to the real server outcome — not
+   requested yet, just noting the option.
+9. **Future TODO (not urgent) — admin card-grant tool.** Once the admin
+   dashboard exists, add a way for the admin to manually grant/add
+   specific troop cards to specific players'/territories' garrisons, for
+   testing without asking the assistant to run ad-hoc DB scripts. Folds
+   into the already-planned admin-dashboard module.
+
+---
+
 ## Latest update — 2026-08-17 (roadmap items 1-2 shipped: touch pan + territory names)
 
 Both delegated to background agents in parallel git worktrees, merged into
