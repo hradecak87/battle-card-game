@@ -40,6 +40,8 @@ const getTerritoriesByIds = jest.fn().mockResolvedValue({ data: [], error: null 
 const getMyActiveBattles = jest.fn().mockResolvedValue({ data: [], error: null })
 const getMyRecentlyResolvedBattles = jest.fn().mockResolvedValue({ data: [], error: null })
 const renameTerritory = jest.fn().mockResolvedValue({ data: null, error: null })
+const getMyStructureCardInstances = jest.fn().mockResolvedValue({ data: [], error: null })
+const buildStructure = jest.fn().mockResolvedValue({ data: null, error: null })
 
 jest.mock('@/lib/territories/api', () => ({
   getViewport: (...args: unknown[]) => getViewport(...args),
@@ -55,6 +57,8 @@ jest.mock('@/lib/territories/api', () => ({
   getMyActiveBattles: (...args: unknown[]) => getMyActiveBattles(...args),
   getMyRecentlyResolvedBattles: (...args: unknown[]) => getMyRecentlyResolvedBattles(...args),
   renameTerritory: (...args: unknown[]) => renameTerritory(...args),
+  getMyStructureCardInstances: (...args: unknown[]) => getMyStructureCardInstances(...args),
+  buildStructure: (...args: unknown[]) => buildStructure(...args),
 }))
 
 let sessionUser: { id: string } | null = null
