@@ -246,4 +246,164 @@ describe('GarrisonModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Zrušit' }))
     expect(screen.queryByTestId('rename-form')).not.toBeInTheDocument()
   })
+
+  // --- build structure feature ---
+
+  const castleCard = {
+    instance_id: 'ci-castle-1',
+    template_id: 'castle-common',
+    owner_id: 'me',
+    stationed_territory_id: null as number | null,
+    status: 'stationed' as const,
+    card_templates: {
+      id: 'castle-common',
+      name: 'Hrad (common)',
+      flavor_text: 'x',
+      rank: 'common',
+      category: 'castle' as const,
+      unit_type: null,
+      base_stats: null,
+      total_supply: 45,
+      defense_bonus_pct: 20,
+      attack_bonus_pct: 10,
+    },
+  }
+
+  const villageCard = {
+    instance_id: 'ci-village-1',
+    template_id: 'village-common',
+    owner_id: 'me',
+    stationed_territory_id: null as number | null,
+    status: 'stationed' as const,
+    card_templates: {
+      id: 'village-common',
+      name: 'Vesnice (common)',
+      flavor_text: 'x',
+      rank: 'common',
+      category: 'village' as const,
+      unit_type: null,
+      base_stats: null,
+      total_supply: 45,
+      defense_bonus_pct: 10,
+      attack_bonus_pct: null,
+    },
+  }
+
+  it('does not show the build section for a non-owner', () => {
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'other-player' }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+        structureCardOptions={[castleCard, villageCard]}
+      />
+    )
+    expect(screen.queryByTestId('build-structure-section')).not.toBeInTheDocument()
+  })
+
+  it('does not show the build section when the territory already has both structures', () => {
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'me', castle_rank: 'common', village_rank: 'common' }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+        structureCardOptions={[castleCard, villageCard]}
+      />
+    )
+    expect(screen.queryByTestId('build-structure-section')).not.toBeInTheDocument()
+  })
+
+  it('shows castle build row when castle is missing', () => {
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'me' }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+        structureCardOptions={[castleCard]}
+      />
+    )
+    expect(screen.getByTestId('build-castle-row')).toBeInTheDocument()
+  })
+
+  it('shows village build row when village is missing', () => {
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'me' }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+        structureCardOptions={[villageCard]}
+      />
+    )
+    expect(screen.getByTestId('build-village-row')).toBeInTheDocument()
+  })
+
+  it('shows disabled hint when player has no castle card and castle is missing', () => {
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'me' }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+        structureCardOptions={[]}
+      />
+    )
+    expect(screen.getByTestId('no-castle-cards')).toBeInTheDocument()
+    expect(screen.getByTestId('no-village-cards')).toBeInTheDocument()
+  })
+
+  it('calls onBuildStructure with correct args when castle is built', async () => {
+    const onBuildStructure = jest.fn().mockResolvedValue(undefined)
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'me', id: 99 }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+        structureCardOptions={[castleCard]}
+        onBuildStructure={onBuildStructure}
+      />
+    )
+
+    fireEvent.change(screen.getByRole('combobox', { name: /Vyber kartu hradu/ }), {
+      target: { value: 'ci-castle-1' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Postavit' }))
+
+    await waitFor(() =>
+      expect(onBuildStructure).toHaveBeenCalledWith(99, 'ci-castle-1')
+    )
+  })
+
+  it('hides the castle build row when territory already has a castle', () => {
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'me', castle_rank: 'common' }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+        structureCardOptions={[castleCard, villageCard]}
+      />
+    )
+    expect(screen.queryByTestId('build-castle-row')).not.toBeInTheDocument()
+    // village row still shows
+    expect(screen.getByTestId('build-village-row')).toBeInTheDocument()
+  })
 })

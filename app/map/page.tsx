@@ -11,6 +11,8 @@ import {
   getPlayerPublicInfo,
   getMyTerritories,
   renameTerritory,
+  buildStructure,
+  getMyStructureCardInstances,
   CardInstanceWithTemplate,
   PlayerPublicInfo,
   MyTerritory,
@@ -58,6 +60,7 @@ export default function MapPage() {
   const [incomingAttackArrivesAt, setIncomingAttackArrivesAt] = useState<string | null>(null)
   const [homeStatus, setHomeStatus] = useState<'idle' | 'searching' | 'not-found'>('idle')
   const [ownedTerritories, setOwnedTerritories] = useState<MyTerritory[] | null>(null)
+  const [structureCardInstances, setStructureCardInstances] = useState<CardInstanceWithTemplate[] | null>(null)
   const [showAttackModal, setShowAttackModal] = useState(false)
   const [showTransferModal, setShowTransferModal] = useState(false)
   const [movementsRefreshKey, setMovementsRefreshKey] = useState(0)
@@ -128,6 +131,7 @@ export default function MapPage() {
   useEffect(() => {
     if (!user?.id) {
       setOwnedTerritories(null)
+      setStructureCardInstances(null)
       autoCenteredUserId.current = null
       return
     }
@@ -141,6 +145,11 @@ export default function MapPage() {
         return
       }
       setOwnedTerritories(data ?? [])
+    })
+
+    getMyStructureCardInstances(user.id).then(({ data }) => {
+      if (ignore) return
+      setStructureCardInstances(data ?? [])
     })
 
     if (autoCenteredUserId.current !== user.id) {
@@ -312,6 +321,16 @@ export default function MapPage() {
             onRename={async (territoryId, newName) => {
               await renameTerritory(territoryId, newName)
               loadViewport(centerX, centerY, viewSize)
+            }}
+            structureCardOptions={structureCardInstances ?? undefined}
+            onBuildStructure={async (territoryId, cardInstanceId) => {
+              await buildStructure(territoryId, cardInstanceId)
+              loadViewport(centerX, centerY, viewSize)
+              if (user?.id) {
+                getMyStructureCardInstances(user.id).then(({ data }) => {
+                  setStructureCardInstances(data ?? [])
+                })
+              }
             }}
           />
         )}

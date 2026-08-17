@@ -371,3 +371,22 @@ export async function renameTerritory(territoryId: number, newName: string) {
     new_name: newName,
   })
 }
+
+/**
+ * All structure (castle/village) card instances owned by the given player,
+ * with their template joined in. Structure cards can be built from anywhere
+ * (build_structure checks ownership, not location), so no location filter
+ * is applied here — they sit in general inventory until the player builds.
+ */
+export async function getMyStructureCardInstances(ownerId: string) {
+  return supabase
+    .from('card_instances')
+    .select(
+      'instance_id, template_id, owner_id, stationed_territory_id, status, card_templates!inner(id, name, flavor_text, rank, category, unit_type, base_stats, total_supply, defense_bonus_pct, attack_bonus_pct)'
+    )
+    .eq('owner_id', ownerId)
+    .in('card_templates.category', ['castle', 'village']) as unknown as Promise<{
+    data: CardInstanceWithTemplate[] | null
+    error: { message: string } | null
+  }>
+}

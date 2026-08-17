@@ -39,6 +39,14 @@ export interface GarrisonModalProps {
   incomingAttackArrivesAt?: string | null
   /** Called when the owner saves a new name (or an empty string to clear). */
   onRename: (territoryId: number, newName: string) => Promise<void>
+  /**
+   * The viewer's own castle/village card instances (pre-filtered by caller).
+   * When the viewer owns this territory and it's missing a castle/village,
+   * a "Postavit hrad/vesnici" build action is shown.
+   */
+  structureCardOptions?: CardInstanceWithTemplate[]
+  /** Called when the owner confirms building a structure on this territory. */
+  onBuildStructure?: (territoryId: number, cardInstanceId: string) => Promise<void>
 }
 
 /** Rebuilds the `UnitCardTemplate` shape `TradingCard` expects from the flat DB row. */
@@ -78,10 +86,15 @@ export default function GarrisonModal({
   ownerInfoError,
   incomingAttackArrivesAt,
   onRename,
+  structureCardOptions,
+  onBuildStructure,
 }: GarrisonModalProps) {
   const [renaming, setRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState(territory.name ?? '')
   const [renameLoading, setRenameLoading] = useState(false)
+  const [buildCastleInstanceId, setBuildCastleInstanceId] = useState('')
+  const [buildVillageInstanceId, setBuildVillageInstanceId] = useState('')
+  const [buildLoading, setBuildLoading] = useState(false)
 
   const canAttack =
     Boolean(myPlayerId) &&
@@ -96,6 +109,15 @@ export default function GarrisonModal({
     await onRename(territory.id, renameValue)
     setRenameLoading(false)
     setRenaming(false)
+  }
+
+  async function handleBuild(category: 'castle' | 'village') {
+    if (!onBuildStructure) return
+    const instanceId = category === 'castle' ? buildCastleInstanceId : buildVillageInstanceId
+    if (!instanceId) return
+    setBuildLoading(true)
+    await onBuildStructure(territory.id, instanceId)
+    setBuildLoading(false)
   }
 
   return (
@@ -193,6 +215,91 @@ export default function GarrisonModal({
             >
               Zrušit
             </button>
+          </div>
+        )}
+
+        {canTransfer && (!territory.castle_rank || !territory.village_rank) && (
+          <div className="mb-4 rounded-xl border border-zinc-700 bg-zinc-900/60 p-3 flex flex-col gap-2" data-testid="build-structure-section">
+            {!territory.castle_rank && (() => {
+              const castleCards = (structureCardOptions ?? []).filter(
+                (c) => c.card_templates?.category === 'castle'
+              )
+              return (
+                <div className="flex items-center gap-2 flex-wrap" data-testid="build-castle-row">
+                  <span className="text-sm font-semibold text-zinc-200">🏰 Postavit hrad</span>
+                  {castleCards.length === 0 ? (
+                    <span className="text-xs text-zinc-500" data-testid="no-castle-cards">
+                      Nemáš žádnou kartu hradu
+                    </span>
+                  ) : (
+                    <>
+                      <select
+                        aria-label="Vyber kartu hradu"
+                        value={buildCastleInstanceId}
+                        onChange={(e) => setBuildCastleInstanceId(e.target.value)}
+                        className="rounded bg-zinc-800 border border-zinc-600 px-2 py-1 text-xs text-zinc-100"
+                        disabled={buildLoading}
+                      >
+                        <option value="">Vyber kartu…</option>
+                        {castleCards.map((c) => (
+                          <option key={c.instance_id} value={c.instance_id}>
+                            {c.card_templates?.name ?? c.template_id} ({c.card_templates?.rank})
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => handleBuild('castle')}
+                        disabled={buildLoading || !buildCastleInstanceId}
+                        className="rounded bg-amber-700 hover:bg-amber-600 px-3 py-1 text-xs font-semibold text-white disabled:opacity-50"
+                      >
+                        {buildLoading ? '…' : 'Postavit'}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )
+            })()}
+            {!territory.village_rank && (() => {
+              const villageCards = (structureCardOptions ?? []).filter(
+                (c) => c.card_templates?.category === 'village'
+              )
+              return (
+                <div className="flex items-center gap-2 flex-wrap" data-testid="build-village-row">
+                  <span className="text-sm font-semibold text-zinc-200">🏘️ Postavit vesnici</span>
+                  {villageCards.length === 0 ? (
+                    <span className="text-xs text-zinc-500" data-testid="no-village-cards">
+                      Nemáš žádnou kartu vesnice
+                    </span>
+                  ) : (
+                    <>
+                      <select
+                        aria-label="Vyber kartu vesnice"
+                        value={buildVillageInstanceId}
+                        onChange={(e) => setBuildVillageInstanceId(e.target.value)}
+                        className="rounded bg-zinc-800 border border-zinc-600 px-2 py-1 text-xs text-zinc-100"
+                        disabled={buildLoading}
+                      >
+                        <option value="">Vyber kartu…</option>
+                        {villageCards.map((c) => (
+                          <option key={c.instance_id} value={c.instance_id}>
+                            {c.card_templates?.name ?? c.template_id} ({c.card_templates?.rank})
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => handleBuild('village')}
+                        disabled={buildLoading || !buildVillageInstanceId}
+                        className="rounded bg-green-700 hover:bg-green-600 px-3 py-1 text-xs font-semibold text-white disabled:opacity-50"
+                      >
+                        {buildLoading ? '…' : 'Postavit'}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )
+            })()}
           </div>
         )}
         <div className="mb-4 grid gap-2 rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 text-sm text-zinc-300 sm:grid-cols-2">

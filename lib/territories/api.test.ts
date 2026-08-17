@@ -1,7 +1,8 @@
-import { getPlayerPublicInfo, renameTerritory } from './api'
+import { getPlayerPublicInfo, getMyStructureCardInstances, renameTerritory } from './api'
 
 const single = jest.fn()
-const eq = jest.fn(() => ({ single }))
+const inFn = jest.fn()
+const eq = jest.fn(() => ({ single, in: inFn }))
 const select = jest.fn(() => ({ eq }))
 const from = jest.fn((_table: string) => ({ select }))
 const rpc = jest.fn()
@@ -57,5 +58,47 @@ describe('renameTerritory', () => {
     rpc.mockResolvedValue({ data: null, error: null })
     await renameTerritory(42, '')
     expect(rpc).toHaveBeenCalledWith('rename_territory', { territory_id: 42, new_name: '' })
+  })
+})
+
+describe('getMyStructureCardInstances', () => {
+  beforeEach(() => {
+    from.mockClear()
+    select.mockClear()
+    eq.mockClear()
+    inFn.mockReset()
+  })
+
+  it('queries card_instances filtered to the owner and castle/village categories', async () => {
+    const response = {
+      data: [
+        {
+          instance_id: 'ci-castle-1',
+          template_id: 'castle-common',
+          owner_id: 'player-1',
+          stationed_territory_id: null,
+          status: 'stationed',
+          card_templates: {
+            id: 'castle-common',
+            name: 'Hrad (common)',
+            flavor_text: 'Kamenná pevnost.',
+            rank: 'common',
+            category: 'castle',
+            unit_type: null,
+            base_stats: null,
+            total_supply: 45,
+            defense_bonus_pct: 20,
+            attack_bonus_pct: 10,
+          },
+        },
+      ],
+      error: null,
+    }
+    inFn.mockResolvedValue(response)
+
+    await expect(getMyStructureCardInstances('player-1')).resolves.toEqual(response)
+    expect(from).toHaveBeenCalledWith('card_instances')
+    expect(eq).toHaveBeenCalledWith('owner_id', 'player-1')
+    expect(inFn).toHaveBeenCalledWith('card_templates.category', ['castle', 'village'])
   })
 })
