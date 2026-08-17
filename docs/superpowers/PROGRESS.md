@@ -9,6 +9,35 @@ update it as work progresses (not just at the end of a session).
 
 ---
 
+## Latest update — 2026-08-18c (roster selection ring tightened to avoid edge clipping)
+
+**Bug batch item 2 fixed in `feature/roster-highlight-fix`**: the battle /
+transfer card-selection highlight in `components/battles/RosterStrip.tsx`
+was defined directly on the clickable card wrapper button (not inside
+`components/cards/TradingCard.tsx`). The old classes were:
+`ring-2 ring-amber-400` for the active/committed card and
+`ring-2 ring-sky-400` for the defender's preview card. The mobile roster
+strip already uses `overflow-x-auto`, not `overflow-hidden`, so the real
+issue was the ring painting outside the button's border box near the scroll
+edge. Fix: changed both highlight variants to use an **inset** ring —
+`ring-2 ring-inset ring-amber-400` / `ring-2 ring-inset ring-sky-400` — so
+the highlight hugs the card edge instead of extending outward and getting
+visually clipped.
+
+Added a focused regression test in
+`components/battles/RosterStrip.test.tsx` asserting the selected cards now
+carry `ring-inset` and do **not** use `ring-offset-*`. Fresh verification in
+this worktree: baseline Jest count before the change was **274/274**; after
+the new test it is **275/275**. `npx tsc --noEmit` is clean, and
+`npm run build` succeeds when the required public Supabase env vars are set
+(this worktree had no `.env.local`, so a first build failed for the unrelated
+pre-existing reason `Error: supabaseUrl is required`; rerunning with
+placeholder `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+completed cleanly, with only the known Node-20 Supabase deprecation
+warnings).
+
+---
+
 ## Latest update — 2026-08-18b (building-cards module merged + rank-color swap)
 
 **Building-cards module merged** (`feature/building-cards`, commit

@@ -51,4 +51,23 @@ describe('RosterStrip', () => {
     expect(firstCard.className).toContain('w-[4.875rem]')
     expect(firstCard.className).toContain('md:w-full')
   })
+
+  it('uses a tight inset selection ring for active and preview cards', () => {
+    render(
+      <RosterStrip
+        title="Obránce"
+        cards={[makeCard('active-card'), makeCard('preview-card')]}
+        activeInstanceId="active-card"
+        previewInstanceId="preview-card"
+      />
+    )
+
+    const activeCard = screen.getByTestId('roster-card-active-card')
+    expect(activeCard).toHaveClass('ring-2', 'ring-inset', 'ring-amber-400')
+    expect(activeCard).not.toHaveClass('ring-offset-2', 'ring-offset-1')
+
+    const previewCard = screen.getByTestId('roster-card-preview-card')
+    expect(previewCard).toHaveClass('ring-2', 'ring-inset', 'ring-sky-400')
+    expect(previewCard).not.toHaveClass('ring-offset-2', 'ring-offset-1')
+  })
 })
