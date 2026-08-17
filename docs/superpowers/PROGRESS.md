@@ -9,6 +9,47 @@ update it as work progresses (not just at the end of a session).
 
 ---
 
+## Latest update — 2026-08-17 (roadmap items 1-2 shipped: touch pan + territory names)
+
+Both delegated to background agents in parallel git worktrees, merged into
+`main`, migration applied to the live Supabase project, and pushed:
+
+1. **Map touch/mouse drag panning** (`feature/map-touch-pan`, commit
+   `91d2de9`, merge `7723895`): `MapViewport.tsx` grid now supports
+   `onTouchStart/Move/End` mirroring the existing mouse-drag handlers
+   (single-touch only, multi-touch ignored), plus live visual feedback —
+   a CSS `transform: translate(...)` on the grid container follows the
+   pointer/finger during an active drag instead of only jumping on
+   release, snapping back with a short ease-out. Shared `pxToTileDelta`
+   helper keeps mouse/touch math in one place. A small/no-movement
+   interaction still triggers `onSelectTile` as before. 255/255 tests,
+   `tsc`/build clean.
+2. **Custom territory/castle/village names** (`feature/territory-names`,
+   commit `8aec5b7`, merge with `feature/map-touch-pan` auto-resolved
+   cleanly): design = single `name text` column on `territories` (one name
+   per territory regardless of whether it has a castle/village), nullable,
+   1-40 char constraint. `supabase/migrations/0008_territory_names.sql`
+   adds the column + a `security definer` `rename_territory(territory_id,
+   new_name)` RPC (owner-only; empty string clears the name back to null;
+   raises on non-owner or >40 chars). **Migration applied to the live
+   Supabase project** (verified: column exists, function exists, empty-
+   string constraint rejects as expected). `lib/territories/api.ts` gained
+   `name` on `Territory` + a `renameTerritory(...)` wrapper.
+   `GarrisonModal.tsx` shows the name as a heading when set, and — when the
+   viewer owns the territory — a ✏️ button reveals an inline rename input
+   (Save/Cancel); new required `onRename` prop wired through
+   `app/map/page.tsx` (calls `renameTerritory` then reloads the viewport).
+   `MapViewport.tsx`'s hover tooltip shows the name too. 265/265 tests
+   (after merging both features), `tsc`/build clean.
+
+Both worktrees (`C:\Users\z0040m9d\Documents\Projects\bcg-touch-pan` and
+`C:\Users\z0040m9d\Documents\Projects\bcg-territory-names`) can be removed
+(`git worktree remove ...`) — their branches are fully merged into `main`.
+
+Roadmap items 3-8 (notifications, admin dashboard, boost cards, building-
+cards wiring, trading/exchange, autonomous NPC — see the roadmap section
+right below this one for full detail) are still pending, in that order.
+
 ## Latest update — 2026-08-17 (roadmap: modules 5-6 revisited + new module requests)
 
 **Roadmap going forward** (agreed with user): after subsystem #4 (RTS battle),
