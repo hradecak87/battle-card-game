@@ -230,6 +230,17 @@ describe('BattleScreen', () => {
     expect(await screen.findByText('Vítězí útočník')).toBeInTheDocument()
   })
 
+  it('keeps the mobile battle layout width-constrained so roster strips scroll internally', async () => {
+    getBattle.mockResolvedValue({ data: activeFixture(), error: null })
+    render(<BattleScreen battleId="battle-1" currentUserId="defender-1" />)
+
+    await waitFor(() => expect(screen.getByTestId('duel-stage')).toBeInTheDocument())
+
+    const layout = screen.getByTestId('battle-layout')
+    expect(layout).toHaveClass('w-full', 'max-w-full', 'min-w-0', 'flex-col', 'items-stretch')
+    expect(screen.getByTestId('duel-stage')).toHaveClass('w-full', 'max-w-full', 'min-w-0')
+  })
+
   it('queues multiple newly-resolved rounds and plays them back one at a time', async () => {
     const fixture = activeFixture()
     fixture.rounds = [

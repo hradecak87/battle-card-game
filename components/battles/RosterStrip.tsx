@@ -49,9 +49,12 @@ export default function RosterStrip({
   submittingInstanceId,
 }: RosterStripProps) {
   return (
-    <div data-testid="roster-strip" className="flex flex-col gap-2 md:w-40">
+    <div data-testid="roster-strip" className="flex w-full max-w-full min-w-0 flex-col gap-2 md:w-40">
       <h3 className="text-sm font-semibold text-zinc-400">{title}</h3>
-      <div className="flex flex-row gap-2 overflow-x-auto pb-2 md:flex-col md:overflow-visible md:pb-0">
+      <div
+        data-testid="roster-scroll"
+        className="flex min-w-0 snap-x snap-mandatory flex-row gap-2 overflow-x-auto pb-2 md:flex-col md:overflow-visible md:pb-0"
+      >
         {cards.map((card) => {
           const template = toUnitTemplate(card)
           if (!template) return null
@@ -64,7 +67,7 @@ export default function RosterStrip({
               data-testid={`roster-card-${card.instance_id}`}
               disabled={!clickable || card.is_resting || isSubmitting}
               onClick={() => onSelect?.(card.instance_id)}
-              className={`w-24 shrink-0 rounded-lg text-left transition md:w-full ${
+              className={`w-[4.875rem] shrink-0 snap-start rounded-lg text-left transition md:w-full ${
                 card.is_resting ? 'opacity-40 grayscale' : ''
               } ${isActive ? 'ring-2 ring-amber-400' : ''} ${
                 clickable && !card.is_resting ? 'cursor-pointer hover:scale-[1.03]' : 'cursor-default'
