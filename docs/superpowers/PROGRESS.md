@@ -1,3 +1,43 @@
+## 2026-08-17i — Illustrated castle/village artwork + bigger structure icons
+
+Project owner's feedback on the just-shipped SVG structure icon set: too
+small, and didn't like the flat SVG look. Owner then generated a 3x2
+illustrated reference sheet (3 castle designs, 3 village designs) via an
+external image tool and dropped it in the repo root as `icons.png`.
+
+- Cropped it into 6 individual 512x512 transparent PNGs at
+  `public/icons/structures/{castle,village}-{1,2,3}.png` (Python/PIL,
+  verified `alpha=0` at background sample points beforehand — no manual
+  background removal needed, already transparent).
+- `components/territories/icons/StructureIcons.tsx`: `CastleIcon` /
+  `VillageIcon` now render these illustrations via a plain `<img>` (not
+  `next/image` — many render at once in the map grid, per-instance
+  lazy-load machinery isn't worth it for a small local asset) instead of
+  the flat single-tone SVG paths from the prior commit. `HomeIcon` is
+  unchanged (still SVG) since no artwork was provided for it. Renamed the
+  variant identifiers from architectural labels (`ruin`/`chateau`/`tower`,
+  `stone`/`romanesque`/`timber` — none of which matched the actual
+  supplied artwork content) to sheet-position keys (`castle-1/2/3`,
+  `village-1/2/3`); purely an internal `pickVariant` key, never
+  user-facing (the `title` prop stays `Hrad`/`Vesnice` either way).
+  `GarrisonModal.tsx`'s two non-random build-UI icon instances now use
+  `castle-2`/`village-2` as a fixed default (previously `chateau`/`stone`).
+- `MapViewport.tsx`: added `getStructureIconSize` — structure icons now
+  size at up to ~82% of the measured tile size (was capped ~34px via the
+  shared `getIconFontSize`, which is still used for the small
+  claim/battle-lock emoji overlays, untouched) so they fill most of the
+  tile as requested. Multi-structure tiles still shrink to ~72% of that
+  to fit multiple icons side by side.
+
+Verification: `npx jest StructureIcons MapViewport GarrisonModal` 46/46;
+full suite **305/305 passing**; `npx tsc --noEmit` clean; `npm run build`
+clean. Committed directly to `main` (`89fe886`) and pushed — visual-only
+change directly requested and iterated live with the owner, no separate
+worktree/agent needed for this follow-up tweak (the size fix + artwork
+swap took priority over the in-flight `structure-icons-realism` SVG
+redesign agent, which was told to stop mid-task and whose worktree/branch
+will be discarded unused).
+
 ## Latest update — 2026-08-17h (structure icons worktree `feature/structure-icons`)
 
 Map structure markers no longer use plain emoji for home / castle /
