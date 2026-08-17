@@ -9,8 +9,10 @@ import {
   getMyHomeTerritory,
   getIncomingAttackArrival,
   getPlayerPublicInfo,
+  getMyTerritories,
   CardInstanceWithTemplate,
   PlayerPublicInfo,
+  MyTerritory,
   Territory,
 } from '@/lib/territories/api'
 import MapViewport from '@/components/territories/MapViewport'
@@ -54,10 +56,12 @@ export default function MapPage() {
   const [ownerInfoError, setOwnerInfoError] = useState<string | null>(null)
   const [incomingAttackArrivesAt, setIncomingAttackArrivesAt] = useState<string | null>(null)
   const [homeStatus, setHomeStatus] = useState<'idle' | 'searching' | 'not-found'>('idle')
+  const [ownedTerritories, setOwnedTerritories] = useState<MyTerritory[] | null>(null)
   const [showAttackModal, setShowAttackModal] = useState(false)
   const [showTransferModal, setShowTransferModal] = useState(false)
   const [movementsRefreshKey, setMovementsRefreshKey] = useState(0)
   const selectionRequestIdRef = useRef(0)
+  const autoCenteredUserId = useRef<string | null>(null)
 
   const viewSize = ZOOM_LEVELS[zoomIndex]
 
@@ -107,7 +111,7 @@ export default function MapPage() {
     setZoomIndex((i) => Math.min(ZOOM_LEVELS.length - 1, i + 1))
   }
 
-  async function handleFindHome() {
+  const handleFindHome = useCallback(async () => {
     if (!user) return
     setHomeStatus('searching')
     const { data, error: rpcError } = await getMyHomeTerritory()
@@ -118,6 +122,41 @@ export default function MapPage() {
     const home = data[0]
     setHomeStatus('idle')
     handleJump(home.x, home.y)
+  }, [user])
+
+  useEffect(() => {
+    if (!user?.id) {
+      setOwnedTerritories(null)
+      autoCenteredUserId.current = null
+      return
+    }
+
+    let ignore = false
+
+    getMyTerritories(user.id).then(({ data, error: rpcError }) => {
+      if (ignore) return
+      if (rpcError) {
+        setOwnedTerritories([])
+        return
+      }
+      setOwnedTerritories(data ?? [])
+    })
+
+    if (autoCenteredUserId.current !== user.id) {
+      autoCenteredUserId.current = user.id
+      handleFindHome()
+    }
+
+    return () => {
+      ignore = true
+    }
+  }, [handleFindHome, user?.id])
+
+  function getTerritoryMarker(territory: MyTerritory) {
+    if (territory.is_home) return '🏠'
+    if (territory.castle_rank) return '🏰'
+    if (territory.village_rank) return '🏘️'
+    return '🚩'
   }
 
   async function handleSelectTile(tile: Territory) {
@@ -186,19 +225,46 @@ export default function MapPage() {
         <h1 className="text-2xl font-bold text-center">Mapa království</h1>
 
         {user && (
-          <div className="flex flex-col items-center gap-1">
+          <div className="flex flex-col gap-3 rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
             <button
               onClick={handleFindHome}
               disabled={homeStatus === 'searching'}
-              className="rounded-full border border-zinc-600 hover:border-zinc-400 px-6 py-2 text-sm font-semibold transition-colors disabled:opacity-50"
+              className="self-center rounded-full border border-zinc-600 hover:border-zinc-400 px-6 py-2 text-sm font-semibold transition-colors disabled:opacity-50"
             >
               {homeStatus === 'searching' ? 'Hledám…' : '🏠 Moje domovské území'}
             </button>
             {homeStatus === 'not-found' && (
-              <p className="text-xs text-red-400">
+              <p className="text-center text-xs text-red-400">
                 Domovské území nenalezeno (možná ještě nemáš dokončený onboarding).
               </p>
             )}
+            <div className="flex flex-col gap-2">
+              <h2 className="text-sm font-semibold text-zinc-200">Tvoje území</h2>
+              {ownedTerritories === null ? (
+                <p className="text-xs text-zinc-500">Načítám tvá území…</p>
+              ) : ownedTerritories.length === 0 ? (
+                <p className="text-xs text-zinc-500">Zatím nevlastníš žádné území.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {ownedTerritories.map((territory) => (
+                    <div
+                      key={territory.id}
+                      className="flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1 text-xs"
+                    >
+                      <span>{`${getTerritoryMarker(territory)} (${territory.x}, ${territory.y})`}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleJump(territory.x, territory.y)}
+                        aria-label={`Zaostřit ${territory.x},${territory.y}`}
+                        className="rounded-full border border-zinc-600 px-2 py-0.5 font-semibold text-zinc-100 hover:border-zinc-400"
+                      >
+                        Zaostřit
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

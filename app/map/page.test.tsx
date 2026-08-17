@@ -30,9 +30,9 @@ const getViewport = jest.fn().mockResolvedValue({
 const getMinimapOverview = jest.fn().mockResolvedValue({ data: [], error: null })
 const getCardInstancesAtTerritory = jest.fn().mockResolvedValue({ data: [], error: null })
 const getMyHomeTerritory = jest.fn().mockResolvedValue({ data: [], error: null })
+const getMyTerritories = jest.fn().mockResolvedValue({ data: [], error: null })
 const getIncomingAttackArrival = jest.fn().mockResolvedValue({ data: null, error: null })
 const getPlayerPublicInfo = jest.fn().mockResolvedValue({ data: null, error: null })
-const getMyTerritories = jest.fn().mockResolvedValue({ data: [], error: null })
 const startTransfer = jest.fn().mockResolvedValue({ data: null, error: null })
 const getMyMovements = jest.fn().mockResolvedValue({ data: [], error: null })
 const getTerritoriesByIds = jest.fn().mockResolvedValue({ data: [], error: null })
@@ -44,9 +44,9 @@ jest.mock('@/lib/territories/api', () => ({
   getMinimapOverview: (...args: unknown[]) => getMinimapOverview(...args),
   getCardInstancesAtTerritory: (...args: unknown[]) => getCardInstancesAtTerritory(...args),
   getMyHomeTerritory: (...args: unknown[]) => getMyHomeTerritory(...args),
+  getMyTerritories: (...args: unknown[]) => getMyTerritories(...args),
   getIncomingAttackArrival: (...args: unknown[]) => getIncomingAttackArrival(...args),
   getPlayerPublicInfo: (...args: unknown[]) => getPlayerPublicInfo(...args),
-  getMyTerritories: (...args: unknown[]) => getMyTerritories(...args),
   startTransfer: (...args: unknown[]) => startTransfer(...args),
   getMyMovements: (...args: unknown[]) => getMyMovements(...args),
   getTerritoriesByIds: (...args: unknown[]) => getTerritoriesByIds(...args),
@@ -79,6 +79,8 @@ describe('MapPage', () => {
       data: [mockTerritory(128, 128, { is_home: true, owner_id: 'me' })],
       error: null,
     })
+    getMinimapOverview.mockReset()
+    getMinimapOverview.mockResolvedValue({ data: [], error: null })
     getCardInstancesAtTerritory.mockReset()
     getCardInstancesAtTerritory.mockResolvedValue({ data: [], error: null })
     getMyHomeTerritory.mockReset()
@@ -90,6 +92,14 @@ describe('MapPage', () => {
     getMyTerritories.mockResolvedValue({ data: [], error: null })
     startTransfer.mockReset()
     startTransfer.mockResolvedValue({ data: null, error: null })
+    getMyMovements.mockReset()
+    getMyMovements.mockResolvedValue({ data: [], error: null })
+    getTerritoriesByIds.mockReset()
+    getTerritoriesByIds.mockResolvedValue({ data: [], error: null })
+    getMyActiveBattles.mockReset()
+    getMyActiveBattles.mockResolvedValue({ data: [], error: null })
+    getMyRecentlyResolvedBattles.mockReset()
+    getMyRecentlyResolvedBattles.mockResolvedValue({ data: [], error: null })
     sessionUser = null
   })
 
@@ -100,6 +110,15 @@ describe('MapPage', () => {
 
     await waitFor(() => expect(screen.getByTestId('map-viewport')).toBeInTheDocument())
     expect(getViewport).toHaveBeenCalledWith(121, 121, 135, 135)
+  })
+
+  it('automatically centers the map on the player home territory after mount', async () => {
+    sessionUser = { id: 'me' }
+    getMyHomeTerritory.mockResolvedValueOnce({ data: [{ id: 1, x: 10, y: 20 }], error: null })
+    render(<MapPage />)
+
+    await waitFor(() => expect(getMyHomeTerritory).toHaveBeenCalled())
+    await waitFor(() => expect(getViewport).toHaveBeenCalledWith(3, 13, 17, 27))
   })
 
   it('updates the requested window when the coordinate-jump form is submitted', async () => {
@@ -132,15 +151,41 @@ describe('MapPage', () => {
 
   it('jumps to the tile returned by getMyHomeTerritory when "Moje domovské území" is clicked', async () => {
     sessionUser = { id: 'me' }
-    getMyHomeTerritory.mockResolvedValueOnce({ data: [{ id: 1, x: 10, y: 20 }], error: null })
+    getMyHomeTerritory.mockResolvedValue({ data: [{ id: 1, x: 10, y: 20 }], error: null })
     render(<MapPage />)
     await waitFor(() => expect(screen.getByTestId('map-viewport')).toBeInTheDocument())
+    await waitFor(() => expect(getViewport).toHaveBeenCalledWith(3, 13, 17, 27))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Posunout doprava' }))
+    await waitFor(() => expect(getViewport).toHaveBeenCalledWith(4, 13, 18, 27))
     getViewport.mockClear()
 
     fireEvent.click(screen.getByRole('button', { name: /Moje domovské území/ }))
 
     await waitFor(() => expect(getMyHomeTerritory).toHaveBeenCalled())
     await waitFor(() => expect(getViewport).toHaveBeenCalledWith(3, 13, 17, 27))
+  })
+
+  it('loads owned territories and lets the player focus one from the list', async () => {
+    sessionUser = { id: 'me' }
+    getMyHomeTerritory.mockResolvedValueOnce({ data: [{ id: 1, x: 10, y: 20 }], error: null })
+    getMyTerritories.mockResolvedValueOnce({
+      data: [
+        { id: 1, x: 10, y: 20, is_home: true, castle_rank: null, village_rank: null },
+        { id: 2, x: 33, y: 44, is_home: false, castle_rank: 'rare', village_rank: null },
+      ],
+      error: null,
+    })
+    render(<MapPage />)
+
+    expect(await screen.findByText('Tvoje území')).toBeInTheDocument()
+    expect(screen.getByText('🏠 (10, 20)')).toBeInTheDocument()
+    expect(screen.getByText('🏰 (33, 44)')).toBeInTheDocument()
+
+    getViewport.mockClear()
+    fireEvent.click(screen.getByRole('button', { name: 'Zaostřit 33,44' }))
+
+    await waitFor(() => expect(getViewport).toHaveBeenCalledWith(26, 37, 40, 51))
   })
 
   it('shows a not-found message when getMyHomeTerritory returns no rows', async () => {

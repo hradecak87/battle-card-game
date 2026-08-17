@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import MapViewport from './MapViewport'
 import { Territory } from '@/lib/territories/api'
@@ -21,7 +22,11 @@ function makeTerritory(overrides: Partial<Territory> = {}): Territory {
   }
 }
 
-function renderViewport(territories: Territory[], currentUserId?: string | null) {
+function renderViewport(
+  territories: Territory[],
+  currentUserId?: string | null,
+  overrides: Partial<ComponentProps<typeof MapViewport>> = {}
+) {
   render(
     <MapViewport
       territories={territories}
@@ -32,6 +37,7 @@ function renderViewport(territories: Territory[], currentUserId?: string | null)
       onPan={jest.fn()}
       onJump={jest.fn()}
       onSelectTile={jest.fn()}
+      {...overrides}
     />
   )
 }
@@ -66,6 +72,96 @@ describe('MapViewport', () => {
     renderViewport([makeTerritory({ owner_id: 'me' })], 'me')
 
     expect(screen.getByRole('button', { name: 'Území 10,10' })).toHaveAttribute('data-owned-by-me', 'true')
+  })
+
+  it('merges the owned highlight border with adjacent territories of the same owner', () => {
+    renderViewport(
+      [
+        makeTerritory({ x: 10, y: 10, owner_id: 'me' }),
+        makeTerritory({ id: 2, x: 11, y: 10, owner_id: 'me' }),
+      ],
+      'me'
+    )
+
+    expect(screen.getByRole('button', { name: 'Území 10,10' }).className).toContain('border-r-transparent')
+    expect(screen.getByRole('button', { name: 'Území 10,10' }).className).toContain('border-l-sky-400')
+    expect(screen.getByRole('button', { name: 'Území 11,10' }).className).toContain('border-l-transparent')
+    expect(screen.getByRole('button', { name: 'Území 11,10' }).className).toContain('border-r-sky-400')
+  })
+
+  it('renders out-of-bounds cells as inert void tiles instead of clickable territory buttons', () => {
+    render(
+      <MapViewport
+        territories={[makeTerritory({ x: 0, y: 0 })]}
+        centerX={0}
+        centerY={0}
+        viewSize={3}
+        currentUserId="me"
+        onPan={jest.fn()}
+        onJump={jest.fn()}
+        onSelectTile={jest.fn()}
+      />
+    )
+
+    expect(screen.queryByRole('button', { name: 'Území -1,-1' })).not.toBeInTheDocument()
+    expect(screen.getByTestId('void-tile--1,-1')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Území 0,0' })).toBeInTheDocument()
+  })
+
+  it('scales icon size down when zoomed farther out', () => {
+    const homeTile = [makeTerritory({ is_home: true, owner_id: 'me' })]
+    const { rerender } = render(
+      <MapViewport
+        territories={homeTile}
+        centerX={10}
+        centerY={10}
+        viewSize={7}
+        currentUserId="me"
+        onPan={jest.fn()}
+        onJump={jest.fn()}
+        onSelectTile={jest.fn()}
+      />
+    )
+
+    const zoomedInIcon = screen.getByTitle('Domov')
+
+    rerender(
+      <MapViewport
+        territories={homeTile}
+        centerX={10}
+        centerY={10}
+        viewSize={27}
+        currentUserId="me"
+        onPan={jest.fn()}
+        onJump={jest.fn()}
+        onSelectTile={jest.fn()}
+      />
+    )
+
+    const zoomedOutIcon = screen.getByTitle('Domov')
+
+    expect(Number.parseFloat(zoomedInIcon instanceof HTMLElement ? zoomedInIcon.style.fontSize : '')).toBeGreaterThan(
+      Number.parseFloat(zoomedOutIcon instanceof HTMLElement ? zoomedOutIcon.style.fontSize : '')
+    )
+  })
+
+  it('clamps jump input values to the valid map bounds before calling onJump', () => {
+    const onJump = jest.fn()
+    renderViewport([], 'me', { onJump })
+
+    fireEvent.change(screen.getByLabelText('Souřadnice X'), { target: { value: '-5' } })
+    fireEvent.change(screen.getByLabelText('Souřadnice Y'), { target: { value: '999' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Přejít' }))
+
+    expect(onJump).toHaveBeenCalledWith(0, 255)
+  })
+
+  it('uses a stacked mobile-friendly toolbar layout and compact coordinate inputs', () => {
+    renderViewport([])
+
+    expect(screen.getByTestId('map-toolbar').className).toContain('flex-col')
+    expect(screen.getByLabelText('Souřadnice X').className).toContain('w-16')
+    expect(screen.getByLabelText('Souřadnice Y').className).toContain('w-16')
   })
 
   it('shows castle, village, and claim-in-progress details in the tooltip', () => {
