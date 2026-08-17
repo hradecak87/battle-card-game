@@ -14,40 +14,24 @@ const DIFFICULTY_COLOR: Record<1 | 2 | 3 | 4 | 5, string> = {
 const MAP_MIN = 0
 const MAP_MAX = 255
 
-type HighlightColor = 'sky' | 'red' | 'transparent'
+type HighlightColor = 'sky' | 'red'
 
-// 'inner' = shared edge between two tiles of the same highlighted group:
-// keep the normal thin grid line instead of erasing it, so only the
-// *outer* perimeter of a connected owned/attacked region gets the thick
-// colored outline.
-const BORDER_CLASSES: Record<
-  'top' | 'right' | 'bottom' | 'left',
-  Record<HighlightColor | 'inner', string>
-> = {
-  top: {
-    sky: 'border-t-2 border-t-sky-400',
-    red: 'border-t-2 border-t-red-500',
-    transparent: 'border-t-2 border-t-transparent',
-    inner: 'border-t border-t-zinc-800',
-  },
-  right: {
-    sky: 'border-r-2 border-r-sky-400',
-    red: 'border-r-2 border-r-red-500',
-    transparent: 'border-r-2 border-r-transparent',
-    inner: 'border-r border-r-zinc-800',
-  },
-  bottom: {
-    sky: 'border-b-2 border-b-sky-400',
-    red: 'border-b-2 border-b-red-500',
-    transparent: 'border-b-2 border-b-transparent',
-    inner: 'border-b border-b-zinc-800',
-  },
-  left: {
-    sky: 'border-l-2 border-l-sky-400',
-    red: 'border-l-2 border-l-red-500',
-    transparent: 'border-l-2 border-l-transparent',
-    inner: 'border-l border-l-zinc-800',
-  },
+// Perimeter highlight edges are drawn as absolutely-positioned overlay bars
+// (not CSS borders). Adjacent grid cells can end up a subpixel apart due to
+// browser rounding of fractional `1fr` track widths, which left a faint
+// 1px break in the highlight line at cell boundaries when it was drawn as
+// a plain border. Each bar straddles the tile edge (extends slightly past
+// it) so it always bridges that gap.
+const HIGHLIGHT_BAR_COLOR: Record<HighlightColor, string> = {
+  sky: 'bg-sky-400',
+  red: 'bg-red-500',
+}
+
+const HIGHLIGHT_BAR_POSITION: Record<'top' | 'right' | 'bottom' | 'left', string> = {
+  top: 'left-0 right-0 -top-0.5 h-1',
+  right: 'top-0 bottom-0 -right-0.5 w-1',
+  bottom: 'left-0 right-0 -bottom-0.5 h-1',
+  left: 'top-0 bottom-0 -left-0.5 w-1',
 }
 
 export interface MapViewportProps {
@@ -283,14 +267,11 @@ export default function MapViewport({
               )
             }
 
-            const borderClasses = highlightColor
-              ? [
-                  BORDER_CLASSES.top[matchingHighlight(neighbors.top) ? 'inner' : highlightColor],
-                  BORDER_CLASSES.right[matchingHighlight(neighbors.right) ? 'inner' : highlightColor],
-                  BORDER_CLASSES.bottom[matchingHighlight(neighbors.bottom) ? 'inner' : highlightColor],
-                  BORDER_CLASSES.left[matchingHighlight(neighbors.left) ? 'inner' : highlightColor],
-                ].join(' ')
-              : 'border-zinc-800'
+            const perimeterEdges = highlightColor
+              ? (['top', 'right', 'bottom', 'left'] as const).filter(
+                  (edge) => !matchingHighlight(neighbors[edge])
+                )
+              : []
 
             return (
               <button
@@ -302,10 +283,19 @@ export default function MapViewport({
                 onMouseLeave={() => setHoveredTile((current) => (current?.x === x && current?.y === y ? null : current))}
                 data-owned-by-me={isOwnedByMe ? 'true' : 'false'}
                 data-under-attack={isUnderAttack ? 'true' : 'false'}
-                className={`relative aspect-square min-w-0 min-h-0 border flex flex-col items-center justify-center gap-0.5 overflow-visible ${color} ${borderClasses} ${
+                className={`relative aspect-square min-w-0 min-h-0 border border-zinc-800 flex flex-col items-center justify-center gap-0.5 overflow-visible ${color} ${
                   isUnderAttack ? 'animate-pulse' : ''
                 }`}
               >
+                {highlightColor &&
+                  perimeterEdges.map((edge) => (
+                    <span
+                      key={edge}
+                      aria-hidden="true"
+                      data-testid={`highlight-${edge}-${x},${y}`}
+                      className={`pointer-events-none absolute z-10 ${HIGHLIGHT_BAR_POSITION[edge]} ${HIGHLIGHT_BAR_COLOR[highlightColor]}`}
+                    />
+                  ))}
                 {tile?.is_home && (
                   <span title="Domov" className="leading-none drop-shadow" style={iconStyle}>
                     🏠
