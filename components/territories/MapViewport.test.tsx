@@ -199,6 +199,75 @@ describe('MapViewport', () => {
     expect(onJump).toHaveBeenCalledWith(0, 255)
   })
 
+  it('calls onPan with correct tile delta on mouse drag', () => {
+    const onPan = jest.fn()
+    renderViewport([], 'me', { onPan })
+
+    const grid = screen.getByTestId('map-grid')
+    fireEvent.mouseDown(grid, { clientX: 0, clientY: 0 })
+    fireEvent.mouseUp(grid, { clientX: 48, clientY: -24 })
+
+    // 48px right → tileDx = -2, 24px up → tileDy = +1
+    expect(onPan).toHaveBeenCalledWith(-2, 1)
+  })
+
+  it('does NOT call onPan for a near-zero mouse drag (tile click)', () => {
+    const onPan = jest.fn()
+    const onSelectTile = jest.fn()
+    renderViewport([makeTerritory()], 'me', { onPan, onSelectTile })
+
+    const grid = screen.getByTestId('map-grid')
+    fireEvent.mouseDown(grid, { clientX: 0, clientY: 0 })
+    fireEvent.mouseUp(grid, { clientX: 2, clientY: 2 })
+
+    expect(onPan).not.toHaveBeenCalled()
+  })
+
+  it('calls onSelectTile when clicking a tile with no significant drag', () => {
+    const onSelectTile = jest.fn()
+    const tile = makeTerritory()
+    renderViewport([tile], 'me', { onSelectTile })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Území 10,10' }))
+
+    expect(onSelectTile).toHaveBeenCalledWith(tile)
+  })
+
+  it('calls onPan with correct tile delta on touch drag', () => {
+    const onPan = jest.fn()
+    renderViewport([], 'me', { onPan })
+
+    const grid = screen.getByTestId('map-grid')
+    fireEvent.touchStart(grid, { touches: [{ clientX: 0, clientY: 0 }] })
+    fireEvent.touchEnd(grid, { changedTouches: [{ clientX: -24, clientY: 48 }] })
+
+    // 24px left → tileDx = +1, 48px down → tileDy = -2
+    expect(onPan).toHaveBeenCalledWith(1, -2)
+  })
+
+  it('does NOT call onPan for a near-zero touch (tap)', () => {
+    const onPan = jest.fn()
+    renderViewport([], 'me', { onPan })
+
+    const grid = screen.getByTestId('map-grid')
+    fireEvent.touchStart(grid, { touches: [{ clientX: 0, clientY: 0 }] })
+    fireEvent.touchEnd(grid, { changedTouches: [{ clientX: 1, clientY: 1 }] })
+
+    expect(onPan).not.toHaveBeenCalled()
+  })
+
+  it('ignores multi-touch touchStart', () => {
+    const onPan = jest.fn()
+    renderViewport([], 'me', { onPan })
+
+    const grid = screen.getByTestId('map-grid')
+    // Two touches — should be ignored
+    fireEvent.touchStart(grid, { touches: [{ clientX: 0, clientY: 0 }, { clientX: 50, clientY: 50 }] })
+    fireEvent.touchEnd(grid, { changedTouches: [{ clientX: 100, clientY: 100 }] })
+
+    expect(onPan).not.toHaveBeenCalled()
+  })
+
   it('uses a compact single-row toolbar layout with narrow coordinate inputs', () => {
     renderViewport([])
 
