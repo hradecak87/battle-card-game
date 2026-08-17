@@ -9,6 +9,78 @@ update it as work progresses (not just at the end of a session).
 
 ---
 
+## Latest update — 2026-08-17 (roadmap: modules 5-6 revisited + new module requests)
+
+**Roadmap going forward** (agreed with user): after subsystem #4 (RTS battle),
+the original 6-subsystem plan still has **two undesigned subsystems**:
+5 (Trading/Exchange — offer/counter-offer/accept/reject a card) and
+6 (Notifications — attack alerts, trade offers). The user also requested
+several new modules in this session. Combined priority order (user approved):
+
+1. Map touch/mouse drag panning (UX fix) — **in progress**, background agent,
+   worktree `C:\Users\z0040m9d\Documents\Projects\bcg-touch-pan`, branch
+   `feature/map-touch-pan`.
+2. Custom territory/castle/village names — **in progress**, background
+   agent, worktree `C:\Users\z0040m9d\Documents\Projects\bcg-territory-names`,
+   branch `feature/territory-names`. Design: single `name text` column on
+   `territories`, RPC `rename_territory`, owner-only.
+3. Notifications (subsystem 6) — not started.
+4. Admin dashboard (online players, activities, active battles) — not
+   started. Needs a new `is_admin`/role concept; none exists yet anywhere in
+   the schema.
+5. Boost cards module (territory-stationed % stat multipliers, e.g. "Vařna
+   energetického nápoje") — not started, needs a short rules brainstorm
+   before implementation (persistent vs. consumable, stacking, how players
+   acquire them).
+6. **Building cards module — MAJOR DISCOVERY, scope now much smaller than
+   expected**: while investigating whether castle/village-building cards
+   existed, found that the backend and even a full UI for this **already
+   exist but are disconnected from the live app**:
+   - `supabase/migrations/0002_territories.sql` already defines
+     `build_structure(territory_id, card_instance_id)` — a `security
+     definer` RPC that consumes a `castle`/`village` category card instance
+     the caller owns and sets `territories.castle_rank`/`village_rank`
+     (only if not already present), then deletes the consumed card
+     instance.
+   - `lib/territories/api.ts` already exports `buildStructure(...)`, a thin
+     wrapper around that RPC.
+   - `scripts/seed-card-templates.ts` already seeds real castle/village
+     card templates (5 ranks each, with `defense_bonus_pct`/
+     `attack_bonus_pct` from `STRUCTURE_BONUS_TABLE`) into `card_templates`.
+   - `components/territories/TerritoryDetailPanel.tsx` is a **fully built
+     and tested** component (see `TerritoryDetailPanel.test.tsx`) with a
+     complete "Postavit stavbu" (build structure) UI flow, an
+     `onBuildStructure` prop, and card-instance selection filtered to
+     structure cards — but **it is never imported/mounted anywhere in
+     `app/`** (confirmed via repo-wide search — only referenced by its own
+     test file and old plan docs). The live map page (`app/map/page.tsx`)
+     uses `GarrisonModal.tsx` instead, which shows `castle_rank`/
+     `village_rank` read-only and lists structure card instances with a
+     🏰/🏘️ icon, but has **no build action at all**.
+   - **Remaining work for this module is therefore just wiring**: either
+     mount `TerritoryDetailPanel`'s build flow into the live page, or (more
+     consistent with current UI, since `GarrisonModal` is the actual live
+     popup) add a "Postavit" action directly to `GarrisonModal` following
+     the same pattern `TerritoryDetailPanel` already proves out, plus
+     verify players can actually acquire castle/village card instances in
+     practice (loot table / starter kit / drop rules — needs checking,
+     may itself be a small gap).
+7. Trading/Exchange (subsystem 5) — not started, needs brainstorm + spec
+   (bigger, standalone module).
+8. Autonomous NPC world simulation — not started, most complex; plan is a
+   scheduled server job (Supabase `pg_cron` or edge function) that reuses
+   the **existing** claim/battle RPCs for NPC expansion/attacks (no new
+   battle logic needed), building on the existing reactive
+   `lib/battles/npcAi.ts:pickNpcDefenderCard`. Deliberately last, so it can
+   reuse boost/building modules and be monitored via the admin dashboard.
+
+Per user instruction this session: delegate implementation work to
+background agents and parallelize via git worktrees wherever tasks don't
+touch the same files; keep spec/review cycles lightweight (no multi-round
+spec review loops) for these smaller follow-up modules — only the bigger,
+genuinely new subsystems (trading/exchange, admin dashboard, NPC sim) may
+warrant a short brainstorming pass first.
+
 ## Latest update — 2026-08-17
 
 - Map territory popup now supports both missing live UX pieces that still
