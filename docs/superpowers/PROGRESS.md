@@ -1,3 +1,23 @@
+## Latest update — 2026-08-17c (claim-completion XP migration prepared in feature/claim-xp)
+
+**Territory-claim XP follow-up implemented in this worktree** (not applied
+live here): new migration `supabase/migrations/0011_claim_xp.sql` adds a
+shared `_award_xp(player_id, amount)` helper so the existing 50-XP
+battle-win path and the new peaceful claim-completion path both reuse the
+same XP + level-milestone structure-card grant logic. `_finalize_battle`
+now calls `_award_xp(..., 50)` and keeps the battle-only 1% random
+structure-card bonus unchanged. `resolve_due_movements()` now awards **15
+XP** when an empty-territory claim actually completes (not at claim start)
+— deliberately much lower than a battle win because the claim flow costs
+time but has no combat risk.
+
+Also added `supabase/migrations/0011_claim_xp.verification.sql`, a manual
+scratch-DB checklist that starts a real claim, fast-forwards the claim
+timers, calls `resolve_due_movements()`, and asserts the claimant's XP
+increases by exactly 15 while the territory owner flips to `auth.uid()`.
+No TypeScript/UI files changed; this is SQL-only.
+
+---
 # Progress & Source of Truth — Battle Card Game V2
 
 **This file is the single source of truth for what to do and why.** It must
@@ -1904,3 +1924,4 @@ overlay-span `data-testid="highlight-{edge}-{x},{y}"` elements) plus 3 new
 tests for foreign highlight, combined structure icons, and the battle-icon
 overlay — **13/13 passing**; full suite **249/249 passing** across 38 suites;
 `npm run build` clean.
+
