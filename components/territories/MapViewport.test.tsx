@@ -83,10 +83,16 @@ describe('MapViewport', () => {
       'me'
     )
 
-    expect(screen.getByRole('button', { name: 'Území 10,10' }).className).toContain('border-r border-r-zinc-800')
-    expect(screen.getByRole('button', { name: 'Území 10,10' }).className).toContain('border-l-sky-400')
-    expect(screen.getByRole('button', { name: 'Území 11,10' }).className).toContain('border-l border-l-zinc-800')
-    expect(screen.getByRole('button', { name: 'Území 11,10' }).className).toContain('border-r-sky-400')
+    const tile1010 = screen.getByRole('button', { name: 'Území 10,10' }).style.boxShadow
+    const tile1110 = screen.getByRole('button', { name: 'Území 11,10' }).style.boxShadow
+
+    // Shared (inner) edge between the two owned tiles keeps just the plain
+    // grid border (no colored shadow on that side); only the outer/perimeter
+    // sides get the sky highlight.
+    expect(tile1010).not.toContain('inset -2px 0 0 0 #38bdf8')
+    expect(tile1010).toContain('inset 2px 0 0 0 #38bdf8')
+    expect(tile1110).not.toContain('inset 2px 0 0 0 #38bdf8')
+    expect(tile1110).toContain('inset -2px 0 0 0 #38bdf8')
   })
 
   it('renders out-of-bounds cells as inert void tiles instead of clickable territory buttons', () => {

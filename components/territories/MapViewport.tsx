@@ -16,22 +16,31 @@ const MAP_MAX = 255
 
 type HighlightColor = 'sky' | 'red'
 
-// Perimeter highlight edges are drawn as absolutely-positioned overlay bars
-// (not CSS borders). Adjacent grid cells can end up a subpixel apart due to
-// browser rounding of fractional `1fr` track widths, which left a faint
-// 1px break in the highlight line at cell boundaries when it was drawn as
-// a plain border. Each bar straddles the tile edge (extends slightly past
-// it) so it always bridges that gap.
-const HIGHLIGHT_BAR_COLOR: Record<HighlightColor, string> = {
-  sky: 'bg-sky-400',
-  red: 'bg-red-500',
+// Perimeter highlight edges are drawn as an inset box-shadow, not a CSS
+// border. A plain border on the highlighted side mitres together with
+// the (thinner, differently colored) border on the adjacent side at each
+// corner, which visually "eats" a pixel off the end of the highlight line
+// wherever an outer highlighted edge meets an inner (non-highlighted)
+// edge of the same tile. An inset box-shadow paints each side as an
+// independent flat rectangle with no corner mitre, so it always reaches
+// fully into the corner and lines up cleanly with the neighboring tile's
+// highlight, while the normal thin grid border stays untouched underneath.
+const HIGHLIGHT_SHADOW_COLOR: Record<HighlightColor, string> = {
+  sky: '#38bdf8', // tailwind sky-400
+  red: '#ef4444', // tailwind red-500
 }
 
-const HIGHLIGHT_BAR_POSITION: Record<'top' | 'right' | 'bottom' | 'left', string> = {
-  top: 'left-0 right-0 -top-0.5 h-1',
-  right: 'top-0 bottom-0 -right-0.5 w-1',
-  bottom: 'left-0 right-0 -bottom-0.5 h-1',
-  left: 'top-0 bottom-0 -left-0.5 w-1',
+const HIGHLIGHT_THICKNESS_PX = 2
+
+function buildHighlightBoxShadow(edges: ReadonlyArray<'top' | 'right' | 'bottom' | 'left'>, color: string) {
+  const t = HIGHLIGHT_THICKNESS_PX
+  const shadowByEdge: Record<'top' | 'right' | 'bottom' | 'left', string> = {
+    top: `inset 0 ${t}px 0 0 ${color}`,
+    right: `inset -${t}px 0 0 0 ${color}`,
+    bottom: `inset 0 -${t}px 0 0 ${color}`,
+    left: `inset ${t}px 0 0 0 ${color}`,
+  }
+  return edges.map((edge) => shadowByEdge[edge]).join(', ')
 }
 
 export interface MapViewportProps {
@@ -273,6 +282,11 @@ export default function MapViewport({
                 )
               : []
 
+            const highlightBoxShadow =
+              highlightColor && perimeterEdges.length > 0
+                ? buildHighlightBoxShadow(perimeterEdges, HIGHLIGHT_SHADOW_COLOR[highlightColor])
+                : undefined
+
             return (
               <button
                 key={`${x},${y}`}
@@ -283,19 +297,11 @@ export default function MapViewport({
                 onMouseLeave={() => setHoveredTile((current) => (current?.x === x && current?.y === y ? null : current))}
                 data-owned-by-me={isOwnedByMe ? 'true' : 'false'}
                 data-under-attack={isUnderAttack ? 'true' : 'false'}
+                style={highlightBoxShadow ? { boxShadow: highlightBoxShadow } : undefined}
                 className={`relative aspect-square min-w-0 min-h-0 border border-zinc-800 flex flex-col items-center justify-center gap-0.5 overflow-visible ${color} ${
                   isUnderAttack ? 'animate-pulse' : ''
                 }`}
               >
-                {highlightColor &&
-                  perimeterEdges.map((edge) => (
-                    <span
-                      key={edge}
-                      aria-hidden="true"
-                      data-testid={`highlight-${edge}-${x},${y}`}
-                      className={`pointer-events-none absolute z-10 ${HIGHLIGHT_BAR_POSITION[edge]} ${HIGHLIGHT_BAR_COLOR[highlightColor]}`}
-                    />
-                  ))}
                 {tile?.is_home && (
                   <span title="Domov" className="leading-none drop-shadow" style={iconStyle}>
                     🏠
