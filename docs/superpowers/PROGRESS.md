@@ -1283,3 +1283,49 @@ missing the new export, which broke 2 of its tests — added it).
 
 **Status**: ✅ Implemented and verified. **NOT committed yet** —
 awaiting the user's confirmation it looks right before commit/push.
+
+## 14. 2026-08-17 — Map UX polish worktree (`feature/map-ux-fixes`)
+
+Focused UX cleanup in the isolated `bcg-worktrees\map-ux` worktree, with
+changes intentionally limited to the map page/viewport and their tests:
+
+- **Merged contiguous owned borders** in
+  `components/territories/MapViewport.tsx`: replaced the old all-sides
+  `ring-2 ring-sky-400` highlight with per-side border logic based on the
+  existing `byCoord` map. Adjacent same-owner tiles now suppress the shared
+  blue edge so contiguous territory groups render as one merged outline.
+  The same per-edge treatment was also applied to contiguous
+  `battle_locked_by` red highlights when neighboring tiles share the same
+  attacker id.
+- **Scaled tile icons by zoom level** in `MapViewport.tsx`: all map emoji
+  markers (`🏠🏰🏘️🚩⏳⚔️`) now use an inline `fontSize` derived from
+  `viewSize`, so close zooms render larger icons and far zooms shrink them.
+- **Made out-of-bounds cells inert** in `MapViewport.tsx`: coordinates
+  outside `0..255` now render as dashed void cells (`data-testid:
+  void-tile-x,y`) instead of normal clickable buttons, with no tooltip or
+  click target. The jump form now also clamps entered coordinates to the
+  same valid range before calling `onJump`, and its displayed values stay in
+  sync with parent `centerX/centerY`.
+- **Reworked the mobile toolbar layout** in `MapViewport.tsx`: added a
+  stacked `flex-col sm:flex-row` toolbar (`data-testid="map-toolbar"`),
+  horizontal-on-mobile zoom buttons, compact `w-16` X/Y inputs, and a jump
+  button that spans the mobile form width to avoid overflow around ~375px.
+- **Defaulted the map to the player's home territory + added a focus list**
+  in `app/map/page.tsx`: once `user` exists, the page now auto-runs the same
+  home lookup used by the manual "🏠 Moje domovské území" button, centering
+  the initial view on the home tile. The page also now loads
+  `getMyTerritories(user.id)` and renders a compact "Tvoje území" chip list
+  above the map, each with coords, an icon (home/castle/village/flag), and
+  a `Zaostřit` button that jumps to that territory.
+- **Expanded `getMyTerritories` data** in `lib/territories/api.ts` to
+  include `castle_rank`/`village_rank` so the new focus list can show the
+  correct marker without inventing a new query.
+- **Tests updated first, then implementation**:
+  `components/territories/MapViewport.test.tsx` now covers merged borders,
+  void cells, icon scaling, jump clamping, and mobile-toolbar classes;
+  `app/map/page.test.tsx` now covers auto-centering on home plus the owned
+  territory focus list/buttons. Current verification after this change:
+  `npx tsc --noEmit` clean, `npm test -- --runInBand` **223/223 tests
+  passing** (33 suites), `npm run build` clean. The only remaining build
+  output is an upstream Supabase warning that Node 20 will be deprecated in
+  the future; there are no project ESLint/type warnings from this change.

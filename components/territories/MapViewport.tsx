@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Territory } from '@/lib/territories/api'
 
 const DIFFICULTY_COLOR: Record<1 | 2 | 3 | 4 | 5, string> = {
@@ -9,6 +9,37 @@ const DIFFICULTY_COLOR: Record<1 | 2 | 3 | 4 | 5, string> = {
   3: 'bg-yellow-900',
   4: 'bg-orange-900',
   5: 'bg-red-950',
+}
+
+const MAP_MIN = 0
+const MAP_MAX = 255
+
+type HighlightColor = 'sky' | 'red' | 'transparent'
+
+const BORDER_CLASSES: Record<
+  'top' | 'right' | 'bottom' | 'left',
+  Record<HighlightColor, string>
+> = {
+  top: {
+    sky: 'border-t-2 border-t-sky-400',
+    red: 'border-t-2 border-t-red-500',
+    transparent: 'border-t-2 border-t-transparent',
+  },
+  right: {
+    sky: 'border-r-2 border-r-sky-400',
+    red: 'border-r-2 border-r-red-500',
+    transparent: 'border-r-2 border-r-transparent',
+  },
+  bottom: {
+    sky: 'border-b-2 border-b-sky-400',
+    red: 'border-b-2 border-b-red-500',
+    transparent: 'border-b-2 border-b-transparent',
+  },
+  left: {
+    sky: 'border-l-2 border-l-sky-400',
+    red: 'border-l-2 border-l-red-500',
+    transparent: 'border-l-2 border-l-transparent',
+  },
 }
 
 export interface MapViewportProps {
@@ -30,6 +61,18 @@ function getOwnerLabel(tile: Territory, currentUserId?: string | null) {
   if (!tile.owner_id) return 'Neobsazeno'
   if (currentUserId && tile.owner_id === currentUserId) return 'Tvé území'
   return 'Cizí hráč'
+}
+
+function clamp(value: number) {
+  return Math.max(MAP_MIN, Math.min(MAP_MAX, value))
+}
+
+function isWithinBounds(x: number, y: number) {
+  return x >= MAP_MIN && x <= MAP_MAX && y >= MAP_MIN && y <= MAP_MAX
+}
+
+function getIconFontSize(viewSize: number) {
+  return `${Math.max(12, Math.round(34 - viewSize * 0.7))}px`
 }
 
 /**
@@ -66,12 +109,21 @@ export default function MapViewport({
     byCoord.set(`${t.x},${t.y}`, t)
   }
 
+  useEffect(() => {
+    setJumpX(String(centerX))
+    setJumpY(String(centerY))
+  }, [centerX, centerY])
+
   function handleJumpSubmit(e: React.FormEvent) {
     e.preventDefault()
     const x = Number(jumpX)
     const y = Number(jumpY)
     if (Number.isFinite(x) && Number.isFinite(y)) {
-      onJump(x, y)
+      const clampedX = clamp(x)
+      const clampedY = clamp(y)
+      setJumpX(String(clampedX))
+      setJumpY(String(clampedY))
+      onJump(clampedX, clampedY)
     }
   }
 
@@ -93,10 +145,15 @@ export default function MapViewport({
     }
   }
 
+  const iconStyle = { fontSize: getIconFontSize(viewSize) }
+
   return (
     <div className="flex flex-col gap-3" data-testid="map-viewport">
-      <div className="flex items-center gap-4">
-        <div className="grid grid-cols-3 gap-1 w-24">
+      <div
+        className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between"
+        data-testid="map-toolbar"
+      >
+        <div className="grid grid-cols-3 gap-1 w-24 self-center sm:self-auto">
           <span />
           <button aria-label="Posunout nahoru" onClick={() => onPan(0, -1)} className="rounded bg-zinc-800 px-2 py-1">
             ↑
@@ -117,7 +174,7 @@ export default function MapViewport({
         </div>
 
         {(onZoomIn || onZoomOut) && (
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-row justify-center gap-2 sm:flex-col sm:gap-1">
             <button
               type="button"
               aria-label="Přiblížit"
@@ -139,7 +196,7 @@ export default function MapViewport({
           </div>
         )}
 
-        <form onSubmit={handleJumpSubmit} className="flex items-end gap-2">
+        <form onSubmit={handleJumpSubmit} className="grid grid-cols-2 gap-2 sm:flex sm:items-end">
           <label className="flex flex-col text-sm text-zinc-400">
             X
             <input
@@ -147,7 +204,7 @@ export default function MapViewport({
               type="number"
               value={jumpX}
               onChange={(e) => setJumpX(e.target.value)}
-              className="w-20 rounded bg-zinc-900 border border-zinc-700 px-2 py-1"
+              className="w-16 rounded bg-zinc-900 border border-zinc-700 px-2 py-1"
             />
           </label>
           <label className="flex flex-col text-sm text-zinc-400">
@@ -157,10 +214,13 @@ export default function MapViewport({
               type="number"
               value={jumpY}
               onChange={(e) => setJumpY(e.target.value)}
-              className="w-20 rounded bg-zinc-900 border border-zinc-700 px-2 py-1"
+              className="w-16 rounded bg-zinc-900 border border-zinc-700 px-2 py-1"
             />
           </label>
-          <button type="submit" className="rounded bg-zinc-100 text-zinc-900 px-3 py-1 font-semibold">
+          <button
+            type="submit"
+            className="col-span-2 rounded bg-zinc-100 text-zinc-900 px-3 py-1 font-semibold sm:col-span-1"
+          >
             Přejít
           </button>
         </form>
@@ -177,11 +237,53 @@ export default function MapViewport({
           Array.from({ length: viewSize }).map((_, col) => {
             const x = x1 + col
             const y = y1 + row
+            const isVoid = !isWithinBounds(x, y)
             const tile = byCoord.get(`${x},${y}`)
             const color = tile ? DIFFICULTY_COLOR[tile.difficulty] : 'bg-zinc-900'
             const isHovered = hoveredTile?.x === x && hoveredTile?.y === y
             const isOwnedByMe = Boolean(tile?.owner_id && currentUserId && tile.owner_id === currentUserId)
             const isUnderAttack = Boolean(tile?.battle_locked_by)
+            const highlightColor: HighlightColor | null = isUnderAttack ? 'red' : isOwnedByMe ? 'sky' : null
+
+            if (isVoid) {
+              return (
+                <div
+                  key={`${x},${y}`}
+                  data-testid={`void-tile-${x},${y}`}
+                  aria-hidden="true"
+                  className="aspect-square min-w-0 min-h-0 border border-dashed border-zinc-900 bg-black/20"
+                />
+              )
+            }
+
+            const neighbors = {
+              top: byCoord.get(`${x},${y - 1}`),
+              right: byCoord.get(`${x + 1},${y}`),
+              bottom: byCoord.get(`${x},${y + 1}`),
+              left: byCoord.get(`${x - 1},${y}`),
+            }
+
+            const matchingHighlight = (neighbor?: Territory) => {
+              if (!tile || !neighbor || !highlightColor) return false
+              if (highlightColor === 'red') {
+                return Boolean(tile.battle_locked_by && neighbor.battle_locked_by === tile.battle_locked_by)
+              }
+              return Boolean(
+                currentUserId &&
+                  tile.owner_id === currentUserId &&
+                  neighbor.owner_id === tile.owner_id
+              )
+            }
+
+            const borderClasses = highlightColor
+              ? [
+                  BORDER_CLASSES.top[matchingHighlight(neighbors.top) ? 'transparent' : highlightColor],
+                  BORDER_CLASSES.right[matchingHighlight(neighbors.right) ? 'transparent' : highlightColor],
+                  BORDER_CLASSES.bottom[matchingHighlight(neighbors.bottom) ? 'transparent' : highlightColor],
+                  BORDER_CLASSES.left[matchingHighlight(neighbors.left) ? 'transparent' : highlightColor],
+                ].join(' ')
+              : 'border-zinc-800'
+
             return (
               <button
                 key={`${x},${y}`}
@@ -192,41 +294,37 @@ export default function MapViewport({
                 onMouseLeave={() => setHoveredTile((current) => (current?.x === x && current?.y === y ? null : current))}
                 data-owned-by-me={isOwnedByMe ? 'true' : 'false'}
                 data-under-attack={isUnderAttack ? 'true' : 'false'}
-                className={`relative aspect-square min-w-0 min-h-0 border flex flex-col items-center justify-center gap-0.5 overflow-visible ${color} ${
-                  isUnderAttack
-                    ? 'border-red-500 ring-2 ring-red-500 ring-inset animate-pulse'
-                    : isOwnedByMe
-                    ? 'border-sky-200 ring-2 ring-sky-400 ring-inset'
-                    : 'border-zinc-800'
+                className={`relative aspect-square min-w-0 min-h-0 border flex flex-col items-center justify-center gap-0.5 overflow-visible ${color} ${borderClasses} ${
+                  isUnderAttack ? 'animate-pulse' : ''
                 }`}
               >
                 {tile?.is_home && (
-                  <span title="Domov" className="text-lg leading-none drop-shadow">
+                  <span title="Domov" className="leading-none drop-shadow" style={iconStyle}>
                     🏠
                   </span>
                 )}
                 {tile?.castle_rank && (
-                  <span title="Hrad" className="text-xl leading-none drop-shadow">
+                  <span title="Hrad" className="leading-none drop-shadow" style={iconStyle}>
                     🏰
                   </span>
                 )}
                 {tile?.village_rank && (
-                  <span title="Vesnice" className="text-xl leading-none drop-shadow">
+                  <span title="Vesnice" className="leading-none drop-shadow" style={iconStyle}>
                     🏘️
                   </span>
                 )}
                 {tile?.owner_id && !tile?.is_home && (
-                  <span title="Vlastník" className="text-lg leading-none drop-shadow">
+                  <span title="Vlastník" className="leading-none drop-shadow" style={iconStyle}>
                     🚩
                   </span>
                 )}
                 {tile?.claim_locked_by && (
-                  <span title="Probíhá zábor" className="text-lg leading-none drop-shadow">
+                  <span title="Probíhá zábor" className="leading-none drop-shadow" style={iconStyle}>
                     ⏳
                   </span>
                 )}
                 {tile?.battle_locked_by && (
-                  <span title="Probíhá boj" className="text-lg leading-none drop-shadow">
+                  <span title="Probíhá boj" className="leading-none drop-shadow" style={iconStyle}>
                     ⚔️
                   </span>
                 )}
