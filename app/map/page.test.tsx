@@ -29,15 +29,26 @@ const getViewport = jest.fn().mockResolvedValue({
 })
 const getMinimapOverview = jest.fn().mockResolvedValue({ data: [], error: null })
 const getCardInstancesAtTerritory = jest.fn().mockResolvedValue({ data: [], error: null })
+const getMyHomeTerritory = jest.fn().mockResolvedValue({ data: [], error: null })
+const getIncomingAttackArrival = jest.fn().mockResolvedValue({ data: null, error: null })
+const getMyMovements = jest.fn().mockResolvedValue({ data: [], error: null })
+const getTerritoriesByIds = jest.fn().mockResolvedValue({ data: [], error: null })
+const getMyActiveBattles = jest.fn().mockResolvedValue({ data: [], error: null })
 
 jest.mock('@/lib/territories/api', () => ({
   getViewport: (...args: unknown[]) => getViewport(...args),
   getMinimapOverview: (...args: unknown[]) => getMinimapOverview(...args),
   getCardInstancesAtTerritory: (...args: unknown[]) => getCardInstancesAtTerritory(...args),
+  getMyHomeTerritory: (...args: unknown[]) => getMyHomeTerritory(...args),
+  getIncomingAttackArrival: (...args: unknown[]) => getIncomingAttackArrival(...args),
+  getMyMovements: (...args: unknown[]) => getMyMovements(...args),
+  getTerritoriesByIds: (...args: unknown[]) => getTerritoriesByIds(...args),
+  getMyActiveBattles: (...args: unknown[]) => getMyActiveBattles(...args),
 }))
 
+let sessionUser: { id: string } | null = null
 jest.mock('@/lib/supabase/useSession', () => ({
-  useSession: () => ({ user: null, player: null, loading: false }),
+  useSession: () => ({ user: sessionUser, player: null, loading: false }),
 }))
 
 jest.mock('@/lib/battles/api', () => ({
@@ -51,6 +62,7 @@ jest.mock('@/lib/battles/useTerritoryBattleChannel', () => ({
 describe('MapPage', () => {
   beforeEach(() => {
     getViewport.mockClear()
+    sessionUser = null
   })
 
   it('renders the back-link and loads a viewport centered on (128,128)', async () => {
@@ -88,6 +100,32 @@ describe('MapPage', () => {
     getViewport.mockResolvedValueOnce({ data: null, error: { message: 'boom' } })
     render(<MapPage />)
     await waitFor(() => expect(screen.getByText('boom')).toBeInTheDocument())
+  })
+
+  it('jumps to the tile returned by getMyHomeTerritory when "Moje domovské území" is clicked', async () => {
+    sessionUser = { id: 'me' }
+    getMyHomeTerritory.mockResolvedValueOnce({ data: [{ id: 1, x: 10, y: 20 }], error: null })
+    render(<MapPage />)
+    await waitFor(() => expect(screen.getByTestId('map-viewport')).toBeInTheDocument())
+    getViewport.mockClear()
+
+    fireEvent.click(screen.getByRole('button', { name: /Moje domovské území/ }))
+
+    await waitFor(() => expect(getMyHomeTerritory).toHaveBeenCalled())
+    await waitFor(() => expect(getViewport).toHaveBeenCalledWith(3, 13, 17, 27))
+  })
+
+  it('shows a not-found message when getMyHomeTerritory returns no rows', async () => {
+    sessionUser = { id: 'me' }
+    getMyHomeTerritory.mockResolvedValueOnce({ data: [], error: null })
+    render(<MapPage />)
+    await waitFor(() => expect(screen.getByTestId('map-viewport')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: /Moje domovské území/ }))
+
+    await waitFor(() =>
+      expect(screen.getByText(/Domovské území nenalezeno/)).toBeInTheDocument()
+    )
   })
 
   it('loads and displays the garrison when a tile is selected', async () => {

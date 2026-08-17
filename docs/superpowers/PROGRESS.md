@@ -940,3 +940,80 @@ produkční databáze... zatím jsme ve vývoji hry")**:
   their Jest unit tests, not against this live data — this pass tested the
   SQL/RPC layer end-to-end, not the browser UI, since no browser is
   available in this environment.
+
+## 10. Live playtesting bug fixes (subsystem #4) — in progress, NOT committed
+
+The user started real two-account (`hradecak87@gmail.com` attacker/
+defender pair) playtesting of subsystem #4 in the live production app.
+Several real bugs were found and fixed; **nothing in this section has been
+committed yet** — same policy as §9, awaiting explicit user sign-off.
+
+- **Claim-vs-transfer ETA mismatch**: `MyMovementsPanel` showed a stale
+  "Již brzy" while the map tile popup correctly showed the real remaining
+  time for a claim-in-progress. Root cause: it read
+  `troop_movements.transfer_arrives_at` (troops arriving) instead of
+  `territories.claim_occupation_completes_at` (the claim actually
+  finishing) for `kind: 'claim'` movements. Fixed in
+  `lib/territories/api.ts` (added the field to `getTerritoriesByIds`) and
+  `components/territories/MyMovementsPanel.tsx`.
+- **Battles stuck forever at `awaiting_ready`**: `mark_ready`'s "both
+  online within the last 2 minutes" joint check only re-runs when a
+  participant clicks the button again, but the button hides itself once
+  the caller's own `ready_at` is set — so if the two sides' click-timings
+  never overlap, the battle never progresses and there's no UI affordance
+  left to retry. Fixed with a silent 20s background `markReady()` retry
+  loop in `components/battles/BattleScreen.tsx` (client-side mitigation
+  only; a server-side scheduled job would be more robust but is out of
+  scope for now).
+- **"Karta nejde vybrat" — root cause was NOT a code bug**: extensive
+  investigation (direct RPC calls via a real user JWT, dev-server
+  restart, hydration-mismatch review) ruled out the backend and the
+  battle-screen code entirely. Actual cause: the user was testing both
+  accounts **in the same browser** (different tabs). Supabase persists
+  the auth session in `localStorage`, which is shared across all tabs of
+  one browser/origin — logging into the second account invalidated the
+  first tab's session, leaving that tab a "spectator" with every action
+  correctly disabled (no error, looked like dead cards). **Fix**: added
+  `components/players/AuthStatusBar.tsx`, mounted once in
+  `app/layout.tsx`, always showing "Přihlášen/a jako {email}" or a
+  logged-out warning with a login link — so a silent session loss is
+  never invisible again. Also added a `data-testid="my-role"` line to
+  `BattleScreen.tsx` showing "útočník / obránce / divák" for the current
+  battle, which is what surfaced the divák (spectator) state and led to
+  the actual diagnosis. **User-facing advice**: use two different
+  browsers (or one regular + one private/incognito window) to test two
+  accounts simultaneously.
+
+### 10.1 "Moje sbírka" page — owned-cards view with filters (new, this session)
+
+The user asked for a page showing their own card collection with rank/
+type/location filters and a search box — the existing `/collection` page
+only ever showed the full static catalog (all templates, no ownership).
+
+- **Renamed** the old `/collection` page (full catalog, unchanged
+  behavior) to **`/catalog`** (`app/catalog/page.tsx` +
+  `app/catalog/page.test.tsx`, moved as-is).
+- **New `/collection`** (`app/collection/page.tsx`) = "Moje sbírka": loads
+  the current player's owned `card_instances` (redirects to `/login` if
+  logged out) joined with their template and current `territories` row via
+  a new `getMyCardInstances(ownerId)` helper in `lib/territories/api.ts`
+  (new `MyCardInstance` type). Filters: unit type, rank, location (home /
+  a specific owned territory / "Na cestě" for in-transit cards), and a
+  free-text name search. Empty-state message when the player owns no
+  cards yet.
+- Both `app/page.tsx` (home) and the new page cross-link `/collection`
+  ("Moje sbírka") and `/catalog` ("Katalog karet") per the user's explicit
+  request to keep both as separate menu entries.
+- Tests: `app/collection/page.test.tsx` (7 new tests covering the login
+  redirect, loading + location display, and all four filter types).
+  `app/catalog/page.test.tsx` unchanged/still passing (only the on-screen
+  count/count-label markup was tweaked, not the underlying logic).
+
+**Verification**: `npx tsc --noEmit` clean, full `npx jest --ci`
+**199/199 tests passing** across 31 suites, run fresh at the end of this
+session.
+
+**Status**: not committed — awaiting the user's browser test of
+`/collection` + `/catalog` and explicit sign-off before any commit
+(covers both this addendum and the §10 bug fixes above).
+

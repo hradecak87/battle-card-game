@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { getMinimapOverview, getViewport, getCardInstancesAtTerritory, CardInstanceWithTemplate, Territory } from '@/lib/territories/api'
+import { getViewport, getCardInstancesAtTerritory, getMyHomeTerritory, getIncomingAttackArrival, CardInstanceWithTemplate, Territory } from '@/lib/territories/api'
 import MapViewport from '@/components/territories/MapViewport'
 import GarrisonModal from '@/components/territories/GarrisonModal'
 import DeclareAttackModal from '@/components/territories/DeclareAttackModal'
+import MyMovementsPanel from '@/components/territories/MyMovementsPanel'
 import { useTerritoryBattleChannel } from '@/lib/battles/useTerritoryBattleChannel'
 import { useSession } from '@/lib/supabase/useSession'
 
@@ -33,8 +34,10 @@ export default function MapPage() {
   const [selectedTile, setSelectedTile] = useState<Territory | null>(null)
   const [garrison, setGarrison] = useState<CardInstanceWithTemplate[] | null>(null)
   const [garrisonError, setGarrisonError] = useState<string | null>(null)
+  const [incomingAttackArrivesAt, setIncomingAttackArrivesAt] = useState<string | null>(null)
   const [homeStatus, setHomeStatus] = useState<'idle' | 'searching' | 'not-found'>('idle')
   const [showAttackModal, setShowAttackModal] = useState(false)
+  const [movementsRefreshKey, setMovementsRefreshKey] = useState(0)
 
   const viewSize = ZOOM_LEVELS[zoomIndex]
 
@@ -87,16 +90,12 @@ export default function MapPage() {
   async function handleFindHome() {
     if (!user) return
     setHomeStatus('searching')
-    const { data, error: rpcError } = await getMinimapOverview()
-    if (rpcError || !data) {
+    const { data, error: rpcError } = await getMyHomeTerritory()
+    if (rpcError || !data || data.length === 0) {
       setHomeStatus('not-found')
       return
     }
-    const home = data.find((tile) => tile.owner_id === user.id)
-    if (!home) {
-      setHomeStatus('not-found')
-      return
-    }
+    const home = data[0]
     setHomeStatus('idle')
     handleJump(home.x, home.y)
   }
@@ -113,6 +112,16 @@ export default function MapPage() {
     setSelectedTile(tile)
     setGarrison(null)
     setGarrisonError(null)
+    setIncomingAttackArrivesAt(null)
+    if (tile.battle_locked_by) {
+      // battle_locked_by is set the instant declare_attack is called,
+      // well before the attacking army physically arrives and a battle
+      // row exists — fetch that arrival ETA separately so the modal can
+      // show "vojska dorazí za X" instead of just "v boji" with no info.
+      getIncomingAttackArrival(tile.id).then(({ data }) => {
+        setIncomingAttackArrivesAt(data?.transfer_arrives_at ?? null)
+      })
+    }
     const { data, error: rpcError } = await getCardInstancesAtTerritory(tile.id)
     if (rpcError) {
       setGarrisonError(rpcError.message)
@@ -146,6 +155,8 @@ export default function MapPage() {
           </div>
         )}
 
+        <MyMovementsPanel myPlayerId={user?.id ?? null} refreshKey={movementsRefreshKey} />
+
         {error && <p className="text-red-400 text-sm">{error}</p>}
 
         {territories === null ? (
@@ -175,6 +186,7 @@ export default function MapPage() {
             onClose={() => setSelectedTile(null)}
             myPlayerId={user?.id ?? null}
             onAttack={() => setShowAttackModal(true)}
+            incomingAttackArrivesAt={incomingAttackArrivesAt}
           />
         )}
 
@@ -185,6 +197,7 @@ export default function MapPage() {
             onClose={() => setShowAttackModal(false)}
             onDeclared={() => {
               loadViewport(centerX, centerY, viewSize)
+              setMovementsRefreshKey((k) => k + 1)
             }}
           />
         )}

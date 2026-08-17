@@ -3,10 +3,12 @@ import DeclareAttackModal from './DeclareAttackModal'
 import { Territory } from '@/lib/territories/api'
 
 const getCardInstancesAtTerritory = jest.fn()
+const getMyTerritories = jest.fn()
 const declareAttack = jest.fn()
 
 jest.mock('@/lib/territories/api', () => ({
   getCardInstancesAtTerritory: (...args: unknown[]) => getCardInstancesAtTerritory(...args),
+  getMyTerritories: (...args: unknown[]) => getMyTerritories(...args),
 }))
 
 jest.mock('@/lib/battles/api', () => ({
@@ -52,6 +54,11 @@ const myCard = {
 describe('DeclareAttackModal', () => {
   beforeEach(() => {
     getCardInstancesAtTerritory.mockReset()
+    getMyTerritories.mockReset()
+    getMyTerritories.mockResolvedValue({
+      data: [{ id: 1, x: 0, y: 0, is_home: true }],
+      error: null,
+    })
     declareAttack.mockReset()
   })
 
@@ -61,8 +68,7 @@ describe('DeclareAttackModal', () => {
 
     render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} onDeclared={jest.fn()} />)
 
-    fireEvent.change(screen.getByLabelText('Původní území'), { target: { value: '1' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Načíst vojska' }))
+    fireEvent.change(await screen.findByLabelText('Odkud útočíš'), { target: { value: '1' } })
 
     await waitFor(() => expect(getCardInstancesAtTerritory).toHaveBeenCalledWith(1))
     expect(await screen.findByText('Elitní rytíři')).toBeInTheDocument()
@@ -81,13 +87,28 @@ describe('DeclareAttackModal', () => {
 
     render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
 
-    fireEvent.change(screen.getByLabelText('Původní území'), { target: { value: '1' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Načíst vojska' }))
+    fireEvent.change(await screen.findByLabelText('Odkud útočíš'), { target: { value: '1' } })
     await screen.findByText('Elitní rytíři')
 
     fireEvent.click(screen.getByText('Elitní rytíři').closest('label')!)
     fireEvent.click(screen.getByRole('button', { name: /Zaútočit/ }))
 
     expect(await screen.findByText('territory ownership cap (32) reached')).toBeInTheDocument()
+  })
+
+  it('lists the caller\'s own territories in the origin dropdown, home first', async () => {
+    getMyTerritories.mockResolvedValue({
+      data: [
+        { id: 1, x: 0, y: 0, is_home: true },
+        { id: 2, x: 3, y: 4, is_home: false },
+      ],
+      error: null,
+    })
+    render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
+
+    const select = (await screen.findByLabelText('Odkud útočíš')) as HTMLSelectElement
+    await waitFor(() => expect(getMyTerritories).toHaveBeenCalledWith('me'))
+    const options = Array.from(select.options).map((o) => o.textContent)
+    expect(options).toEqual(['— vyber území —', 'Domov (0, 0)', 'Území (3, 4)'])
   })
 })

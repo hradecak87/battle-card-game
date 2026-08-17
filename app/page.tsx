@@ -22,7 +22,13 @@ export default function Home() {
           href="/collection"
           className="rounded-full bg-zinc-100 text-zinc-900 hover:bg-white px-8 py-3 font-semibold transition-colors"
         >
-          Sbírka karet
+          Moje sbírka
+        </Link>
+        <Link
+          href="/catalog"
+          className="rounded-full border border-zinc-600 hover:border-zinc-400 px-8 py-3 font-semibold transition-colors"
+        >
+          Katalog karet
         </Link>
         <Link
           href="/arena"

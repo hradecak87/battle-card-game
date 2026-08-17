@@ -61,6 +61,29 @@ export default function BattleScreen({ battleId, currentUserId }: BattleScreenPr
 
   useBattleChannel(battleId, load)
 
+  // Task 13's mark_ready re-evaluates the "both online right now" check
+  // fresh on every call, but only the *first* call is user-triggered (the
+  // "Jsem připraven" button hides itself once the caller's own ready_at is
+  // set). If the two sides don't happen to have that click overlap within
+  // the 2-minute window, the battle gets stuck at awaiting_ready forever
+  // with nothing left to click. So once a participant has this screen
+  // open, keep silently re-calling markReady (idempotent, safe) so the
+  // joint check gets retried automatically as soon as both are actually
+  // online together — no manual re-click required.
+  const battleStatus = data?.battle.status
+  const attackerId = data?.battle.attacker_id
+  const defenderId = data?.battle.defender_id
+  const isParticipant =
+    currentUserId !== null && (currentUserId === attackerId || currentUserId === defenderId)
+
+  useEffect(() => {
+    if (battleStatus !== 'awaiting_ready' || !isParticipant) return
+    const interval = setInterval(() => {
+      markReady(battleId).then(() => load())
+    }, 20_000)
+    return () => clearInterval(interval)
+  }, [battleStatus, isParticipant, battleId, load])
+
   async function handleMarkReady() {
     setReadySubmitting(true)
     setActionError(null)
@@ -110,6 +133,9 @@ export default function BattleScreen({ battleId, currentUserId }: BattleScreenPr
 
   return (
     <div data-testid="battle-screen" className="flex flex-col items-center gap-6 p-4">
+      <p data-testid="my-role" className="text-xs text-zinc-500">
+        Tvá role v této bitvě: {isAttacker ? 'útočník' : isDefender ? 'obránce' : 'divák (nejsi účastník)'}
+      </p>
       {actionError && <p className="text-red-400 text-sm">{actionError}</p>}
 
       {battle.status === 'awaiting_ready' && (

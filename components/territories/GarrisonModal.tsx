@@ -4,6 +4,7 @@ import { CardInstanceWithTemplate, Territory } from '@/lib/territories/api'
 import { TradingCard } from '@/components/cards/TradingCard'
 import { applyRank } from '@/lib/cards/combat'
 import { Rank, UnitType, UnitCardTemplate } from '@/lib/cards/types'
+import { formatEta } from '@/lib/time/formatEta'
 
 export interface GarrisonModalProps {
   territory: Territory
@@ -12,6 +13,15 @@ export interface GarrisonModalProps {
   onClose: () => void
   myPlayerId?: string | null
   onAttack?: () => void
+  /**
+   * Arrival time of the in-transit attack currently converging on this
+   * territory, if any (fetched separately since `battle_locked_by` is
+   * set at declare-attack time, before the battle itself exists — see
+   * `getIncomingAttackArrival`). Only relevant when `territory.battle_locked_by`
+   * is set and `territory.battle_id` isn't (once a battle exists, selecting
+   * this tile navigates straight to the battle screen instead).
+   */
+  incomingAttackArrivesAt?: string | null
 }
 
 /** Rebuilds the `UnitCardTemplate` shape `TradingCard` expects from the flat DB row. */
@@ -34,7 +44,15 @@ function toUnitTemplate(row: NonNullable<CardInstanceWithTemplate['card_template
  * renders the garrison stationed there as actual `TradingCard` visuals
  * instead of a plain text list, reusing subsystem #1's card art/frame.
  */
-export default function GarrisonModal({ territory, instances, error, onClose, myPlayerId, onAttack }: GarrisonModalProps) {
+export default function GarrisonModal({
+  territory,
+  instances,
+  error,
+  onClose,
+  myPlayerId,
+  onAttack,
+  incomingAttackArrivesAt,
+}: GarrisonModalProps) {
   const canAttack =
     Boolean(myPlayerId) &&
     territory.owner_id !== myPlayerId &&
@@ -65,7 +83,11 @@ export default function GarrisonModal({ territory, instances, error, onClose, my
               </button>
             )}
             {territory.battle_locked_by && (
-              <span className="text-xs text-red-400">Toto území je právě v boji</span>
+              <span className="text-xs text-red-400">
+                {incomingAttackArrivesAt
+                  ? `Útok na cestě — vojska dorazí ${formatEta(incomingAttackArrivesAt)}`
+                  : 'Toto území je právě v boji'}
+              </span>
             )}
             <button
               type="button"
@@ -79,6 +101,12 @@ export default function GarrisonModal({ territory, instances, error, onClose, my
         </div>
 
         {error && <p className="text-red-400 text-sm">{error}</p>}
+
+        {territory.claim_locked_by && territory.claim_occupation_completes_at && (
+          <p className="mb-3 text-sm text-amber-400">
+            🚩 Probíhá zábor tohoto území — dokončí se {formatEta(territory.claim_occupation_completes_at)}
+          </p>
+        )}
 
         {!error && instances === null && <p className="text-zinc-400 text-sm">Načítám…</p>}
 

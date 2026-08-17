@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Territory, CardInstanceWithTemplate, getCardInstancesAtTerritory } from '@/lib/territories/api'
+import { useEffect, useState } from 'react'
+import { Territory, CardInstanceWithTemplate, MyTerritory, getCardInstancesAtTerritory, getMyTerritories } from '@/lib/territories/api'
 import { declareAttack } from '@/lib/battles/api'
 import { TradingCard } from '@/components/cards/TradingCard'
 import { applyRank } from '@/lib/cards/combat'
@@ -38,6 +38,8 @@ function toUnitTemplate(row: NonNullable<CardInstanceWithTemplate['card_template
  * GarrisonModal) for any territory that isn't the caller's own.
  */
 export default function DeclareAttackModal({ territory, myPlayerId, onClose, onDeclared }: DeclareAttackModalProps) {
+  const [myTerritories, setMyTerritories] = useState<MyTerritory[] | null>(null)
+  const [territoriesError, setTerritoriesError] = useState<string | null>(null)
   const [originTerritoryId, setOriginTerritoryId] = useState('')
   const [originInstances, setOriginInstances] = useState<CardInstanceWithTemplate[] | null>(null)
   const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([])
@@ -47,9 +49,26 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
 
-  async function handleLoadOrigin() {
-    const originId = Number(originTerritoryId)
-    if (!Number.isFinite(originId)) return
+  // Task: replaces manual "type the origin territory id" with a
+  // dropdown of the caller's own territories (max 32, so no pagination
+  // concern) — picking one auto-loads its garrison immediately.
+  useEffect(() => {
+    if (!myPlayerId) return
+    let cancelled = false
+    getMyTerritories(myPlayerId).then(({ data, error }) => {
+      if (cancelled) return
+      if (error) {
+        setTerritoriesError(error.message)
+        return
+      }
+      setMyTerritories(data ?? [])
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [myPlayerId])
+
+  async function handleLoadOrigin(originId: number) {
     setLoading(true)
     setLoadError(null)
     setOriginInstances(null)
@@ -64,6 +83,17 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
       (ci) => ci.owner_id === myPlayerId && ci.status === 'stationed' && ci.card_templates?.category === 'unit'
     )
     setOriginInstances(eligible)
+  }
+
+  function handleSelectOrigin(value: string) {
+    setOriginTerritoryId(value)
+    const originId = Number(value)
+    if (value && Number.isFinite(originId)) {
+      handleLoadOrigin(originId)
+    } else {
+      setOriginInstances(null)
+      setSelectedInstanceIds([])
+    }
   }
 
   function toggleInstance(id: string) {
@@ -113,25 +143,27 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
         ) : (
           <div className="flex flex-col gap-3">
             <label className="flex flex-col gap-1 text-sm text-zinc-400">
-              Původní území (ID)
-              <div className="flex gap-2">
-                <input
-                  aria-label="Původní území"
-                  value={originTerritoryId}
-                  onChange={(e) => setOriginTerritoryId(e.target.value)}
-                  className="flex-1 rounded bg-zinc-900 border border-zinc-700 px-2 py-1"
-                />
-                <button
-                  type="button"
-                  disabled={loading || !originTerritoryId}
-                  onClick={handleLoadOrigin}
-                  className="rounded bg-zinc-800 px-3 py-1 text-zinc-100 disabled:opacity-50"
-                >
-                  {loading ? 'Načítám…' : 'Načíst vojska'}
-                </button>
-              </div>
+              Odkud útočíš
+              <select
+                aria-label="Odkud útočíš"
+                value={originTerritoryId}
+                onChange={(e) => handleSelectOrigin(e.target.value)}
+                disabled={myTerritories === null}
+                className="rounded bg-zinc-900 border border-zinc-700 px-2 py-1"
+              >
+                <option value="">
+                  {myTerritories === null ? 'Načítám tvá území…' : '— vyber území —'}
+                </option>
+                {myTerritories?.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.is_home ? 'Domov' : 'Území'} ({t.x}, {t.y})
+                  </option>
+                ))}
+              </select>
             </label>
 
+            {loading && <p className="text-sm text-zinc-400">Načítám vojska…</p>}
+            {territoriesError && <p className="text-red-400 text-sm">{territoriesError}</p>}
             {loadError && <p className="text-red-400 text-sm">{loadError}</p>}
 
             {originInstances !== null && originInstances.length === 0 && (

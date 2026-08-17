@@ -47,7 +47,7 @@ export interface MinimapTile {
 export interface TroopMovement {
   id: string
   player_id: string
-  kind: 'transfer' | 'claim'
+  kind: 'transfer' | 'claim' | 'attack'
   origin_territory_id: number
   destination_territory_id: number
   started_at: string
@@ -70,6 +70,57 @@ export async function getMinimapOverview() {
   }>
 }
 
+export interface HomeTerritory {
+  id: number
+  x: number
+  y: number
+}
+
+/**
+ * Looks up only the caller's own home territory directly (bug fix: the
+ * "Moje domovské území" button used to scan `getMinimapOverview()`'s
+ * full-map result client-side, which silently truncates at Supabase's
+ * default 1000-row API cap once enough territories are owned/claimed —
+ * a player's home tile could simply be missing from that response even
+ * though it exists in the database). This is a targeted, indexed lookup
+ * that can never be affected by that cap.
+ */
+export async function getMyHomeTerritory() {
+  return supabase.rpc('get_my_home_territory') as unknown as Promise<{
+    data: HomeTerritory[] | null
+    error: { message: string } | null
+  }>
+}
+
+export interface MyTerritory {
+  id: number
+  x: number
+  y: number
+  is_home: boolean
+}
+
+/**
+ * Lists all territories owned by the given player (max 32 by the
+ * ownership cap, so no pagination/row-limit concern like
+ * `getMinimapOverview`). Used to let the player pick an origin territory
+ * from a dropdown instead of having to know/type its raw numeric id
+ * (declare-attack/claim/transfer flows all need an origin territory).
+ * `territories` has a public "select all" RLS policy, so a plain table
+ * query works without needing a dedicated RPC.
+ */
+export async function getMyTerritories(ownerId: string) {
+  return supabase
+    .from('territories')
+    .select('id, x, y, is_home')
+    .eq('owner_id', ownerId)
+    .order('is_home', { ascending: false })
+    .order('x')
+    .order('y') as unknown as Promise<{
+    data: MyTerritory[] | null
+    error: { message: string } | null
+  }>
+}
+
 export async function getTerritory(territoryId: number) {
   return supabase.rpc('get_territory', { territory_id: territoryId }) as unknown as Promise<{
     data: Territory[] | null
@@ -80,6 +131,82 @@ export async function getTerritory(territoryId: number) {
 export async function getMyMovements() {
   return supabase.rpc('get_my_movements') as unknown as Promise<{
     data: TroopMovement[] | null
+    error: { message: string } | null
+  }>
+}
+
+export interface TerritoryCoords {
+  id: number
+  x: number
+  y: number
+  /**
+   * Only meaningful for territories currently being claimed. A claim's
+   * actual completion time — separate from the (usually much shorter)
+   * `troop_movements.transfer_arrives_at` of the 'claim'-kind movement,
+   * which only marks when the troops *arrive*, not when the occupation
+   * itself finishes (see 0002_territories.sql's start_claim/resolve_due_movements).
+   */
+  claim_occupation_completes_at: string | null
+}
+
+/**
+ * Bulk coordinate lookup for arbitrary territory ids (e.g. the origin/
+ * destination of the caller's own movements, which aren't necessarily
+ * owned by the caller — the destination of an attack never is). Used to
+ * render "(x, y) → (x, y)" labels without one RPC round-trip per row.
+ */
+export async function getTerritoriesByIds(ids: number[]) {
+  if (ids.length === 0) return { data: [], error: null }
+  return supabase
+    .from('territories')
+    .select('id, x, y, claim_occupation_completes_at')
+    .in('id', ids) as unknown as Promise<{
+    data: TerritoryCoords[] | null
+    error: { message: string } | null
+  }>
+}
+
+/**
+ * The arrival time of the (at most one, enforced by declare_attack's
+ * battle_locked_by check-and-lock) in-transit attack currently converging
+ * on this territory. Territories don't carry this directly (only claims
+ * get a `claim_transfer_arrives_at` column) — this is a small, publicly
+ * readable (`troop_movements_select_all`) direct query so anyone viewing
+ * a battle-locked-but-not-yet-active tile can see when the attacker's
+ * army will actually arrive and the battle will start.
+ */
+export async function getIncomingAttackArrival(territoryId: number) {
+  return supabase
+    .from('troop_movements')
+    .select('transfer_arrives_at')
+    .eq('destination_territory_id', territoryId)
+    .eq('kind', 'attack')
+    .eq('status', 'in_transit')
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle() as unknown as Promise<{
+    data: { transfer_arrives_at: string } | null
+    error: { message: string } | null
+  }>
+}
+
+export interface ActiveBattleRef {
+  id: string
+  territory_id: number
+}
+
+/**
+ * All of the caller's own not-yet-resolved battles (as either side), so
+ * MyMovementsPanel can show "bitva právě probíhá →" instead of an ETA
+ * once an in-transit attack has actually arrived and a battle exists.
+ */
+export async function getMyActiveBattles(playerId: string) {
+  return supabase
+    .from('battles')
+    .select('id, territory_id')
+    .or(`attacker_id.eq.${playerId},defender_id.eq.${playerId}`)
+    .not('status', 'in', '(resolved,expired)') as unknown as Promise<{
+    data: ActiveBattleRef[] | null
     error: { message: string } | null
   }>
 }
@@ -112,6 +239,27 @@ export async function getCardInstancesAtTerritory(territoryId: number) {
     )
     .eq('stationed_territory_id', territoryId) as unknown as Promise<{
     data: CardInstanceWithTemplate[] | null
+    error: { message: string } | null
+  }>
+}
+
+export interface MyCardInstance extends CardInstanceWithTemplate {
+  territories: { id: number; x: number; y: number; is_home: boolean } | null
+}
+
+/**
+ * All card instances a player owns, with their template + current
+ * territory location joined in, so the "Moje sbírka" page (spec §5) can
+ * show rank/type/location filters and search without N+1 queries.
+ */
+export async function getMyCardInstances(ownerId: string) {
+  return supabase
+    .from('card_instances')
+    .select(
+      'instance_id, template_id, owner_id, stationed_territory_id, status, card_templates(id, name, flavor_text, rank, category, unit_type, base_stats, total_supply, defense_bonus_pct, attack_bonus_pct), territories(id, x, y, is_home)'
+    )
+    .eq('owner_id', ownerId) as unknown as Promise<{
+    data: MyCardInstance[] | null
     error: { message: string } | null
   }>
 }

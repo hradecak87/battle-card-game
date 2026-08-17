@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent, within } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, within, act } from '@testing-library/react'
 import BattleScreen from './BattleScreen'
 import { GetBattleResult } from '@/lib/battles/api'
 
@@ -113,6 +113,37 @@ describe('BattleScreen', () => {
     await waitFor(() => expect(markReady).toHaveBeenCalledWith('battle-1'))
   })
 
+  it('keeps silently re-calling markReady while both sides are ready but not yet online together', async () => {
+    const fixture = awaitingReadyFixture()
+    fixture.battle.attacker_ready_at = new Date().toISOString()
+    fixture.battle.defender_ready_at = new Date().toISOString()
+    getBattle.mockResolvedValue({ data: fixture, error: null })
+
+    jest.useFakeTimers()
+    render(<BattleScreen battleId="battle-1" currentUserId="defender-1" />)
+
+    // Flush the initial getBattle() promise and resulting re-render.
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(getBattle).toHaveBeenCalledTimes(1)
+    // No "Jsem připraven" button anymore — both already marked ready — yet
+    // the screen should keep retrying the joint online check in the
+    // background instead of leaving the battle stuck forever.
+    expect(screen.queryByRole('button', { name: 'Jsem připraven' })).not.toBeInTheDocument()
+
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(20_000)
+    })
+
+    expect(markReady).toHaveBeenCalledWith('battle-1')
+    expect(getBattle).toHaveBeenCalledTimes(2)
+
+    jest.useRealTimers()
+  })
+
   it("renders the pending round's attacker card and lets the defender pick a card", async () => {
     getBattle.mockResolvedValue({ data: activeFixture(), error: null })
     render(<BattleScreen battleId="battle-1" currentUserId="defender-1" />)
@@ -133,6 +164,18 @@ describe('BattleScreen', () => {
 
     await waitFor(() => expect(screen.getByTestId('duel-stage')).toBeInTheDocument())
     expect(screen.getByTestId('roster-card-def-1')).toBeDisabled()
+  })
+
+  it('shows the current user their role in the battle (attacker/defender/spectator)', async () => {
+    getBattle.mockResolvedValue({ data: activeFixture(), error: null })
+    const { rerender } = render(<BattleScreen battleId="battle-1" currentUserId="attacker-1" />)
+    await waitFor(() => expect(screen.getByTestId('my-role')).toHaveTextContent('útočník'))
+
+    rerender(<BattleScreen battleId="battle-1" currentUserId="defender-1" />)
+    await waitFor(() => expect(screen.getByTestId('my-role')).toHaveTextContent('obránce'))
+
+    rerender(<BattleScreen battleId="battle-1" currentUserId="someone-else" />)
+    await waitFor(() => expect(screen.getByTestId('my-role')).toHaveTextContent('divák'))
   })
 
   it('shows the winner banner once the battle is resolved', async () => {
