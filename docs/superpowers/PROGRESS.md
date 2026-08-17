@@ -1,3 +1,32 @@
+## Latest update — 2026-08-17j (trading/exchange module shipped on `feature/trading-exchange`)
+
+Trading / Exchange ("Směnárna") is now implemented on this worktree branch:
+
+- New migration **`supabase/migrations/0014_trading_exchange.sql`** adds the
+  `trade_offers` table, pending/accepted/etc. status lifecycle, lazy
+  `resolve_expired_trade_offers()` resolution, atomic SQL accept/reject/cancel
+  RPCs, public-listing responses, counter-offer chaining, and read RPCs for
+  "my offers", marketplace, and accepted trade history.
+- Companion manual verification script:
+  **`supabase/migrations/0014_trading_exchange.verification.sql`**.
+- New typed client wrappers in **`lib/trading/api.ts`** plus Jest coverage in
+  **`lib/trading/api.test.ts`**.
+- New exchange UI at **`app/exchange/page.tsx`** with tabs for
+  **Moje nabídky / Tržnice / Historie**, a create-offer modal in
+  **`components/exchange/CreateTradeOfferModal.tsx`**, offer-list rendering in
+  **`components/exchange/TradeOfferList.tsx`**, and related component/page
+  tests.
+- Added a shared top navigation component
+  **`components/navigation/MainNav.tsx`** (mounted from `app/layout.tsx`) with
+  a simple pending-offer badge beside **Můj profil** driven by
+  `listMyOffers()`.
+
+Verification on this branch:
+- Full Jest suite: **335/335 passing**
+- `npx tsc --noEmit` ✅
+- `npm run build` ✅ with placeholder public Supabase env vars
+  (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
+
 ## 2026-08-17i — Illustrated castle/village artwork + bigger structure icons
 
 Project owner's feedback on the just-shipped SVG structure icon set: too
