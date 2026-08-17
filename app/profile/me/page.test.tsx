@@ -15,6 +15,8 @@ const mockPlayer = {
   coat_of_arms_id: 'lion-gold',
   onboarding_completed: true,
   xp: 150,
+  daily_reward_streak: 4,
+  last_daily_reward_at: null,
   created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
   last_seen_at: new Date().toISOString(),
   total_playtime_seconds: 3661,
@@ -42,7 +44,7 @@ describe('ProfileMePage', () => {
     getMyBattleHistory.mockClear()
   })
 
-  it('shows level/XP progress, nation perk text, kingdom name and the battle-history section', async () => {
+  it('shows level/XP progress, daily reward info, nation perk text, kingdom name and the battle-history section', async () => {
     ;(useSession as jest.Mock).mockReturnValue({
       user: { id: 'u1' },
       player: mockPlayer,
@@ -53,6 +55,8 @@ describe('ProfileMePage', () => {
 
     expect(screen.getByText(/Testovia/)).toBeInTheDocument()
     expect(screen.getByText(/Anglické království/)).toBeInTheDocument()
+    expect(screen.getByText(/Aktuální série: 4 dní/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Vyzvednout denní odměnu/i })).toBeInTheDocument()
     expect(screen.getByText(/Tisové luky/)).toBeInTheDocument()
     expect(screen.getByTestId('xp-progress-bar')).toBeInTheDocument()
     expect(screen.getByText(/5 dní/)).toBeInTheDocument()
@@ -75,3 +79,4 @@ describe('ProfileMePage', () => {
     expect(push).toHaveBeenCalledWith('/onboarding/kingdom')
   })
 })
+

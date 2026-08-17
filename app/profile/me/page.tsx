@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useSession } from '@/lib/supabase/useSession'
 import { supabase } from '@/lib/supabase/client'
 import { PlayerProfileCard } from '@/components/players/PlayerProfileCard'
+import { DailyRewardCard } from '@/components/players/DailyRewardCard'
 import BattleHistoryList from '@/components/players/BattleHistoryList'
 
 export default function ProfileMePage() {
@@ -60,6 +61,10 @@ export default function ProfileMePage() {
         </div>
       </nav>
       <PlayerProfileCard player={player} editable onUpdateKingdom={handleUpdateKingdom} />
+      <DailyRewardCard
+        initialStreak={player.daily_reward_streak}
+        initialLastClaimAt={player.last_daily_reward_at}
+      />
       <BattleHistoryList playerId={player.id} />
     </main>
   )
