@@ -1486,3 +1486,61 @@ Verification in this worktree after the final review fixes:
 - `npm run build` — clean production build; same pre-existing
   `@supabase/supabase-js` Node 22 future-warning repeats during static page
   generation, but the build succeeds fully
+
+## 17. Map owned-territory border pixel-perfect fix + foreign-owner highlight + icon fixes
+
+Six rounds of pixel-level iteration on `components/territories/MapViewport.tsx`
+to get the owned-territory perimeter highlight visually correct, plus three
+follow-up icon/highlight features. All committed and pushed to `main`.
+
+**Perimeter border fix (multiple commits, root-caused via headless-browser
+pixel screenshots)**:
+- Toolbar compacted to a single row; owned-territory list converted to a
+  `<select>` dropdown (`2fef70d`).
+- Highlight approach evolved: plain CSS `border` → `inset box-shadow`
+  (`9a9c01f`, superseded — shadow paints under the border) → absolutely
+  positioned 1px overlay `<span>` bars offset `-1px` to sit on the border
+  pixel (`330b4e3`) → widened to 2px, centered on the seam, since each tile
+  draws its own independent 1px border so a shared edge is actually two
+  adjacent lines (`a1ad26d`).
+- Remaining 1px corner notch (two perpendicular bars on the same tile only
+  *touch* at the corner, don't overlap) diagnosed by installing Playwright in
+  a scratch folder (`C:\temp\pw-diag`, outside the repo) and rendering
+  isolated Tailwind-CDN HTML reproductions at various `deviceScaleFactor`s,
+  screenshotting and pixel-inspecting via PIL crop+nearest-resize. Fixed by
+  extending each bar 1px past both its own ends via Tailwind `-left-px
+  -right-px` / `-top-px -bottom-px` (tried 2px first per user feedback,
+  reduced to 1px — `45228b6`, `b90ff2c`). **User confirmed this is correct;
+  border bug fully closed.**
+
+**Follow-up icon/highlight features (this segment)**:
+- Foreign-owned territory: removed the 🚩 flag icon; foreign tiles now get
+  the same perimeter-highlight treatment as "my territory," but with a
+  deterministic (hash-based, not random) per-owner color from a 10-color
+  palette (`FOREIGN_OWNER_COLORS`), so contiguous foreign regions read as one
+  connected block and different owners are visually distinguishable.
+  Unified via `getHighlightInfo(tile, currentUserId)` returning
+  `{ key, color, colorClass }` — battle-locked tiles (red) take priority over
+  ownership highlights.
+- Icon-scaling bug (icons stopped shrinking correctly for a few intermediate
+  zoom-out steps): root cause was `getIconFontSize(viewSize)` assuming a
+  fixed container width, but the page is responsive. Fixed by measuring the
+  real rendered cell width via a `ResizeObserver` on the grid container
+  (`cellPx` state) and sizing icons from that directly
+  (`Math.round(cellPx * 0.55)`, clamped 10-34px), falling back to the old
+  formula only when no measurement is available yet (e.g. jsdom/tests, first
+  paint).
+- Icon overlap when multiple structures share a tile: castle/village/home
+  icons now render side-by-side in one flex row (not stacked), shrunk to
+  ~62% size when more than one is present, so they fit within one tile
+  instead of overflowing. The battle (⚔️) icon is now an absolutely
+  positioned, centered, `animate-pulse` overlay drawn on top of the
+  structure icons (dimmed to `opacity-40` underneath) instead of stacking
+  below them.
+
+Verification: `npx tsc --noEmit` clean; `MapViewport.test.tsx` updated (the
+old box-shadow-based border assertion was stale — rewritten to check the
+overlay-span `data-testid="highlight-{edge}-{x},{y}"` elements) plus 3 new
+tests for foreign highlight, combined structure icons, and the battle-icon
+overlay — **13/13 passing**; full suite **249/249 passing** across 38 suites;
+`npm run build` clean.

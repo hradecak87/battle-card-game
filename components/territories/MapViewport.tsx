@@ -14,7 +14,7 @@ const DIFFICULTY_COLOR: Record<1 | 2 | 3 | 4 | 5, string> = {
 const MAP_MIN = 0
 const MAP_MAX = 255
 
-type HighlightColor = 'sky' | 'red'
+type HighlightColor = 'sky' | 'red' | 'foreign'
 
 // Perimeter highlight edges are drawn as absolutely-positioned 1px overlay
 // bars, not a CSS border or box-shadow. box-shadow paints *underneath* the
@@ -25,9 +25,40 @@ type HighlightColor = 'sky' | 'red'
 // top of the parent's own border by normal stacking order, is independent
 // per side (no mitring with the other three sides), and is sized to
 // exactly 1px so it just replaces the grid line's color at that spot.
-const HIGHLIGHT_BAR_COLOR: Record<HighlightColor, string> = {
+const HIGHLIGHT_BAR_COLOR: Record<Exclude<HighlightColor, 'foreign'>, string> = {
   sky: 'bg-sky-400',
   red: 'bg-red-500',
+}
+
+// Distinct, easily-told-apart colors for other players' territory outlines
+// (never sky — reserved for "mine" — or red — reserved for "under attack").
+// The color for a given owner is picked deterministically from their id (a
+// stable hash, not truly random) so the same foreign player always shows
+// the same color and a contiguous block of their territory reads as one
+// connected outline rather than a a flag per tile.
+const FOREIGN_OWNER_COLORS = [
+  'bg-amber-400',
+  'bg-violet-400',
+  'bg-pink-400',
+  'bg-emerald-400',
+  'bg-orange-400',
+  'bg-fuchsia-400',
+  'bg-teal-400',
+  'bg-rose-400',
+  'bg-cyan-400',
+  'bg-lime-400',
+]
+
+function hashStringToIndex(value: string, modulo: number) {
+  let hash = 0
+  for (let i = 0; i < value.length; i++) {
+    hash = (hash * 31 + value.charCodeAt(i)) | 0
+  }
+  return Math.abs(hash) % modulo
+}
+
+function getForeignOwnerColorClass(ownerId: string) {
+  return FOREIGN_OWNER_COLORS[hashStringToIndex(ownerId, FOREIGN_OWNER_COLORS.length)]
 }
 
 // Each tile draws its own border, so the boundary between two tiles is
@@ -71,6 +102,29 @@ function getOwnerLabel(tile: Territory, currentUserId?: string | null) {
   return 'Cizí hráč'
 }
 
+// A tile's highlight "group": tiles that share the same group key merge
+// their shared edge (no colored line drawn between them), while the
+// outline is drawn wherever the group key changes. Battle takes priority
+// (a defended tile still reads as "in battle" first), then ownership by
+// the current player, then any other owner (each getting their own stable
+// color via getForeignOwnerColorClass).
+function getHighlightInfo(
+  t: Territory | undefined,
+  currentUserId?: string | null
+): { key: string; color: HighlightColor; colorClass: string } | null {
+  if (!t) return null
+  if (t.battle_locked_by) {
+    return { key: `battle:${t.battle_locked_by}`, color: 'red', colorClass: HIGHLIGHT_BAR_COLOR.red }
+  }
+  if (currentUserId && t.owner_id === currentUserId) {
+    return { key: 'me', color: 'sky', colorClass: HIGHLIGHT_BAR_COLOR.sky }
+  }
+  if (t.owner_id) {
+    return { key: `owner:${t.owner_id}`, color: 'foreign', colorClass: getForeignOwnerColorClass(t.owner_id) }
+  }
+  return null
+}
+
 function clamp(value: number) {
   return Math.max(MAP_MIN, Math.min(MAP_MAX, value))
 }
@@ -79,7 +133,18 @@ function isWithinBounds(x: number, y: number) {
   return x >= MAP_MIN && x <= MAP_MAX && y >= MAP_MIN && y <= MAP_MAX
 }
 
-function getIconFontSize(viewSize: number) {
+// Prefers the actual measured cell size (`cellPx`, from a ResizeObserver on
+// the grid element) so icons always scale in lockstep with how big tiles
+// really render — the previous viewSize-only formula assumed a fixed
+// container width, which silently broke (icons stopped shrinking, or grew
+// larger than the tile) whenever the actual rendered width differed, e.g.
+// at some zoom steps on narrower screens. Falls back to the viewSize-based
+// formula when no measurement is available yet (e.g. server-side render,
+// first paint, or in tests where ResizeObserver doesn't exist).
+function getIconFontSize(viewSize: number, cellPx: number | null) {
+  if (cellPx && cellPx > 0) {
+    return `${Math.max(10, Math.min(34, Math.round(cellPx * 0.55)))}px`
+  }
   return `${Math.max(12, Math.round(34 - viewSize * 0.7))}px`
 }
 
@@ -107,6 +172,8 @@ export default function MapViewport({
   const [jumpY, setJumpY] = useState(String(centerY))
   const [hoveredTile, setHoveredTile] = useState<{ x: number; y: number } | null>(null)
   const dragStart = useRef<{ x: number; y: number } | null>(null)
+  const gridRef = useRef<HTMLDivElement>(null)
+  const [cellPx, setCellPx] = useState<number | null>(null)
 
   const half = Math.floor(viewSize / 2)
   const x1 = centerX - half
@@ -121,6 +188,23 @@ export default function MapViewport({
     setJumpX(String(centerX))
     setJumpY(String(centerY))
   }, [centerX, centerY])
+
+  // Measures the grid's real rendered width so icon sizing (getIconFontSize)
+  // can scale exactly with the actual tile size instead of guessing from
+  // viewSize alone (see getIconFontSize for why that broke at some zoom
+  // steps). Guarded for environments without ResizeObserver (e.g. jsdom).
+  useEffect(() => {
+    const el = gridRef.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const update = () => {
+      const width = el.getBoundingClientRect().width
+      if (width > 0) setCellPx(width / viewSize)
+    }
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [viewSize])
 
   function handleJumpSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -153,7 +237,7 @@ export default function MapViewport({
     }
   }
 
-  const iconStyle = { fontSize: getIconFontSize(viewSize) }
+  const iconStyle = { fontSize: getIconFontSize(viewSize, cellPx) }
 
   return (
     <div className="flex flex-col gap-3" data-testid="map-viewport">
@@ -235,6 +319,7 @@ export default function MapViewport({
       </div>
 
       <div
+        ref={gridRef}
         data-testid="map-grid"
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
@@ -251,7 +336,6 @@ export default function MapViewport({
             const isHovered = hoveredTile?.x === x && hoveredTile?.y === y
             const isOwnedByMe = Boolean(tile?.owner_id && currentUserId && tile.owner_id === currentUserId)
             const isUnderAttack = Boolean(tile?.battle_locked_by)
-            const highlightColor: HighlightColor | null = isUnderAttack ? 'red' : isOwnedByMe ? 'sky' : null
 
             if (isVoid) {
               return (
@@ -271,23 +355,33 @@ export default function MapViewport({
               left: byCoord.get(`${x - 1},${y}`),
             }
 
+            const tileHighlight = getHighlightInfo(tile, currentUserId)
+
             const matchingHighlight = (neighbor?: Territory) => {
-              if (!tile || !neighbor || !highlightColor) return false
-              if (highlightColor === 'red') {
-                return Boolean(tile.battle_locked_by && neighbor.battle_locked_by === tile.battle_locked_by)
-              }
-              return Boolean(
-                currentUserId &&
-                  tile.owner_id === currentUserId &&
-                  neighbor.owner_id === tile.owner_id
-              )
+              if (!tileHighlight) return false
+              const neighborHighlight = getHighlightInfo(neighbor, currentUserId)
+              return neighborHighlight?.key === tileHighlight.key
             }
 
-            const perimeterEdges = highlightColor
+            const perimeterEdges = tileHighlight
               ? (['top', 'right', 'bottom', 'left'] as const).filter(
                   (edge) => !matchingHighlight(neighbors[edge])
                 )
               : []
+
+            // Castle/village share one compact row instead of stacking
+            // vertically — with a home marker too, three full-size icons
+            // stacked in one small tile used to overflow it. Shown side by
+            // side and shrunk when there's more than one, this reads as a
+            // single "these structures are here" unit sized to fit the tile.
+            const structureIcons: Array<{ key: string; icon: string; title: string }> = []
+            if (tile?.is_home) structureIcons.push({ key: 'home', icon: '🏠', title: 'Domov' })
+            if (tile?.castle_rank) structureIcons.push({ key: 'castle', icon: '🏰', title: 'Hrad' })
+            if (tile?.village_rank) structureIcons.push({ key: 'village', icon: '🏘️', title: 'Vesnice' })
+            const structureFontSize =
+              structureIcons.length > 1
+                ? `${Math.max(8, Math.round(parseInt(iconStyle.fontSize, 10) * 0.62))}px`
+                : iconStyle.fontSize
 
             return (
               <button
@@ -303,34 +397,23 @@ export default function MapViewport({
                   isUnderAttack ? 'animate-pulse' : ''
                 }`}
               >
-                {highlightColor &&
+                {tileHighlight &&
                   perimeterEdges.map((edge) => (
                     <span
                       key={edge}
                       aria-hidden="true"
                       data-testid={`highlight-${edge}-${x},${y}`}
-                      className={`pointer-events-none absolute z-10 ${HIGHLIGHT_BAR_POSITION[edge]} ${HIGHLIGHT_BAR_COLOR[highlightColor]}`}
+                      className={`pointer-events-none absolute z-10 ${HIGHLIGHT_BAR_POSITION[edge]} ${tileHighlight.colorClass}`}
                     />
                   ))}
-                {tile?.is_home && (
-                  <span title="Domov" className="leading-none drop-shadow" style={iconStyle}>
-                    🏠
-                  </span>
-                )}
-                {tile?.castle_rank && (
-                  <span title="Hrad" className="leading-none drop-shadow" style={iconStyle}>
-                    🏰
-                  </span>
-                )}
-                {tile?.village_rank && (
-                  <span title="Vesnice" className="leading-none drop-shadow" style={iconStyle}>
-                    🏘️
-                  </span>
-                )}
-                {tile?.owner_id && !tile?.is_home && (
-                  <span title="Vlastník" className="leading-none drop-shadow" style={iconStyle}>
-                    🚩
-                  </span>
+                {structureIcons.length > 0 && (
+                  <div className={`flex flex-row items-center justify-center gap-0.5 ${isUnderAttack ? 'opacity-40' : ''}`}>
+                    {structureIcons.map((s) => (
+                      <span key={s.key} title={s.title} className="leading-none drop-shadow" style={{ fontSize: structureFontSize }}>
+                        {s.icon}
+                      </span>
+                    ))}
+                  </div>
                 )}
                 {tile?.claim_locked_by && (
                   <span title="Probíhá zábor" className="leading-none drop-shadow" style={iconStyle}>
@@ -338,7 +421,11 @@ export default function MapViewport({
                   </span>
                 )}
                 {tile?.battle_locked_by && (
-                  <span title="Probíhá boj" className="leading-none drop-shadow" style={iconStyle}>
+                  <span
+                    title="Probíhá boj"
+                    className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center leading-none drop-shadow animate-pulse"
+                    style={iconStyle}
+                  >
                     ⚔️
                   </span>
                 )}

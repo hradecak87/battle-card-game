@@ -83,16 +83,53 @@ describe('MapViewport', () => {
       'me'
     )
 
-    const tile1010 = screen.getByRole('button', { name: 'Území 10,10' }).style.boxShadow
-    const tile1110 = screen.getByRole('button', { name: 'Území 11,10' }).style.boxShadow
+    // The shared (inner) edge between the two owned tiles keeps just the
+    // plain grid border (no colored overlay bar on that side); only the
+    // outer/perimeter sides get the sky highlight overlay bar.
+    expect(screen.queryByTestId('highlight-right-10,10')).not.toBeInTheDocument()
+    expect(screen.getByTestId('highlight-top-10,10')).toBeInTheDocument()
+    expect(screen.getByTestId('highlight-left-10,10')).toBeInTheDocument()
+    expect(screen.getByTestId('highlight-bottom-10,10')).toBeInTheDocument()
 
-    // Shared (inner) edge between the two owned tiles keeps just the plain
-    // grid border (no colored shadow on that side); only the outer/perimeter
-    // sides get the sky highlight.
-    expect(tile1010).not.toContain('inset -2px 0 0 0 #38bdf8')
-    expect(tile1010).toContain('inset 2px 0 0 0 #38bdf8')
-    expect(tile1110).not.toContain('inset 2px 0 0 0 #38bdf8')
-    expect(tile1110).toContain('inset -2px 0 0 0 #38bdf8')
+    expect(screen.queryByTestId('highlight-left-11,10')).not.toBeInTheDocument()
+    expect(screen.getByTestId('highlight-top-11,10')).toBeInTheDocument()
+    expect(screen.getByTestId('highlight-right-11,10')).toBeInTheDocument()
+    expect(screen.getByTestId('highlight-bottom-11,10')).toBeInTheDocument()
+  })
+
+  it('highlights foreign-owned territory with a distinct per-owner color instead of a flag icon', () => {
+    renderViewport(
+      [
+        makeTerritory({ x: 10, y: 10, owner_id: 'other-player' }),
+        makeTerritory({ id: 2, x: 11, y: 10, owner_id: 'other-player' }),
+      ],
+      'me'
+    )
+
+    // No flag icon anymore for foreign-owned tiles.
+    expect(screen.queryByTitle('Vlastník')).not.toBeInTheDocument()
+
+    // Foreign tiles get their own perimeter highlight bars, merged the same
+    // way owned territory is (shared edge has no bar, perimeter edges do).
+    expect(screen.queryByTestId('highlight-right-10,10')).not.toBeInTheDocument()
+    expect(screen.getByTestId('highlight-top-10,10')).toBeInTheDocument()
+    expect(screen.queryByTestId('highlight-left-11,10')).not.toBeInTheDocument()
+    expect(screen.getByTestId('highlight-top-11,10')).toBeInTheDocument()
+  })
+
+  it('renders combined castle + village icons compactly instead of overlapping', () => {
+    renderViewport([makeTerritory({ castle_rank: 'basic', village_rank: 'basic' })], 'me')
+
+    expect(screen.getByTitle('Hrad')).toBeInTheDocument()
+    expect(screen.getByTitle('Vesnice')).toBeInTheDocument()
+  })
+
+  it('shows the battle icon as a blinking overlay on top of structure icons', () => {
+    renderViewport([makeTerritory({ castle_rank: 'basic', battle_locked_by: 'battle-1' })], 'me')
+
+    const battleIcon = screen.getByTitle('Probíhá boj')
+    expect(battleIcon.className).toContain('animate-pulse')
+    expect(battleIcon.className).toContain('absolute')
   })
 
   it('renders out-of-bounds cells as inert void tiles instead of clickable territory buttons', () => {
