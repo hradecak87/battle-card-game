@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { CardInstanceWithTemplate, Territory } from '@/lib/territories/api'
 import { TradingCard } from '@/components/cards/TradingCard'
+import { CastleIcon, VillageIcon } from '@/components/territories/icons/StructureIcons'
 import { applyRank } from '@/lib/cards/combat'
 import { Rank, UnitType, UnitCardTemplate } from '@/lib/cards/types'
 import { NATIONS } from '@/lib/players/nations'
@@ -120,6 +121,9 @@ export default function GarrisonModal({
     setBuildLoading(false)
   }
 
+  const buildLabelIconStyle = { width: '28px', height: '28px' }
+  const structureCardIconStyle = { width: '32px', height: '32px' }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
@@ -226,7 +230,15 @@ export default function GarrisonModal({
               )
               return (
                 <div className="flex items-center gap-2 flex-wrap" data-testid="build-castle-row">
-                  <span className="text-sm font-semibold text-zinc-200">🏰 Postavit hrad</span>
+                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-200">
+                    <CastleIcon
+                      variant="chateau"
+                      title="Hrad"
+                      className="text-stone-300 drop-shadow"
+                      style={buildLabelIconStyle}
+                    />
+                    Postavit hrad
+                  </span>
                   {castleCards.length === 0 ? (
                     <span className="text-xs text-zinc-500" data-testid="no-castle-cards">
                       Nemáš žádnou kartu hradu
@@ -266,7 +278,15 @@ export default function GarrisonModal({
               )
               return (
                 <div className="flex items-center gap-2 flex-wrap" data-testid="build-village-row">
-                  <span className="text-sm font-semibold text-zinc-200">🏘️ Postavit vesnici</span>
+                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-200">
+                    <VillageIcon
+                      variant="stone"
+                      title="Vesnice"
+                      className="text-stone-300 drop-shadow"
+                      style={buildLabelIconStyle}
+                    />
+                    Postavit vesnici
+                  </span>
                   {villageCards.length === 0 ? (
                     <span className="text-xs text-zinc-500" data-testid="no-village-cards">
                       Nemáš žádnou kartu vesnice
@@ -354,7 +374,21 @@ export default function GarrisonModal({
                     />
                   ) : (
                     <div className="flex aspect-[5/7] w-full flex-col items-center justify-center gap-1 rounded-xl border border-zinc-700 bg-zinc-900 p-2 text-center">
-                      <span className="text-2xl">{row?.category === 'castle' ? '🏰' : '🏘️'}</span>
+                      {row?.category === 'castle' ? (
+                        <CastleIcon
+                          variant="chateau"
+                          title="Hrad"
+                          className="text-stone-300 drop-shadow"
+                          style={structureCardIconStyle}
+                        />
+                      ) : (
+                        <VillageIcon
+                          variant="stone"
+                          title="Vesnice"
+                          className="text-stone-300 drop-shadow"
+                          style={structureCardIconStyle}
+                        />
+                      )}
                       <span className="text-xs font-semibold">{row?.name ?? instance.template_id}</span>
                       <span className="text-[10px] text-zinc-500">{row?.rank}</span>
                     </div>
