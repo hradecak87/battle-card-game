@@ -13,6 +13,7 @@ export interface RosterStripProps {
   onSelect?: (instanceId: string) => void
   /** The card currently in the duel (if any), highlighted instead of greyed. */
   activeInstanceId?: string | null
+  previewInstanceId?: string | null
   submittingInstanceId?: string | null
 }
 
@@ -46,6 +47,7 @@ export default function RosterStrip({
   clickable = false,
   onSelect,
   activeInstanceId,
+  previewInstanceId,
   submittingInstanceId,
 }: RosterStripProps) {
   return (
@@ -59,6 +61,7 @@ export default function RosterStrip({
           const template = toUnitTemplate(card)
           if (!template) return null
           const isActive = card.instance_id === activeInstanceId
+          const isPreview = card.instance_id === previewInstanceId
           const isSubmitting = card.instance_id === submittingInstanceId
           return (
             <button
@@ -69,7 +72,7 @@ export default function RosterStrip({
               onClick={() => onSelect?.(card.instance_id)}
               className={`w-[4.875rem] shrink-0 snap-start rounded-lg text-left transition md:w-full ${
                 card.is_resting ? 'opacity-40 grayscale' : ''
-              } ${isActive ? 'ring-2 ring-amber-400' : ''} ${
+              } ${isActive ? 'ring-2 ring-amber-400' : isPreview ? 'ring-2 ring-sky-400' : ''} ${
                 clickable && !card.is_resting ? 'cursor-pointer hover:scale-[1.03]' : 'cursor-default'
               }`}
             >

@@ -91,6 +91,8 @@ function makeRound(overrides: Partial<GetBattleResult['rounds'][number]> = {}): 
     defender_atk: null,
     defender_dmg_dealt: null,
     defender_ttk: null,
+    attacker_win_probability: null,
+    flavor_text: null,
     attacker_card: null,
     defender_card: null,
     ...overrides,
@@ -186,7 +188,7 @@ describe('BattleScreen', () => {
     jest.useRealTimers()
   })
 
-  it("renders the pending round's attacker card and lets the defender pick a card", async () => {
+  it("renders a two-step defender pick preview before submitting the actual RPC", async () => {
     getBattle.mockResolvedValue({ data: activeFixture(), error: null })
     render(<BattleScreen battleId="battle-1" currentUserId="defender-1" />)
 
@@ -197,7 +199,26 @@ describe('BattleScreen', () => {
     expect(defenderRosterCard).not.toBeDisabled()
     fireEvent.click(defenderRosterCard)
 
+    expect(pickDefenderCard).not.toHaveBeenCalled()
+    expect(screen.getByTestId('pick-preview')).toHaveTextContent('Odhad šance obránce na výhru: 50 %')
+    expect(defenderRosterCard).toHaveClass('ring-sky-400')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Potvrdit' }))
     await waitFor(() => expect(pickDefenderCard).toHaveBeenCalledWith('battle-1', 'def-1'))
+  })
+
+  it('lets the defender clear a tentative preview without submitting', async () => {
+    getBattle.mockResolvedValue({ data: activeFixture(), error: null })
+    render(<BattleScreen battleId="battle-1" currentUserId="defender-1" />)
+
+    await waitFor(() => expect(screen.getByTestId('duel-stage')).toBeInTheDocument())
+    fireEvent.click(screen.getByTestId('roster-card-def-1'))
+    expect(screen.getByTestId('pick-preview')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Vybrat jinou' }))
+
+    expect(screen.queryByTestId('pick-preview')).not.toBeInTheDocument()
+    expect(pickDefenderCard).not.toHaveBeenCalled()
   })
 
   it('disables the defender roster when the current user is not the defender', async () => {

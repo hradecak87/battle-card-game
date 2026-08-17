@@ -1,4 +1,4 @@
-import { applyRank, resolveDuel, resolveDuelWithBreakdown } from './combat'
+import { applyRank, calculateWinProbability, resolveDuel, resolveDuelWithBreakdown } from './combat'
 import { EffectiveCard, RawStats } from './types'
 
 describe('applyRank', () => {
@@ -96,5 +96,56 @@ describe('resolveDuel', () => {
     const breakdown = resolveDuelWithBreakdown(attacker, defender)
     expect(breakdown.attacker.ttk).toBe(breakdown.defender.ttk)
     expect(breakdown.winner).toBe('defender')
+  })
+})
+
+describe('calculateWinProbability', () => {
+  it('returns an even 50% fight for identical cards, while deterministic ties still favor the defender', () => {
+    const attacker: EffectiveCard = { str: 5, lng: 5, def: 2, hp: 10 }
+    const defender: EffectiveCard = { str: 5, lng: 5, def: 2, hp: 10 }
+
+    expect(calculateWinProbability(attacker, defender)).toEqual({
+      attackerWinProbability: 0.5,
+      deterministicWinner: 'defender',
+    })
+  })
+
+  it('caps a one-sided favorite near 97% when the defender cannot damage the attacker at all', () => {
+    const attacker: EffectiveCard = { str: 18, lng: 20, def: 12, hp: 24 }
+    const defender: EffectiveCard = { str: 2, lng: 1, def: 1, hp: 6 }
+
+    expect(calculateWinProbability(attacker, defender)).toEqual({
+      attackerWinProbability: 0.97,
+      deterministicWinner: 'attacker',
+    })
+  })
+
+  it('uses the low fixed 3% floor when neither side can damage the other', () => {
+    const attacker: EffectiveCard = { str: 1, lng: 1, def: 10, hp: 5 }
+    const defender: EffectiveCard = { str: 1, lng: 1, def: 10, hp: 5 }
+
+    expect(calculateWinProbability(attacker, defender)).toEqual({
+      attackerWinProbability: 0.03,
+      deterministicWinner: 'defender',
+    })
+  })
+
+  it('keeps moderate mismatches in the middle of the curve instead of snapping straight to certainty', () => {
+    const modestFavorite = calculateWinProbability(
+      { str: 9, lng: 3, def: 4, hp: 10 },
+      { str: 6, lng: 2, def: 5, hp: 10 }
+    )
+    const strongerFavorite = calculateWinProbability(
+      { str: 10, lng: 3, def: 4, hp: 10 },
+      { str: 6, lng: 2, def: 5, hp: 10 }
+    )
+
+    expect(modestFavorite.deterministicWinner).toBe('attacker')
+    expect(modestFavorite.attackerWinProbability).toBeGreaterThan(0.63)
+    expect(modestFavorite.attackerWinProbability).toBeLessThan(0.67)
+
+    expect(strongerFavorite.deterministicWinner).toBe('attacker')
+    expect(strongerFavorite.attackerWinProbability).toBeGreaterThan(0.69)
+    expect(strongerFavorite.attackerWinProbability).toBeLessThan(0.72)
   })
 })

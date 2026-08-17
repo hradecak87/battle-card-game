@@ -4,8 +4,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { getBattle, markReady, pickDefenderCard, GetBattleResult, BattleCard, BattleRoundRow } from '@/lib/battles/api'
 import { useBattleChannel } from '@/lib/battles/useBattleChannel'
 import { getLastSeenRound, setLastSeenRound } from '@/lib/battles/lastSeenRound'
+import { applyRank, calculateWinProbability } from '@/lib/cards/combat'
 import RosterStrip from './RosterStrip'
-import DuelStage from './DuelStage'
+import DuelStage, { toUnitTemplate } from './DuelStage'
 import RoundHistory from './RoundHistory'
 import RoundResultPopup from './RoundResultPopup'
 
@@ -46,6 +47,7 @@ export default function BattleScreen({ battleId, currentUserId }: BattleScreenPr
   const [pickSubmittingId, setPickSubmittingId] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [popupQueue, setPopupQueue] = useState<BattleRoundRow[]>([])
+  const [previewInstanceId, setPreviewInstanceId] = useState<string | null>(null)
 
   const load = useCallback(() => {
     getBattle(battleId).then(({ data: result, error: rpcError }) => {
@@ -127,6 +129,23 @@ export default function BattleScreen({ battleId, currentUserId }: BattleScreenPr
     })
   }, [data, battleId])
 
+  useEffect(() => {
+    if (!previewInstanceId || !data) return
+    const pendingRound = data.rounds.find(
+      (round) => round.round_number === data.battle.current_round + 1 && !round.skipped
+    )
+    const defenderCard = pendingRound?.defender_card_instance_id
+      ? data.defender_pool.find((card) => card.instance_id === pendingRound.defender_card_instance_id) ?? null
+      : null
+    const isDefender = currentUserId !== null && currentUserId === data.battle.defender_id
+    const isMyPickTurn = data.battle.status === 'active' && isDefender && Boolean(pendingRound) && !defenderCard
+    const selectedCard = data.defender_pool.find((card) => card.instance_id === previewInstanceId) ?? null
+
+    if (!isMyPickTurn || !selectedCard || selectedCard.is_resting) {
+      setPreviewInstanceId(null)
+    }
+  }, [currentUserId, data, previewInstanceId])
+
   function handleDismissPopup() {
     const [shown, ...rest] = popupQueue
     if (shown) setLastSeenRound(battleId, shown.round_number)
@@ -154,6 +173,7 @@ export default function BattleScreen({ battleId, currentUserId }: BattleScreenPr
       setActionError(rpcError.message)
       return
     }
+    setPreviewInstanceId(null)
     load()
   }
 
@@ -179,6 +199,18 @@ export default function BattleScreen({ battleId, currentUserId }: BattleScreenPr
     battle.status === 'awaiting_ready' &&
     ((isAttacker && !battle.attacker_ready_at) || (isDefender && !battle.defender_ready_at))
   const isMyPickTurn = battle.status === 'active' && isDefender && Boolean(pendingRound) && !defenderCard
+  const previewCard = previewInstanceId
+    ? defenderPool.find((card) => card.instance_id === previewInstanceId) ?? null
+    : null
+  const attackerTemplate = attackerCard ? toUnitTemplate(attackerCard.template) : null
+  const previewTemplate = previewCard ? toUnitTemplate(previewCard.template) : null
+  const previewProbability =
+    attackerTemplate && previewTemplate
+      ? calculateWinProbability(
+          applyRank(attackerTemplate.baseStats, attackerTemplate.rank),
+          applyRank(previewTemplate.baseStats, previewTemplate.rank)
+        )
+      : null
 
   return (
     <div data-testid="battle-screen" className="flex flex-col items-center gap-6 p-4">
@@ -220,21 +252,52 @@ export default function BattleScreen({ battleId, currentUserId }: BattleScreenPr
       >
         <RosterStrip title="Útočník" cards={attackerRoster} activeInstanceId={attackerCard?.instance_id} />
 
-        <DuelStage
-          attackerCard={attackerCard}
-          defenderCard={defenderCard}
-          roundNumber={battle.current_round + 1}
-          roundDeadline={battle.status === 'active' ? battle.round_deadline : null}
-          score={score}
-          lastWinnerSide={lastWinnerSide}
-        />
+        <div className="flex flex-col items-center gap-3">
+          <DuelStage
+            attackerCard={attackerCard}
+            defenderCard={defenderCard}
+            roundNumber={battle.current_round + 1}
+            roundDeadline={battle.status === 'active' ? battle.round_deadline : null}
+            score={score}
+            lastWinnerSide={lastWinnerSide}
+          />
+          {isMyPickTurn && previewCard && previewProbability && (
+            <div
+              data-testid="pick-preview"
+              className="w-full max-w-sm rounded-lg border border-sky-700 bg-sky-950/40 px-4 py-3 text-sm text-sky-100"
+            >
+              <p className="font-semibold">{previewCard.template.name}</p>
+              <p className="mt-1">
+                Odhad šance obránce na výhru: {Math.round((1 - previewProbability.attackerWinProbability) * 100)} %
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => handlePickDefender(previewCard.instance_id)}
+                  disabled={pickSubmittingId === previewCard.instance_id}
+                  className="rounded bg-sky-600 px-3 py-2 font-semibold text-white hover:bg-sky-500 disabled:opacity-50"
+                >
+                  {pickSubmittingId === previewCard.instance_id ? 'Potvrzuji…' : 'Potvrdit'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewInstanceId(null)}
+                  className="rounded border border-sky-500 px-3 py-2 font-semibold text-sky-100 hover:bg-sky-900/50"
+                >
+                  Vybrat jinou
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         <RosterStrip
           title="Obránce"
           cards={defenderPool}
           clickable={isMyPickTurn}
-          onSelect={handlePickDefender}
+          onSelect={setPreviewInstanceId}
           activeInstanceId={defenderCard?.instance_id}
+          previewInstanceId={previewInstanceId}
           submittingInstanceId={pickSubmittingId}
         />
       </div>

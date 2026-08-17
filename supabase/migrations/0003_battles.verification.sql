@@ -500,3 +500,26 @@ select x, y, battle_locked_by, battle_id from get_minimap_overview();
 -- subquery filter excludes it even before that column clears, as a
 -- defensive double-check).
 
+-- ---------------------------------------------------------------------
+-- 18. 0007_combat_probability.sql: stored win probability + upset flavor.
+-- ---------------------------------------------------------------------
+
+-- 18a. Any newly resolved non-skipped round now stores the attacker's win
+-- probability, always bounded to the closed interval [0.03, 0.97].
+select round_number, attacker_win_probability, flavor_text
+from battle_rounds
+where battle_id = ':gb_active_battle_id' and skipped = false
+order by round_number desc
+limit 5;
+-- Expect: attacker_win_probability is never null for rounds resolved after
+-- 0007 was applied, and always falls between 0.03 and 0.97 inclusive.
+-- flavor_text is null for normal favorite wins, or a seeded Czech upset line
+-- when the random winner differed from the old lower-TTK favorite.
+
+-- 18b. get_battle() now surfaces those same per-round fields through the
+-- existing rounds json payload.
+select rounds
+from get_battle(':gb_active_battle_id');
+-- Expect: each resolved round JSON object includes
+-- attacker_win_probability and flavor_text alongside attacker_atk /
+-- attacker_dmg_dealt / attacker_ttk / defender_*.

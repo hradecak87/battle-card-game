@@ -1378,3 +1378,65 @@ environment.
 - `npx tsc --noEmit` ✅
 - `npm test -- --runInBand` ✅ (218/218 tests, 34/34 suites)
 - `npm run build` ✅ (build succeeded; existing environment emitted repeated Supabase Node 20 deprecation warnings)
+
+## 16. Combat probability preview + upset flavor text — implemented and verified in `feature/combat-probability`
+
+Battle rounds are no longer strictly deterministic. The old TTK race still
+computes the **deterministic favorite**, but actual round resolution now uses
+an attacker win probability derived from damage-per-HP rates:
+
+- `rateAttacker = dmgToDefender / defender.hp` when attacker damage > 0, else `0`
+- `rateDefender = dmgToAttacker / attacker.hp` when defender damage > 0, else `0`
+- if both rates are `0`, attacker win probability = **`0.03`**
+- otherwise `raw = rateAttacker / (rateAttacker + rateDefender)`
+- final attacker probability = **`0.03 + raw * 0.94`** (so all rounds stay in
+  the closed **3%-97%** band)
+
+Implemented changes in this worktree:
+- `lib/cards/combat.ts` adds `calculateWinProbability()` returning
+  `{ attackerWinProbability, deterministicWinner }`, reusing the existing
+  `resolveDuelWithBreakdown()` winner for upset detection.
+- `lib/cards/combat.test.ts` adds coverage for: 50/50 identical cards,
+  97/3 one-sided mismatch, 3% mutual-zero-damage stalemate, and two moderate
+  curve-shape sanity checks.
+- `supabase/migrations/0007_combat_probability.sql` adds
+  `battle_rounds.attacker_win_probability numeric` and
+  `battle_rounds.flavor_text text`, creates/ seeds `combat_flavor_texts`
+  (16 Czech medieval upset lines), enables RLS on that table, and replaces
+  `_resolve_round(...)` so it stores the computed probability, rolls
+  `random()`, resolves the actual winner probabilistically, and only stores a
+  random flavor text when the actual winner differs from the old TTK favorite.
+- `supabase/migrations/0003_battles.verification.sql` now also checks the new
+  stored probability / flavor-text fields through both `battle_rounds` and
+  `get_battle()`.
+- `lib/battles/api.ts` extends `BattleRoundRow` with
+  `attacker_win_probability` and `flavor_text`.
+- `components/battles/BattleScreen.tsx` now uses a **two-step** defender pick:
+  clicking a defender card marks a tentative preview only; a compact Czech
+  confirm panel shows an **estimated** defender win chance plus
+  **Potvrdit** / **Vybrat jinou** buttons; only confirm triggers
+  `pickDefenderCard(...)`. The tentative card auto-clears if the round closes
+  or the card becomes ineligible before confirm.
+- `components/battles/RosterStrip.tsx` adds a distinct blue preview ring
+  separate from the existing amber "already committed / active in duel" ring.
+- `components/battles/RoundResultPopup.tsx` now shows the stored
+  **Šance útočníka na výhru: X %** and, when `flavor_text` is non-null,
+  a prominent **Zvrat! ⚡ ...** banner.
+- `components/battles/BattleScreen.test.tsx` verifies preview-before-submit
+  and cancel-without-submit behavior.
+- `components/battles/RoundResultPopup.test.tsx` verifies probability text and
+  upset banner rendering.
+
+Important note: the **preview** probability shown before defender confirm is
+explicitly labeled as an **estimate** (`Odhad šance...`) because that client
+preview currently uses only rank-scaled unit stats, while the authoritative
+server-side SQL also incorporates territory/nation combat modifiers when
+present. The actual resolved round always stores and displays the exact server
+probability from `_resolve_round`.
+
+Verification in this worktree after the final review fixes:
+- `npx tsc --noEmit` — clean
+- `npm test -- --runInBand` — **226/226 tests passing** across 35 suites
+- `npm run build` — clean production build; same pre-existing
+  `@supabase/supabase-js` Node 22 future-warning repeats during static page
+  generation, but the build succeeds fully
