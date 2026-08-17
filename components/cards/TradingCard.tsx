@@ -22,7 +22,7 @@ const RANK_LABELS: Record<Rank, string> = {
 
 /**
  * Rank frame theme (spec: user-requested classic TCG rarity colors):
- * common=gray, uncommon=blue, rare=green, epic=purple, legend=gold.
+ * common=gray, uncommon=green, rare=blue, epic=purple, legend=gold.
  */
 const RANK_FRAME: Record<
   Rank,
@@ -35,15 +35,15 @@ const RANK_FRAME: Record<
     glow: '',
   },
   uncommon: {
-    border: 'border-blue-500',
-    badgeBg: 'bg-blue-500',
-    badgeText: 'text-blue-50',
-    glow: '',
-  },
-  rare: {
     border: 'border-green-500',
     badgeBg: 'bg-green-500',
     badgeText: 'text-green-50',
+    glow: '',
+  },
+  rare: {
+    border: 'border-blue-500',
+    badgeBg: 'bg-blue-500',
+    badgeText: 'text-blue-50',
     glow: '',
   },
   epic: {

@@ -9,6 +9,33 @@ update it as work progresses (not just at the end of a session).
 
 ---
 
+## Latest update — 2026-08-18b (building-cards module merged + rank-color swap)
+
+**Building-cards module merged** (`feature/building-cards`, commit
+`fb4fdcd`, merged `793607e`): 50 XP per battle win (skips NPC "winners"),
+a level-milestone (every 5 levels) `castle-common`/`village-common` card
+grant, a 1% per-win random structure-card bonus, a starter-kit
+castle+village grant added to `complete_kingdom_onboarding`, a new
+`xp_level(xp)` SQL helper mirroring `lib/players/leveling.ts`, and a
+"Postavit hrad/vesnici" build action wired into `GarrisonModal.tsx` via
+the pre-existing `build_structure` RPC.
+`supabase/migrations/0009_structure_card_rewards.sql` **applied to the
+live Supabase project** (verified `xp_level` function exists). One merge
+conflict in `lib/territories/api.test.ts` (two independent new
+`describe` blocks added by both branches) resolved by keeping both.
+274/274 tests, `tsc`/build clean.
+
+**Item 5 (bug batch, above) now resolved for battle wins** — XP is
+awarded on win. The territory-capture-XP half of item 5 is still
+outstanding (not in this agent's scope).
+
+**Item 7 (rank color swap) done**: `components/cards/TradingCard.tsx`
+`RANK_FRAME` — `uncommon` is now green (`border-green-500`), `rare` is
+now blue (`border-blue-500`) (previously the reverse). No tests asserted
+the specific Tailwind color classes, so no test changes needed.
+
+---
+
 ## Latest update — 2026-08-18 (territory-name display bug fully fixed; new bug/idea batch logged as TODO)
 
 **Territory rename display bug — now actually fully fixed** (earlier
