@@ -17,6 +17,7 @@ const baseTerritory: Territory = {
   claim_started_at: null,
   claim_transfer_arrives_at: null,
   claim_occupation_completes_at: null,
+  name: null,
 }
 
 const unitTemplate: UnitCardTemplate = {

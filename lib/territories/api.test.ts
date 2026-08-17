@@ -1,14 +1,15 @@
-import { getPlayerPublicInfo } from './api'
+import { getPlayerPublicInfo, renameTerritory } from './api'
 
 const single = jest.fn()
 const eq = jest.fn(() => ({ single }))
 const select = jest.fn(() => ({ eq }))
 const from = jest.fn((_table: string) => ({ select }))
+const rpc = jest.fn()
 
 jest.mock('@/lib/supabase/client', () => ({
   supabase: {
     from: (table: string) => from(table),
-    rpc: jest.fn(),
+    rpc: (...args: unknown[]) => rpc(...args),
   },
 }))
 
@@ -38,5 +39,23 @@ describe('getPlayerPublicInfo', () => {
     expect(select).toHaveBeenCalledWith('id, display_name, nation, kingdom_name, xp')
     expect(eq).toHaveBeenCalledWith('id', 'player-1')
     expect(single).toHaveBeenCalled()
+  })
+})
+
+describe('renameTerritory', () => {
+  beforeEach(() => {
+    rpc.mockReset()
+  })
+
+  it('calls the rename_territory RPC with the correct arguments', async () => {
+    rpc.mockResolvedValue({ data: null, error: null })
+    await renameTerritory(42, 'Hrad Orlík')
+    expect(rpc).toHaveBeenCalledWith('rename_territory', { territory_id: 42, new_name: 'Hrad Orlík' })
+  })
+
+  it('passes an empty string to clear the name', async () => {
+    rpc.mockResolvedValue({ data: null, error: null })
+    await renameTerritory(42, '')
+    expect(rpc).toHaveBeenCalledWith('rename_territory', { territory_id: 42, new_name: '' })
   })
 })

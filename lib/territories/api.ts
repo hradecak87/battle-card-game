@@ -21,6 +21,8 @@ export interface Territory {
   claim_started_at: string | null
   claim_transfer_arrives_at: string | null
   claim_occupation_completes_at: string | null
+  /** Custom display name set by the territory owner (migration 0008). */
+  name: string | null
   /** Attacker's player id if a battle is currently in progress here (subsystem #4). */
   battle_locked_by: string | null
   /**
@@ -360,5 +362,12 @@ export async function buildStructure(territoryId: number, cardInstanceId: string
   return supabase.rpc('build_structure', {
     territory_id: territoryId,
     card_instance_id: cardInstanceId,
+  })
+}
+
+export async function renameTerritory(territoryId: number, newName: string) {
+  return supabase.rpc('rename_territory', {
+    territory_id: territoryId,
+    new_name: newName,
   })
 }
