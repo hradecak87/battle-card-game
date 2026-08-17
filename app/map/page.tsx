@@ -10,6 +10,7 @@ import {
   getIncomingAttackArrival,
   getPlayerPublicInfo,
   getMyTerritories,
+  getActiveBattleForTerritory,
   renameTerritory,
   buildStructure,
   getMyStructureCardInstances,
@@ -24,6 +25,10 @@ import DeclareAttackModal from '@/components/territories/DeclareAttackModal'
 import TransferModal from '@/components/territories/TransferModal'
 import MyMovementsPanel from '@/components/territories/MyMovementsPanel'
 import { useTerritoryBattleChannel } from '@/lib/battles/useTerritoryBattleChannel'
+import {
+  IncomingOwnedTerritoryBattle,
+  useMyTerritoriesBattleChannel,
+} from '@/lib/battles/useMyTerritoriesBattleChannel'
 import { levelForXp } from '@/lib/players/leveling'
 import { useSession } from '@/lib/supabase/useSession'
 
@@ -37,6 +42,12 @@ const MAP_MAX = 255
 
 type SelectedOwnerInfo = PlayerPublicInfo & {
   level: number
+}
+
+type IncomingBattleAlert = {
+  territoryId: number
+  territoryLabel: string
+  battleId: string | null
 }
 
 function clamp(value: number) {
@@ -64,6 +75,7 @@ export default function MapPage() {
   const [showAttackModal, setShowAttackModal] = useState(false)
   const [showTransferModal, setShowTransferModal] = useState(false)
   const [movementsRefreshKey, setMovementsRefreshKey] = useState(0)
+  const [incomingBattleAlerts, setIncomingBattleAlerts] = useState<IncomingBattleAlert[]>([])
   const selectionRequestIdRef = useRef(0)
   const autoCenteredUserId = useRef<string | null>(null)
 
@@ -93,9 +105,53 @@ export default function MapPage() {
     () => loadViewport(centerX, centerY, viewSize)
   )
 
+  const resolveActiveBattleId = useCallback(async (territoryId: number) => {
+    const { data, error: battleError } = await getActiveBattleForTerritory(territoryId)
+    if (battleError) return null
+    return data?.id ?? null
+  }, [])
+
+  const handleIncomingBattle = useCallback(
+    async ({ territoryId }: IncomingOwnedTerritoryBattle) => {
+      const territory = ownedTerritories?.find((candidate) => candidate.id === territoryId)
+      if (!territory) return
+
+      const battleId = await resolveActiveBattleId(territoryId)
+      const territoryLabel = territory.name
+        ? `${territory.name} (${territory.x}, ${territory.y})`
+        : `(${territory.x}, ${territory.y})`
+
+      setIncomingBattleAlerts((current) => {
+        const existing = current.find((alert) => alert.territoryId === territoryId)
+        if (existing) {
+          return current.map((alert) =>
+            alert.territoryId === territoryId ? { ...alert, battleId: alert.battleId ?? battleId } : alert
+          )
+        }
+        return [
+          ...current,
+          {
+            territoryId,
+            territoryLabel,
+            battleId,
+          },
+        ]
+      })
+    },
+    [ownedTerritories, resolveActiveBattleId]
+  )
+
+  useMyTerritoriesBattleChannel(ownedTerritories, handleIncomingBattle)
+
   useEffect(() => {
     loadViewport(centerX, centerY, viewSize)
   }, [centerX, centerY, viewSize, loadViewport])
+
+  useEffect(() => {
+    if (!user?.id) {
+      setIncomingBattleAlerts([])
+    }
+  }, [user?.id])
 
   function handlePan(dx: number, dy: number) {
     setCenterX((x) => clamp(x + dx))
@@ -113,6 +169,23 @@ export default function MapPage() {
 
   function handleZoomOut() {
     setZoomIndex((i) => Math.min(ZOOM_LEVELS.length - 1, i + 1))
+  }
+
+  async function handleOpenIncomingBattle(territoryId: number, knownBattleId: string | null) {
+    const battleId = knownBattleId ?? (await resolveActiveBattleId(territoryId))
+    if (!battleId) return
+
+    if (!knownBattleId) {
+      setIncomingBattleAlerts((current) =>
+        current.map((alert) => (alert.territoryId === territoryId ? { ...alert, battleId } : alert))
+      )
+    }
+
+    router.push(`/battles/${battleId}`)
+  }
+
+  function handleDismissIncomingBattle(territoryId: number) {
+    setIncomingBattleAlerts((current) => current.filter((alert) => alert.territoryId !== territoryId))
   }
 
   const handleFindHome = useCallback(async () => {
@@ -293,6 +366,42 @@ export default function MapPage() {
         )}
 
         <MyMovementsPanel myPlayerId={user?.id ?? null} refreshKey={movementsRefreshKey} />
+
+        {incomingBattleAlerts.length > 0 && (
+          <div className="flex flex-col gap-3">
+            {incomingBattleAlerts.map((alert) => (
+              <div
+                key={alert.territoryId}
+                className="flex flex-col gap-3 rounded-2xl border border-red-800 bg-red-950/70 p-4 text-sm text-red-50 md:flex-row md:items-start md:justify-between"
+              >
+                <div className="flex-1">
+                  <p className="font-semibold">Vaše území {alert.territoryLabel} bylo napadeno!</p>
+                  {!alert.battleId && (
+                    <p className="mt-1 text-xs text-red-200">
+                      Útočící vojska jsou na cestě — tlačítko začne fungovat hned, jakmile bitva vznikne.
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 self-start">
+                  <button
+                    onClick={() => handleOpenIncomingBattle(alert.territoryId, alert.battleId)}
+                    className="rounded-full border border-red-500/60 bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-50 transition-colors hover:border-red-400 hover:bg-red-500/20"
+                  >
+                    Přejít do bitvy
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Zavřít upozornění na útok na území ${alert.territoryLabel}`}
+                    onClick={() => handleDismissIncomingBattle(alert.territoryId)}
+                    className="rounded-full border border-red-900 px-3 py-2 text-xs font-semibold text-red-200 transition-colors hover:border-red-700 hover:text-red-50"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {error && <p className="text-red-400 text-sm">{error}</p>}
 

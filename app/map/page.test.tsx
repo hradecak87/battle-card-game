@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent, within } from '@testing-library/react'
+import { act, render, screen, waitFor, fireEvent, within } from '@testing-library/react'
 import MapPage from './page'
 
 const routerPush = jest.fn()
@@ -39,6 +39,7 @@ const getMyMovements = jest.fn().mockResolvedValue({ data: [], error: null })
 const getTerritoriesByIds = jest.fn().mockResolvedValue({ data: [], error: null })
 const getMyActiveBattles = jest.fn().mockResolvedValue({ data: [], error: null })
 const getMyRecentlyResolvedBattles = jest.fn().mockResolvedValue({ data: [], error: null })
+const getActiveBattleForTerritory = jest.fn().mockResolvedValue({ data: null, error: null })
 const renameTerritory = jest.fn().mockResolvedValue({ data: null, error: null })
 const getMyStructureCardInstances = jest.fn().mockResolvedValue({ data: [], error: null })
 const buildStructure = jest.fn().mockResolvedValue({ data: null, error: null })
@@ -56,6 +57,7 @@ jest.mock('@/lib/territories/api', () => ({
   getTerritoriesByIds: (...args: unknown[]) => getTerritoriesByIds(...args),
   getMyActiveBattles: (...args: unknown[]) => getMyActiveBattles(...args),
   getMyRecentlyResolvedBattles: (...args: unknown[]) => getMyRecentlyResolvedBattles(...args),
+  getActiveBattleForTerritory: (...args: unknown[]) => getActiveBattleForTerritory(...args),
   renameTerritory: (...args: unknown[]) => renameTerritory(...args),
   getMyStructureCardInstances: (...args: unknown[]) => getMyStructureCardInstances(...args),
   buildStructure: (...args: unknown[]) => buildStructure(...args),
@@ -74,6 +76,10 @@ jest.mock('@/lib/battles/useTerritoryBattleChannel', () => ({
   useTerritoryBattleChannel: jest.fn(),
 }))
 
+jest.mock('@/lib/battles/useMyTerritoriesBattleChannel', () => ({
+  useMyTerritoriesBattleChannel: jest.fn(),
+}))
+
 jest.mock('@/components/territories/MyMovementsPanel', () => ({
   __esModule: true,
   default: ({ refreshKey }: { refreshKey?: number }) => <div data-testid="movements-refresh-key">{refreshKey ?? 0}</div>,
@@ -81,6 +87,7 @@ jest.mock('@/components/territories/MyMovementsPanel', () => ({
 
 describe('MapPage', () => {
   beforeEach(() => {
+    routerPush.mockReset()
     getViewport.mockReset()
     getViewport.mockResolvedValue({
       data: [mockTerritory(128, 128, { is_home: true, owner_id: 'me' })],
@@ -107,6 +114,8 @@ describe('MapPage', () => {
     getMyActiveBattles.mockResolvedValue({ data: [], error: null })
     getMyRecentlyResolvedBattles.mockReset()
     getMyRecentlyResolvedBattles.mockResolvedValue({ data: [], error: null })
+    getActiveBattleForTerritory.mockReset()
+    getActiveBattleForTerritory.mockResolvedValue({ data: null, error: null })
     sessionUser = null
   })
 
@@ -354,5 +363,93 @@ describe('MapPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Zavřít' }))
     expect(screen.queryByTestId('garrison-modal')).not.toBeInTheDocument()
+  })
+
+  it('passes the player-owned territories into the incoming-battle channel', async () => {
+    sessionUser = { id: 'me' }
+    getMyTerritories.mockResolvedValueOnce({
+      data: [
+        { id: 11, x: 10, y: 20, is_home: true, castle_rank: null, village_rank: null, name: null, battle_locked_by: null },
+        { id: 12, x: 30, y: 40, is_home: false, castle_rank: null, village_rank: 'common', name: 'Pevnost', battle_locked_by: null },
+      ],
+      error: null,
+    })
+
+    render(<MapPage />)
+
+    const { useMyTerritoriesBattleChannel } = jest.requireMock('@/lib/battles/useMyTerritoriesBattleChannel')
+    await waitFor(() =>
+      expect(useMyTerritoriesBattleChannel).toHaveBeenCalledWith(
+        [
+          expect.objectContaining({ id: 11, x: 10, y: 20 }),
+          expect.objectContaining({ id: 12, x: 30, y: 40 }),
+        ],
+        expect.any(Function)
+      )
+    )
+  })
+
+  it('shows an incoming attack banner and navigates to the resolved battle from it', async () => {
+    sessionUser = { id: 'me' }
+    let incomingBattleCallback: ((update: { territoryId: number; battleLockedBy: string }) => void | Promise<void>) | null = null
+    const { useMyTerritoriesBattleChannel } = jest.requireMock('@/lib/battles/useMyTerritoriesBattleChannel')
+    useMyTerritoriesBattleChannel.mockImplementation(
+      (_territories: unknown, onIncomingBattle: (update: { territoryId: number; battleLockedBy: string }) => void | Promise<void>) => {
+        incomingBattleCallback = onIncomingBattle
+      }
+    )
+    getMyTerritories.mockResolvedValueOnce({
+      data: [
+        { id: 99, x: 12, y: 34, is_home: false, castle_rank: null, village_rank: null, name: null, battle_locked_by: null },
+      ],
+      error: null,
+    })
+    getActiveBattleForTerritory.mockResolvedValueOnce({ data: { id: 'battle-99' }, error: null })
+
+    render(<MapPage />)
+
+    await waitFor(() => expect(incomingBattleCallback).not.toBeNull())
+    await act(async () => {
+      await incomingBattleCallback?.({ territoryId: 99, battleLockedBy: 'enemy-1' })
+    })
+
+    expect(await screen.findByText('Vaše území (12, 34) bylo napadeno!')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Přejít do bitvy' }))
+    expect(routerPush).toHaveBeenCalledWith('/battles/battle-99')
+  })
+
+  it('lets the player dismiss an incoming attack banner without navigating', async () => {
+    sessionUser = { id: 'me' }
+    let incomingBattleCallback: ((update: { territoryId: number; battleLockedBy: string }) => void | Promise<void>) | null = null
+    const { useMyTerritoriesBattleChannel } = jest.requireMock('@/lib/battles/useMyTerritoriesBattleChannel')
+    useMyTerritoriesBattleChannel.mockImplementation(
+      (_territories: unknown, onIncomingBattle: (update: { territoryId: number; battleLockedBy: string }) => void | Promise<void>) => {
+        incomingBattleCallback = onIncomingBattle
+      }
+    )
+    getMyTerritories.mockResolvedValueOnce({
+      data: [
+        { id: 101, x: 50, y: 60, is_home: true, castle_rank: null, village_rank: null, name: 'Domov', battle_locked_by: null },
+      ],
+      error: null,
+    })
+    getActiveBattleForTerritory.mockResolvedValueOnce({ data: { id: 'battle-101' }, error: null })
+
+    render(<MapPage />)
+
+    await waitFor(() => expect(incomingBattleCallback).not.toBeNull())
+    await act(async () => {
+      await incomingBattleCallback?.({ territoryId: 101, battleLockedBy: 'enemy-2' })
+    })
+
+    expect(await screen.findByText('Vaše území Domov (50, 60) bylo napadeno!')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zavřít upozornění na útok na území Domov (50, 60)' }))
+
+    await waitFor(() =>
+      expect(screen.queryByText('Vaše území Domov (50, 60) bylo napadeno!')).not.toBeInTheDocument()
+    )
+    expect(routerPush).not.toHaveBeenCalled()
   })
 })

@@ -102,6 +102,7 @@ export interface MyTerritory {
   castle_rank: string | null
   village_rank: string | null
   name: string | null
+  battle_locked_by: string | null
 }
 
 export interface PlayerPublicInfo {
@@ -124,7 +125,7 @@ export interface PlayerPublicInfo {
 export async function getMyTerritories(ownerId: string) {
   return supabase
     .from('territories')
-    .select('id, x, y, is_home, castle_rank, village_rank, name')
+    .select('id, x, y, is_home, castle_rank, village_rank, name, battle_locked_by')
     .eq('owner_id', ownerId)
     .order('is_home', { ascending: false })
     .order('x')
@@ -219,6 +220,10 @@ export interface ActiveBattleRef {
   territory_id: number
 }
 
+export interface ActiveBattleLookup {
+  id: string
+}
+
 /**
  * All of the caller's own not-yet-resolved battles (as either side), so
  * MyMovementsPanel can show "bitva právě probíhá →" instead of an ETA
@@ -231,6 +236,20 @@ export async function getMyActiveBattles(playerId: string) {
     .or(`attacker_id.eq.${playerId},defender_id.eq.${playerId}`)
     .not('status', 'in', '(resolved,expired)') as unknown as Promise<{
     data: ActiveBattleRef[] | null
+    error: { message: string } | null
+  }>
+}
+
+export async function getActiveBattleForTerritory(territoryId: number) {
+  return supabase
+    .from('battles')
+    .select('id')
+    .eq('territory_id', territoryId)
+    .not('status', 'in', '(resolved,expired)')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle() as unknown as Promise<{
+    data: ActiveBattleLookup | null
     error: { message: string } | null
   }>
 }
