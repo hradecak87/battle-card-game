@@ -99,6 +99,14 @@ export interface MyTerritory {
   is_home: boolean
 }
 
+export interface PlayerPublicInfo {
+  id: string
+  display_name: string
+  nation: string
+  kingdom_name: string | null
+  xp: number
+}
+
 /**
  * Lists all territories owned by the given player (max 32 by the
  * ownership cap, so no pagination/row-limit concern like
@@ -117,6 +125,17 @@ export async function getMyTerritories(ownerId: string) {
     .order('x')
     .order('y') as unknown as Promise<{
     data: MyTerritory[] | null
+    error: { message: string } | null
+  }>
+}
+
+export async function getPlayerPublicInfo(playerId: string) {
+  return supabase
+    .from('players')
+    .select('id, display_name, nation, kingdom_name, xp')
+    .eq('id', playerId)
+    .single() as unknown as Promise<{
+    data: PlayerPublicInfo | null
     error: { message: string } | null
   }>
 }

@@ -9,6 +9,43 @@ update it as work progresses (not just at the end of a session).
 
 ---
 
+## Latest update — 2026-08-17
+
+- Map territory popup now supports both missing live UX pieces that still
+  lacked a wired frontend despite the backend already existing:
+  1. **Other-player owner info in `GarrisonModal`**: `app/map/page.tsx`
+     now fetches the selected enemy/other owner's public `players` row via
+     the new `lib/territories/api.ts:getPlayerPublicInfo`, derives the
+     owner's level with `levelForXp`, and passes it to `GarrisonModal`.
+     The modal renders owner name, nation, kingdom name (if present), and
+     level directly inside the popup, so it works on mobile too.
+  2. **Troop transfer UI for owned destination territories**: added
+     `components/territories/TransferModal.tsx`, opened from
+     `GarrisonModal`'s new **"Přesunout vojska"** button when the selected
+     territory belongs to the viewer. The modal lists the player's other
+     owned territories (excluding the destination), loads stationed cards
+     at the chosen origin, filters to unit cards only, supports
+     multi-select, and calls the pre-existing `startTransfer(...)` RPC
+     wrapper. On success, `app/map/page.tsx` refreshes the viewport and
+     bumps `movementsRefreshKey`, matching the existing attack flow.
+- `GarrisonModal` also now shows the expected territory metadata block
+  (`difficulty`, coordinates, castle/village rank) plus graceful
+  owner-info loading/error text.
+- Test coverage added/updated:
+  - `components/territories/TransferModal.test.tsx`
+  - `lib/territories/api.test.ts`
+  - `components/territories/GarrisonModal.test.tsx`
+  - `app/map/page.test.tsx`
+- Post-review follow-up fix: `TransferModal` now guards against stale async
+  origin loads in both quick-switch (`A → B`) and deselect (`A → empty`)
+  cases, so an outdated response can no longer overwrite the current origin
+  troops or leave the modal stuck on "Načítám vojska…".
+- Fresh verification in this worktree after the change:
+  - `npx tsc --noEmit` ✅
+  - `npm test` ✅ **222/222 tests passing across 35 suites**
+  - `npm run build` ✅ (only repeated existing Supabase/Node 20 deprecation
+    warnings during static generation; build still completed cleanly)
+
 ## 1. Big picture: this is subsystem #1 of a much larger game
 
 The user's full vision (from the original brainstorming conversation) is a

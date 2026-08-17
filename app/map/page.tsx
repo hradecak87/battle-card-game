@@ -1,14 +1,25 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { getViewport, getCardInstancesAtTerritory, getMyHomeTerritory, getIncomingAttackArrival, CardInstanceWithTemplate, Territory } from '@/lib/territories/api'
+import {
+  getViewport,
+  getCardInstancesAtTerritory,
+  getMyHomeTerritory,
+  getIncomingAttackArrival,
+  getPlayerPublicInfo,
+  CardInstanceWithTemplate,
+  PlayerPublicInfo,
+  Territory,
+} from '@/lib/territories/api'
 import MapViewport from '@/components/territories/MapViewport'
 import GarrisonModal from '@/components/territories/GarrisonModal'
 import DeclareAttackModal from '@/components/territories/DeclareAttackModal'
+import TransferModal from '@/components/territories/TransferModal'
 import MyMovementsPanel from '@/components/territories/MyMovementsPanel'
 import { useTerritoryBattleChannel } from '@/lib/battles/useTerritoryBattleChannel'
+import { levelForXp } from '@/lib/players/leveling'
 import { useSession } from '@/lib/supabase/useSession'
 
 // Capped below Supabase/PostgREST's default 1000-row response limit
@@ -18,6 +29,10 @@ const ZOOM_LEVELS = [7, 11, 15, 19, 23, 27]
 const DEFAULT_ZOOM_INDEX = 2 // 15 tiles per side, same as the previous fixed size
 const MAP_MIN = 0
 const MAP_MAX = 255
+
+type SelectedOwnerInfo = PlayerPublicInfo & {
+  level: number
+}
 
 function clamp(value: number) {
   return Math.max(MAP_MIN, Math.min(MAP_MAX, value))
@@ -34,10 +49,15 @@ export default function MapPage() {
   const [selectedTile, setSelectedTile] = useState<Territory | null>(null)
   const [garrison, setGarrison] = useState<CardInstanceWithTemplate[] | null>(null)
   const [garrisonError, setGarrisonError] = useState<string | null>(null)
+  const [ownerInfo, setOwnerInfo] = useState<SelectedOwnerInfo | null>(null)
+  const [ownerInfoLoading, setOwnerInfoLoading] = useState(false)
+  const [ownerInfoError, setOwnerInfoError] = useState<string | null>(null)
   const [incomingAttackArrivesAt, setIncomingAttackArrivesAt] = useState<string | null>(null)
   const [homeStatus, setHomeStatus] = useState<'idle' | 'searching' | 'not-found'>('idle')
   const [showAttackModal, setShowAttackModal] = useState(false)
+  const [showTransferModal, setShowTransferModal] = useState(false)
   const [movementsRefreshKey, setMovementsRefreshKey] = useState(0)
+  const selectionRequestIdRef = useRef(0)
 
   const viewSize = ZOOM_LEVELS[zoomIndex]
 
@@ -109,20 +129,47 @@ export default function MapPage() {
       router.push(`/battles/${tile.battle_id}`)
       return
     }
+    const requestId = selectionRequestIdRef.current + 1
+    selectionRequestIdRef.current = requestId
     setSelectedTile(tile)
     setGarrison(null)
     setGarrisonError(null)
+    setOwnerInfo(null)
+    setOwnerInfoError(null)
     setIncomingAttackArrivesAt(null)
+    setShowAttackModal(false)
+    setShowTransferModal(false)
+    const shouldLoadOwnerInfo = Boolean(tile.owner_id && tile.owner_id !== user?.id)
+    setOwnerInfoLoading(shouldLoadOwnerInfo)
+    if (shouldLoadOwnerInfo && tile.owner_id) {
+      getPlayerPublicInfo(tile.owner_id).then(({ data, error: playerError }) => {
+        if (selectionRequestIdRef.current !== requestId) return
+        setOwnerInfoLoading(false)
+        if (playerError) {
+          setOwnerInfoError(playerError.message)
+          return
+        }
+        if (!data) return
+        setOwnerInfo({
+          ...data,
+          level: levelForXp(data.xp),
+        })
+      })
+    } else {
+      setOwnerInfoLoading(false)
+    }
     if (tile.battle_locked_by) {
       // battle_locked_by is set the instant declare_attack is called,
       // well before the attacking army physically arrives and a battle
       // row exists — fetch that arrival ETA separately so the modal can
       // show "vojska dorazí za X" instead of just "v boji" with no info.
       getIncomingAttackArrival(tile.id).then(({ data }) => {
+        if (selectionRequestIdRef.current !== requestId) return
         setIncomingAttackArrivesAt(data?.transfer_arrives_at ?? null)
       })
     }
     const { data, error: rpcError } = await getCardInstancesAtTerritory(tile.id)
+    if (selectionRequestIdRef.current !== requestId) return
     if (rpcError) {
       setGarrisonError(rpcError.message)
       return
@@ -186,6 +233,10 @@ export default function MapPage() {
             onClose={() => setSelectedTile(null)}
             myPlayerId={user?.id ?? null}
             onAttack={() => setShowAttackModal(true)}
+            onTransfer={() => setShowTransferModal(true)}
+            ownerInfo={ownerInfo}
+            ownerInfoLoading={ownerInfoLoading}
+            ownerInfoError={ownerInfoError}
             incomingAttackArrivesAt={incomingAttackArrivesAt}
           />
         )}
@@ -196,6 +247,19 @@ export default function MapPage() {
             myPlayerId={user?.id ?? null}
             onClose={() => setShowAttackModal(false)}
             onDeclared={() => {
+              loadViewport(centerX, centerY, viewSize)
+              setMovementsRefreshKey((k) => k + 1)
+            }}
+          />
+        )}
+
+        {selectedTile && showTransferModal && (
+          <TransferModal
+            territory={selectedTile}
+            myPlayerId={user?.id ?? null}
+            onClose={() => setShowTransferModal(false)}
+            onTransferred={() => {
+              setShowTransferModal(false)
               loadViewport(centerX, centerY, viewSize)
               setMovementsRefreshKey((k) => k + 1)
             }}
