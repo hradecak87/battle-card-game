@@ -11,8 +11,8 @@ describe('StructureIcons', () => {
     render(
       <>
         <HomeIcon title="Domov" />
-        <CastleIcon variant="chateau" title="Hrad" />
-        <VillageIcon variant="stone" title="Vesnice" />
+        <CastleIcon variant="castle-2" title="Hrad" />
+        <VillageIcon variant="village-1" title="Vesnice" />
       </>
     )
 
@@ -22,15 +22,15 @@ describe('StructureIcons', () => {
   })
 
   it('pickVariant is deterministic for the same seed', () => {
-    const variants = ['ruin', 'chateau', 'tower'] as const
+    const variants = ['castle-1', 'castle-2', 'castle-3'] as const
 
     expect(pickVariant('territory-42', variants)).toBe(pickVariant('territory-42', variants))
     expect(pickVariant('territory-42', variants)).toBe(pickVariant('territory-42', variants))
   })
 
   it('pickVariant reaches every option across many different seeds', () => {
-    const castleVariants = ['ruin', 'chateau', 'tower'] as const
-    const villageVariants = ['stone', 'romanesque', 'timber'] as const
+    const castleVariants = ['castle-1', 'castle-2', 'castle-3'] as const
+    const villageVariants = ['village-1', 'village-2', 'village-3'] as const
 
     const seenCastles = new Set<string>()
     const seenVillages = new Set<string>()

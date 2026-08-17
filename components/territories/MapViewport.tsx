@@ -161,6 +161,18 @@ function getIconFontSize(viewSize: number, cellPx: number | null) {
   return `${Math.max(12, Math.round(34 - viewSize * 0.7))}px`
 }
 
+// Structure icons (home/castle/village) are the map's main visual read at a
+// glance, so they intentionally fill most of the tile — much larger than the
+// small lock/battle emoji overlays sized by `getIconFontSize` above. Sized
+// directly off the measured cell (falls back to a viewSize-derived estimate
+// before the ResizeObserver has measured anything, same pattern as above).
+function getStructureIconSize(viewSize: number, cellPx: number | null) {
+  if (cellPx && cellPx > 0) {
+    return Math.max(14, Math.min(96, Math.round(cellPx * 0.82)))
+  }
+  return Math.max(16, Math.round(52 - viewSize * 1.1))
+}
+
 /**
  * Pannable grid viewport (design spec §10): arrow buttons AND click-drag
  * panning, plus a coordinate-jump input. Renders whichever `territories`
@@ -289,6 +301,7 @@ export default function MapViewport({
   }
 
   const iconStyle = { fontSize: getIconFontSize(viewSize, cellPx) }
+  const structureIconBaseSize = getStructureIconSize(viewSize, cellPx)
   const visualDragOffset = dragOffset
     ? {
         x: clampVisualDragOffset(dragOffset.x, cellPx),
@@ -446,15 +459,19 @@ export default function MapViewport({
             // side and shrunk when there's more than one, this reads as a
             // single "these structures are here" unit sized to fit the tile.
             const structureIcons: Array<{ key: string; node: ReactNode }> = []
-            const structureFontSize =
-              [
-                tile?.is_home,
-                tile?.castle_rank,
-                tile?.village_rank,
-              ].filter(Boolean).length > 1
-                ? `${Math.max(8, Math.round(parseInt(iconStyle.fontSize, 10) * 0.62))}px`
-                : iconStyle.fontSize
-            const structureIconStyle = { width: structureFontSize, height: structureFontSize }
+            const structureCount = [
+              tile?.is_home,
+              tile?.castle_rank,
+              tile?.village_rank,
+            ].filter(Boolean).length
+            const structureIconSize =
+              structureCount > 1
+                ? Math.max(12, Math.round(structureIconBaseSize * 0.72))
+                : structureIconBaseSize
+            const structureIconStyle = {
+              width: `${structureIconSize}px`,
+              height: `${structureIconSize}px`,
+            }
             if (tile?.is_home) {
               structureIcons.push({
                 key: 'home',

@@ -232,7 +232,7 @@ export default function GarrisonModal({
                 <div className="flex items-center gap-2 flex-wrap" data-testid="build-castle-row">
                   <span className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-200">
                     <CastleIcon
-                      variant="chateau"
+                      variant="castle-2"
                       title="Hrad"
                       className="text-stone-300 drop-shadow"
                       style={buildLabelIconStyle}
@@ -280,7 +280,7 @@ export default function GarrisonModal({
                 <div className="flex items-center gap-2 flex-wrap" data-testid="build-village-row">
                   <span className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-200">
                     <VillageIcon
-                      variant="stone"
+                      variant="village-2"
                       title="Vesnice"
                       className="text-stone-300 drop-shadow"
                       style={buildLabelIconStyle}
@@ -376,14 +376,14 @@ export default function GarrisonModal({
                     <div className="flex aspect-[5/7] w-full flex-col items-center justify-center gap-1 rounded-xl border border-zinc-700 bg-zinc-900 p-2 text-center">
                       {row?.category === 'castle' ? (
                         <CastleIcon
-                          variant="chateau"
+                          variant="castle-2"
                           title="Hrad"
                           className="text-stone-300 drop-shadow"
                           style={structureCardIconStyle}
                         />
                       ) : (
                         <VillageIcon
-                          variant="stone"
+                          variant="village-2"
                           title="Vesnice"
                           className="text-stone-300 drop-shadow"
                           style={structureCardIconStyle}
