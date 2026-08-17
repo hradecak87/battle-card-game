@@ -62,7 +62,7 @@ describe('renameTerritory', () => {
 })
 
 describe('getMyTerritories', () => {
-  it('selects the name column alongside the existing fields', async () => {
+  it('selects the owned-territory battle lock alongside the existing fields', async () => {
     const orderChain: { order: jest.Mock } & PromiseLike<{ data: unknown[]; error: null }> = {
       order: jest.fn(() => orderChain),
       then: (resolve: (value: { data: unknown[]; error: null }) => unknown) =>
@@ -73,7 +73,7 @@ describe('getMyTerritories', () => {
     const { getMyTerritories } = await import('./api')
     await getMyTerritories('player-1')
 
-    expect(select).toHaveBeenCalledWith('id, x, y, is_home, castle_rank, village_rank, name')
+    expect(select).toHaveBeenCalledWith('id, x, y, is_home, castle_rank, village_rank, name, battle_locked_by')
     expect(eq).toHaveBeenCalledWith('owner_id', 'player-1')
   })
 })

@@ -9,6 +9,51 @@ update it as work progresses (not just at the end of a session).
 
 ---
 
+## Latest update — 2026-08-17 (incoming battle alerts now player-scoped, no manual refresh needed)
+
+**Bug 3 from the TODO batch is now fixed on branch
+`feature/incoming-battle-realtime`**: the defending player no longer has
+to have the attacked tile inside the current viewport (or manually
+refresh) to notice an incoming PvP attack while sitting on the map page.
+
+- Root cause confirmed in code: `app/map/page.tsx` only mounted
+  `useTerritoryBattleChannel(...)` for the **currently rendered viewport
+  ids**, so an owned territory outside the player's current pan/zoom
+  never emitted a map-page realtime refresh when `battle_locked_by`
+  changed.
+- Fix implemented with a second, independent hook:
+  `lib/battles/useMyTerritoriesBattleChannel.ts`. It subscribes to
+  `territories` `UPDATE` events filtered by the caller's **owned**
+  territory ids from the already-loaded `getMyTerritories(...)` result
+  (no duplicate fetch). To avoid assuming `payload.old` / REPLICA
+  IDENTITY FULL, it tracks the previous `battle_locked_by` values from
+  that owned-territory list and only fires when a territory transitions
+  from unlocked to locked.
+- `getMyTerritories(...)` now also selects `battle_locked_by`, and
+  `lib/territories/api.ts` gained a small
+  `getActiveBattleForTerritory(territoryId)` helper used only to resolve
+  the actual `battle_id` for banner navigation (the realtime payload only
+  carries real `territories` columns, not the computed `battle_id` from
+  `get_viewport` / `get_minimap_overview`).
+- `app/map/page.tsx` now renders a stacked, dismissible red alert banner
+  list above the map, e.g. "Vaše území (X, Y) bylo napadeno!", with a
+  `Přejít do bitvy` CTA that routes to `/battles/<id>` once a matching
+  non-resolved battle exists. Multiple simultaneous attacks stack
+  cleanly; dismissing one does not affect the others.
+- Existing viewport-scoped `useTerritoryBattleChannel(...)` was left
+  intact. This fix is additive, not a replacement.
+- Tests: `app/map/page.test.tsx` now covers (1) wiring the new hook with
+  owned territories, (2) simulated incoming-attack banner rendering,
+  (3) banner CTA navigation to the resolved battle id, and (4)
+  dismissing the banner without navigating. `lib/territories/api.test.ts`
+  was updated for the expanded `getMyTerritories(...)` select list.
+- Validation after the fix: **277/277 Jest tests passing** (baseline was
+  274/274 before the change), `npx tsc --noEmit` clean, and `npm run
+  build` succeeds when `NEXT_PUBLIC_SUPABASE_URL` /
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY` are set in the shell (the worktree had
+  no `.env.local`, so the verification command used temporary placeholder
+  values only for the build run; no code or config change was needed).
+
 ## Latest update — 2026-08-18b (building-cards module merged + rank-color swap)
 
 **Building-cards module merged** (`feature/building-cards`, commit
