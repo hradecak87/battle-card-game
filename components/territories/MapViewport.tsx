@@ -36,11 +36,18 @@ const HIGHLIGHT_BAR_COLOR: Record<HighlightColor, string> = {
 // of the neighbor's plain border pixel still visible, which read as a gap.
 // The bar below is 2px wide, straddling the seam from -1px to +1px, so it
 // covers both tiles' contributing pixels.
+// Confirmed via a rendered reproduction (headless screenshot, zoomed to
+// pixel level): with bars sized exactly to the tile's own width/height
+// (inset-x-0 / inset-y-0), the two perpendicular bars meeting at a corner
+// (e.g. the top bar and the left bar of the same tile) each stop exactly
+// at that corner point and leave a 1px notch uncovered there. Extending
+// each bar 2px past both of its own ends makes the two bars overlap fully
+// in the corner square instead of just touching, closing that notch.
 const HIGHLIGHT_BAR_POSITION: Record<'top' | 'right' | 'bottom' | 'left', string> = {
-  top: 'inset-x-0 -top-px h-0.5',
-  right: 'inset-y-0 -right-px w-0.5',
-  bottom: 'inset-x-0 -bottom-px h-0.5',
-  left: 'inset-y-0 -left-px w-0.5',
+  top: 'left-[-2px] right-[-2px] -top-px h-0.5',
+  right: 'top-[-2px] bottom-[-2px] -right-px w-0.5',
+  bottom: 'left-[-2px] right-[-2px] -bottom-px h-0.5',
+  left: 'top-[-2px] bottom-[-2px] -left-px w-0.5',
 }
 
 export interface MapViewportProps {
