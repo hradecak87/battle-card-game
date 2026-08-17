@@ -31,10 +31,10 @@ const HIGHLIGHT_BAR_COLOR: Record<HighlightColor, string> = {
 }
 
 const HIGHLIGHT_BAR_POSITION: Record<'top' | 'right' | 'bottom' | 'left', string> = {
-  top: 'inset-x-0 top-0 h-px',
-  right: 'inset-y-0 right-0 w-px',
-  bottom: 'inset-x-0 bottom-0 h-px',
-  left: 'inset-y-0 left-0 w-px',
+  top: 'inset-x-0 -top-px h-px',
+  right: 'inset-y-0 -right-px w-px',
+  bottom: 'inset-x-0 -bottom-px h-px',
+  left: 'inset-y-0 -left-px w-px',
 }
 
 export interface MapViewportProps {
