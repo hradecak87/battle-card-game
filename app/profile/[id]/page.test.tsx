@@ -9,6 +9,8 @@ const mockPlayer = {
   coat_of_arms_id: 'cross-white',
   onboarding_completed: true,
   xp: 500,
+  daily_reward_streak: 0,
+  last_daily_reward_at: null,
   created_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
   last_seen_at: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
   total_playtime_seconds: 7200,

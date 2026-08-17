@@ -1992,3 +1992,18 @@ overlay-span `data-testid="highlight-{edge}-{x},{y}"` elements) plus 3 new
 tests for foreign highlight, combined structure icons, and the battle-icon
 overlay — **13/13 passing**; full suite **249/249 passing** across 38 suites;
 `npm run build` clean.
+## 2026-08-17 — Daily reward + level-up card grants
+
+Implemented two new card-acquisition paths in this worktree:
+- `supabase/migrations/0013_level_up_cards.sql` adds `players.daily_reward_streak` + `players.last_daily_reward_at`, the new `claim_daily_reward()` RPC, and a `create or replace function _award_xp(...)` update that now grants one random unit card for every crossed level (`common` by default, `uncommon` on exact multiples of 10) while preserving the existing every-5-levels structure-card milestone logic unchanged.
+- `supabase/migrations/0013_level_up_cards.verification.sql` adds manual scratch-DB checks for: multi-level XP awards granting the correct common/uncommon unit-card mix, duplicate same-day daily claims raising the friendly `daily reward already claimed today` exception, and streak reset to `1` after a multi-day gap with no catch-up rewards.
+- `lib/players/api.ts` + `lib/players/api.test.ts` add the typed client wrapper for `claim_daily_reward()`.
+- `components/players/DailyRewardCard.tsx` + test add the new profile-page widget showing current streak, the active claim button, success-grant details, a friendly already-claimed-today state, and automatic re-enable shortly after UTC midnight without requiring a reload.
+- `app/profile/me/page.tsx` mounts the widget on the authenticated self-profile page; related profile test mocks were updated for the new player fields.
+- `lib/supabase/useSession.ts` now includes the two new player columns in `PlayerRow` so the UI can render the streak directly from the fetched `players` row.
+
+Verification in this worktree:
+- Baseline `npx jest 2>&1 | Select-String "Tests:"` with changes temporarily stashed: **282 passed, 282 total**
+- Final `npx jest 2>&1 | Select-String "Tests:"`: **287 passed, 287 total**
+- `npx tsc --noEmit` ✅
+- `npm run build` ✅ with temporary placeholder `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`; build still emits the pre-existing upstream Supabase Node 20 deprecation warnings, but succeeds.
