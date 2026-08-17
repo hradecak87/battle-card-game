@@ -36,6 +36,8 @@ function makeRound(overrides: Partial<BattleRoundRow> = {}): BattleRoundRow {
     defender_atk: 5,
     defender_dmg_dealt: 0,
     defender_ttk: null,
+    attacker_win_probability: 0.97,
+    flavor_text: null,
     attacker_card: { instance_id: 'atk-1', template: makeTemplate() },
     defender_card: {
       instance_id: 'def-1',
@@ -64,6 +66,7 @@ describe('RoundResultPopup', () => {
     expect(screen.getByTestId('round-result-attacker')).toHaveTextContent('15')
     expect(screen.getByTestId('round-result-attacker')).toHaveTextContent('10')
     expect(screen.getByTestId('round-result-defender')).toHaveTextContent('∞')
+    expect(screen.getByTestId('round-result-probability')).toHaveTextContent('Šance útočníka na výhru: 97 %')
   })
 
   it('shows the "never dealt damage" phrasing when a side never scored a hit', () => {
@@ -95,6 +98,26 @@ describe('RoundResultPopup', () => {
     )
     expect(screen.getByText('Kolo přeskočeno – všechny karty odpočívají.')).toBeInTheDocument()
     expect(screen.queryByTestId('round-result-attacker')).not.toBeInTheDocument()
+  })
+
+  it('shows an upset banner only when the round stored flavor text', () => {
+    const { rerender } = render(
+      <RoundResultPopup
+        round={makeRound({
+          winner_card_instance_id: 'def-1',
+          attacker_win_probability: 0.82,
+          flavor_text: 'Velitel dorazil pozdě, zato panika včas.',
+        })}
+        onDismiss={jest.fn()}
+      />
+    )
+
+    expect(screen.getByTestId('round-result-upset')).toHaveTextContent(
+      'Zvrat! ⚡ Velitel dorazil pozdě, zato panika včas.'
+    )
+
+    rerender(<RoundResultPopup round={makeRound({ flavor_text: null })} onDismiss={jest.fn()} />)
+    expect(screen.queryByTestId('round-result-upset')).not.toBeInTheDocument()
   })
 
   it('auto-dismisses after the 20s countdown reaches zero', () => {

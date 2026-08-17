@@ -40,6 +40,11 @@ function explanation(round: BattleRoundRow): string {
   const defenderNeverDealtDamage = round.defender_ttk === null && round.defender_dmg_dealt === 0
   const attackerWon = round.winner_card_instance_id === round.attacker_card_instance_id
 
+  if (round.flavor_text) {
+    return attackerWon
+      ? 'Útočník zvítězil navzdory papírovým předpokladům.'
+      : 'Obránce zvítězil navzdory papírovým předpokladům.'
+  }
   if (attackerWon && defenderNeverDealtDamage) {
     return 'Útočník zvítězil beze ztrát — protivník ho vůbec nestihl zasáhnout.'
   }
@@ -54,6 +59,10 @@ function explanation(round: BattleRoundRow): string {
 
 function formatTtk(ttk: number | null): string {
   return ttk === null ? '∞' : ttk.toFixed(2)
+}
+
+function formatPercent(probability: number | null): string | null {
+  return probability === null ? null : `${Math.round(probability * 100)} %`
 }
 
 /**
@@ -97,6 +106,19 @@ export default function RoundResultPopup({ round, onDismiss }: RoundResultPopupP
         ) : (
           <>
             <p className="mb-3 text-center text-sm text-zinc-400">Kolo {round.round_number}</p>
+            {formatPercent(round.attacker_win_probability) && (
+              <p data-testid="round-result-probability" className="mb-3 text-center text-xs text-sky-200">
+                Šance útočníka na výhru: {formatPercent(round.attacker_win_probability)}
+              </p>
+            )}
+            {round.flavor_text && (
+              <p
+                data-testid="round-result-upset"
+                className="mb-3 rounded-lg border border-amber-500/50 bg-amber-950/40 px-3 py-2 text-center text-sm text-amber-100"
+              >
+                Zvrat! ⚡ {round.flavor_text}
+              </p>
+            )}
             <div className="flex items-start justify-center gap-4">
               <div
                 data-testid="round-result-attacker"

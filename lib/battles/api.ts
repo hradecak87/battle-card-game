@@ -66,6 +66,8 @@ export interface BattleRoundRow {
   defender_atk: number | null
   defender_dmg_dealt: number | null
   defender_ttk: number | null
+  attacker_win_probability: number | null
+  flavor_text: string | null
   // Resolved straight from card_instances/card_templates by id (get_battle),
   // independent of the live attacker_roster/defender_pool arrays — stays
   // correct even after the card is captured or dies in a later round.

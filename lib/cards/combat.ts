@@ -33,6 +33,11 @@ export interface DuelBreakdown {
   defender: { atk: number; dmgDealt: number; ttk: number }
 }
 
+export interface DuelWinProbability {
+  attackerWinProbability: number
+  deterministicWinner: DuelWinner
+}
+
 /**
  * Resolves a 1v1 duel between two already rank-scaled cards using the
  * time-to-kill formula from spec §7. Pure function — no game/army state.
@@ -67,5 +72,34 @@ export function resolveDuelWithBreakdown(
     winner,
     attacker: { atk: atkA, dmgDealt: dmgToDefender, ttk: ttkAttackerWins },
     defender: { atk: atkD, dmgDealt: dmgToAttacker, ttk: ttkDefenderWins },
+  }
+}
+
+/**
+ * Converts the deterministic duel breakdown into a bounded attacker win
+ * chance for probabilistic round resolution. Uses the reciprocal-TTK rate
+ * form (`damage / enemyHp`) to avoid Infinity arithmetic, then rescales the
+ * raw ratio into the closed [3%, 97%] band so even huge mismatches still
+ * leave a tiny upset chance while stalemates remain defender-favored.
+ */
+export function calculateWinProbability(
+  attacker: EffectiveCard,
+  defender: EffectiveCard
+): DuelWinProbability {
+  const breakdown = resolveDuelWithBreakdown(attacker, defender)
+  const rateAttacker = breakdown.attacker.dmgDealt > 0 ? breakdown.attacker.dmgDealt / defender.hp : 0
+  const rateDefender = breakdown.defender.dmgDealt > 0 ? breakdown.defender.dmgDealt / attacker.hp : 0
+
+  if (rateAttacker === 0 && rateDefender === 0) {
+    return {
+      attackerWinProbability: 0.03,
+      deterministicWinner: breakdown.winner,
+    }
+  }
+
+  const raw = rateAttacker / (rateAttacker + rateDefender)
+  return {
+    attackerWinProbability: 0.03 + raw * 0.94,
+    deterministicWinner: breakdown.winner,
   }
 }
