@@ -72,6 +72,45 @@ Verification in this worktree:
 - `npx tsc --noEmit` ✅
 - `npm run build` ✅ (with placeholder public Supabase vars in `.env.local`)
 
+## Latest update — 2026-08-17h (shared card zoom overlay shipped on `feature/card-zoom`)
+
+Compact `TradingCard` views across the app can now be tapped/clicked to
+open a shared, enlarged card modal for mobile readability:
+
+- New `components/cards/CardZoomOverlay.tsx` provides a reusable local
+  `useCardZoom()` hook, a full-screen dark-backdrop modal that reuses the
+  same `TradingCard` component at `w-[min(88vw,380px)]`, closes on
+  backdrop click / ✕ / `Escape`, and now includes basic modal semantics
+  (`role="dialog"`, `aria-modal`) plus focus handoff/return.
+- **Whole-card zoom** added in pure-viewing contexts:
+  `components/territories/GarrisonModal.tsx`, `app/collection/page.tsx`,
+  `app/catalog/page.tsx`.
+- **Separate corner zoom button** added in selection contexts so primary
+  click-to-select behavior stays intact:
+  `components/territories/TransferModal.tsx`,
+  `components/territories/DeclareAttackModal.tsx`,
+  `components/battles/RosterStrip.tsx`.
+- While implementing, the same zoom affordance was also added to the
+  already-prominent duel/result views
+  (`components/battles/DuelStage.tsx`,
+  `components/battles/RoundResultPopup.tsx`) so live battle cards remain
+  readable on small screens as well.
+- `DeclareAttackModal` now mirrors `TransferModal`'s stale-request guard:
+  quickly switching or clearing the origin territory cannot leave the UI
+  showing the wrong troop list or a stuck loading state.
+- Tests added/updated across the shared overlay, garrison, transfer,
+  declare-attack, roster strip, duel stage, round-result popup,
+  collection, catalog, and the existing map integration test that
+  exercises transfer selection through `TransferModal`.
+
+Verification in this worktree:
+- baseline Jest count before edits: **297 total** (1 pre-existing failing
+  suite at baseline)
+- final Jest count after feature/tests: **314/314 passing**
+- `npx tsc --noEmit` ✅
+- `npm run build` ✅ (with temporary placeholder public Supabase vars in
+  `.env.local`)
+
 ## Latest update — 2026-08-17c (claim-completion XP migration prepared in feature/claim-xp)
 
 **Territory-claim XP follow-up implemented in this worktree** (not applied

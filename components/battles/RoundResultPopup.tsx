@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { BattleRoundRow } from '@/lib/battles/api'
 import { TradingCard } from '@/components/cards/TradingCard'
+import { CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
 import { applyRank } from '@/lib/cards/combat'
 import { toUnitTemplate } from './DuelStage'
 
@@ -13,7 +14,7 @@ export interface RoundResultPopupProps {
 
 const AUTO_DISMISS_SECONDS = 20
 
-function useCountdownSeconds(seconds: number, onExpire: () => void, resetKey: string) {
+function useCountdownSeconds(seconds: number, onExpire: () => void, resetKey: string, paused = false) {
   const [{ remaining, activeKey }, setCountdown] = useState({
     remaining: seconds,
     activeKey: resetKey,
@@ -21,6 +22,10 @@ function useCountdownSeconds(seconds: number, onExpire: () => void, resetKey: st
 
   useEffect(() => {
     setCountdown({ remaining: seconds, activeKey: resetKey })
+  }, [seconds, resetKey])
+
+  useEffect(() => {
+    if (paused) return
     const interval = setInterval(() => {
       setCountdown((prev) => {
         if (prev.activeKey !== resetKey) return prev
@@ -29,11 +34,11 @@ function useCountdownSeconds(seconds: number, onExpire: () => void, resetKey: st
       })
     }, 1000)
     return () => clearInterval(interval)
-  }, [seconds, resetKey])
+  }, [paused, resetKey])
 
   useEffect(() => {
-    if (activeKey === resetKey && remaining === 0) onExpire()
-  }, [activeKey, remaining, resetKey, onExpire])
+    if (!paused && activeKey === resetKey && remaining === 0) onExpire()
+  }, [activeKey, remaining, resetKey, onExpire, paused])
 
   return remaining
 }
@@ -77,7 +82,8 @@ function formatPercent(probability: number | null): string | null {
  * when either side had no eligible card that round).
  */
 export default function RoundResultPopup({ round, onDismiss }: RoundResultPopupProps) {
-  const remaining = useCountdownSeconds(AUTO_DISMISS_SECONDS, onDismiss, round.id)
+  const { zoomedCard, openZoom, closeZoom } = useCardZoom()
+  const remaining = useCountdownSeconds(AUTO_DISMISS_SECONDS, onDismiss, round.id, zoomedCard !== null)
 
   const attackerTemplate = round.attacker_card ? toUnitTemplate(round.attacker_card.template) : null
   const defenderTemplate = round.defender_card ? toUnitTemplate(round.defender_card.template) : null
@@ -134,11 +140,21 @@ export default function RoundResultPopup({ round, onDismiss }: RoundResultPopupP
                 <p className="mb-1 text-center text-xs text-zinc-400">Útočník</p>
                 {attackerTemplate && (
                   <div className="mx-auto mb-2 max-w-[110px]">
-                    <TradingCard
-                      template={attackerTemplate}
-                      stats={applyRank(attackerTemplate.baseStats, attackerTemplate.rank)}
-                      compact
-                    />
+                    <button
+                      type="button"
+                      aria-label={`Zvětšit kartu ${attackerTemplate.name}`}
+                      onClick={() => openZoom(attackerTemplate, applyRank(attackerTemplate.baseStats, attackerTemplate.rank))}
+                      className="group relative block w-full cursor-pointer rounded-xl text-left transition hover:scale-[1.02]"
+                    >
+                      <TradingCard
+                        template={attackerTemplate}
+                        stats={applyRank(attackerTemplate.baseStats, attackerTemplate.rank)}
+                        compact
+                      />
+                      <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/65 px-2 py-1 text-[10px] text-white shadow-sm">
+                        🔍
+                      </span>
+                    </button>
                   </div>
                 )}
                 <dl className="grid grid-cols-3 gap-1 text-center text-[11px]">
@@ -171,11 +187,21 @@ export default function RoundResultPopup({ round, onDismiss }: RoundResultPopupP
                 <p className="mb-1 text-center text-xs text-zinc-400">Obránce</p>
                 {defenderTemplate && (
                   <div className="mx-auto mb-2 max-w-[110px]">
-                    <TradingCard
-                      template={defenderTemplate}
-                      stats={applyRank(defenderTemplate.baseStats, defenderTemplate.rank)}
-                      compact
-                    />
+                    <button
+                      type="button"
+                      aria-label={`Zvětšit kartu ${defenderTemplate.name}`}
+                      onClick={() => openZoom(defenderTemplate, applyRank(defenderTemplate.baseStats, defenderTemplate.rank))}
+                      className="group relative block w-full cursor-pointer rounded-xl text-left transition hover:scale-[1.02]"
+                    >
+                      <TradingCard
+                        template={defenderTemplate}
+                        stats={applyRank(defenderTemplate.baseStats, defenderTemplate.rank)}
+                        compact
+                      />
+                      <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/65 px-2 py-1 text-[10px] text-white shadow-sm">
+                        🔍
+                      </span>
+                    </button>
                   </div>
                 )}
                 <dl className="grid grid-cols-3 gap-1 text-center text-[11px]">
@@ -201,6 +227,7 @@ export default function RoundResultPopup({ round, onDismiss }: RoundResultPopupP
             <p data-testid="round-result-explanation" className="mt-3 text-center text-xs text-zinc-300">
               {explanation(round)}
             </p>
+            <CardZoomOverlay card={zoomedCard} onClose={closeZoom} />
           </>
         )}
       </div>

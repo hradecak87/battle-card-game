@@ -52,6 +52,14 @@ const myCard = {
   },
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((res) => {
+    resolve = res
+  })
+  return { promise, resolve }
+}
+
 describe('DeclareAttackModal', () => {
   beforeEach(() => {
     getCardInstancesAtTerritory.mockReset()
@@ -74,7 +82,7 @@ describe('DeclareAttackModal', () => {
     await waitFor(() => expect(getCardInstancesAtTerritory).toHaveBeenCalledWith(1))
     expect(await screen.findByText('Elitní rytíři')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByText('Elitní rytíři').closest('label')!)
+    fireEvent.click(screen.getByTestId('declare-attack-card-select-inst-1'))
     const submit = screen.getByRole('button', { name: /Zaútočit/ })
     fireEvent.click(submit)
 
@@ -91,7 +99,7 @@ describe('DeclareAttackModal', () => {
     fireEvent.change(await screen.findByLabelText('Odkud útočíš'), { target: { value: '1' } })
     await screen.findByText('Elitní rytíři')
 
-    fireEvent.click(screen.getByText('Elitní rytíři').closest('label')!)
+    fireEvent.click(screen.getByTestId('declare-attack-card-select-inst-1'))
     fireEvent.click(screen.getByRole('button', { name: /Zaútočit/ }))
 
     expect(await screen.findByText('territory ownership cap (32) reached')).toBeInTheDocument()
@@ -111,5 +119,72 @@ describe('DeclareAttackModal', () => {
     await waitFor(() => expect(getMyTerritories).toHaveBeenCalledWith('me'))
     const options = Array.from(select.options).map((o) => o.textContent)
     expect(options).toEqual(['— vyber území —', 'Domov (0, 0)', 'Území (3, 4)'])
+  })
+
+  it('ignores stale origin loads when the player quickly switches origin territory', async () => {
+    const first = deferred<{ data: typeof myCard[]; error: null }>()
+    const second = deferred<{ data: typeof myCard[]; error: null }>()
+    getMyTerritories.mockResolvedValue({
+      data: [
+        { id: 1, x: 0, y: 0, is_home: true },
+        { id: 2, x: 3, y: 4, is_home: false },
+      ],
+      error: null,
+    })
+    getCardInstancesAtTerritory.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
+
+    render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
+
+    const select = await screen.findByLabelText('Odkud útočíš')
+    fireEvent.change(select, { target: { value: '1' } })
+    fireEvent.change(select, { target: { value: '2' } })
+
+    second.resolve({
+      data: [
+        {
+          ...myCard,
+          instance_id: 'inst-2',
+          card_templates: { ...myCard.card_templates, name: 'Jezdci z druhé državy' },
+        },
+      ],
+      error: null,
+    })
+    first.resolve({ data: [myCard], error: null })
+
+    expect(await screen.findByText('Jezdci z druhé državy')).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('Elitní rytíři')).not.toBeInTheDocument())
+  })
+
+  it('clears the loading state if the player deselects the origin while units are still loading', async () => {
+    const pending = deferred<{ data: typeof myCard[]; error: null }>()
+    getCardInstancesAtTerritory.mockReturnValueOnce(pending.promise)
+
+    render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
+
+    const select = await screen.findByLabelText('Odkud útočíš')
+    fireEvent.change(select, { target: { value: '1' } })
+    expect(await screen.findByText('Načítám vojska…')).toBeInTheDocument()
+
+    fireEvent.change(select, { target: { value: '' } })
+    await waitFor(() => expect(screen.queryByText('Načítám vojska…')).not.toBeInTheDocument())
+  })
+
+  it('opens zoom from the corner button without toggling selection, while card-body clicks still toggle selection', async () => {
+    getCardInstancesAtTerritory.mockResolvedValue({ data: [myCard], error: null })
+
+    render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
+
+    fireEvent.change(await screen.findByLabelText('Odkud útočíš'), { target: { value: '1' } })
+    await screen.findByText('Elitní rytíři')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zvětšit kartu Elitní rytíři' }))
+    expect(screen.getByTestId('card-zoom-modal')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Zaútočit \(0 vojsk\)/ })).toBeDisabled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zavřít detail karty' }))
+    fireEvent.click(screen.getByTestId('declare-attack-card-select-inst-1'))
+
+    expect(screen.getByTestId('declare-attack-card-select-inst-1')).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: /Zaútočit \(1 vojsk\)/ })).toBeEnabled()
   })
 })

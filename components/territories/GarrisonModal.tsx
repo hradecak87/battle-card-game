@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { CardInstanceWithTemplate, Territory } from '@/lib/territories/api'
 import { TradingCard } from '@/components/cards/TradingCard'
 import { CastleIcon, VillageIcon } from '@/components/territories/icons/StructureIcons'
+import { CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
 import { applyRank } from '@/lib/cards/combat'
 import { Rank, UnitType, UnitCardTemplate } from '@/lib/cards/types'
 import { NATIONS } from '@/lib/players/nations'
@@ -90,6 +91,7 @@ export default function GarrisonModal({
   structureCardOptions,
   onBuildStructure,
 }: GarrisonModalProps) {
+  const { zoomedCard, openZoom, closeZoom } = useCardZoom()
   const [renaming, setRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState(territory.name ?? '')
   const [renameLoading, setRenameLoading] = useState(false)
@@ -368,10 +370,20 @@ export default function GarrisonModal({
               return (
                 <div key={instance.instance_id} className="flex flex-col items-center gap-1">
                   {unitTemplate ? (
-                    <TradingCard
-                      template={unitTemplate}
-                      stats={applyRank(unitTemplate.baseStats, unitTemplate.rank)}
-                    />
+                    <button
+                      type="button"
+                      aria-label={`Zvětšit kartu ${unitTemplate.name}`}
+                      onClick={() => openZoom(unitTemplate, applyRank(unitTemplate.baseStats, unitTemplate.rank))}
+                      className="group relative block w-full cursor-pointer rounded-xl text-left transition hover:scale-[1.02]"
+                    >
+                      <TradingCard
+                        template={unitTemplate}
+                        stats={applyRank(unitTemplate.baseStats, unitTemplate.rank)}
+                      />
+                      <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/65 px-2 py-1 text-[10px] text-white shadow-sm">
+                        🔍
+                      </span>
+                    </button>
                   ) : (
                     <div className="flex aspect-[5/7] w-full flex-col items-center justify-center gap-1 rounded-xl border border-zinc-700 bg-zinc-900 p-2 text-center">
                       {row?.category === 'castle' ? (
@@ -401,6 +413,7 @@ export default function GarrisonModal({
             })}
           </div>
         )}
+        <CardZoomOverlay card={zoomedCard} onClose={closeZoom} />
       </div>
     </div>
   )

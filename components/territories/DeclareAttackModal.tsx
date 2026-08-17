@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Territory, CardInstanceWithTemplate, MyTerritory, getCardInstancesAtTerritory, getMyTerritories } from '@/lib/territories/api'
 import { declareAttack } from '@/lib/battles/api'
 import { TradingCard } from '@/components/cards/TradingCard'
+import { CardZoomIconButton, CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
 import { applyRank } from '@/lib/cards/combat'
 import { Rank, UnitType, UnitCardTemplate } from '@/lib/cards/types'
 
@@ -38,6 +39,7 @@ function toUnitTemplate(row: NonNullable<CardInstanceWithTemplate['card_template
  * GarrisonModal) for any territory that isn't the caller's own.
  */
 export default function DeclareAttackModal({ territory, myPlayerId, onClose, onDeclared }: DeclareAttackModalProps) {
+  const { zoomedCard, openZoom, closeZoom } = useCardZoom()
   const [myTerritories, setMyTerritories] = useState<MyTerritory[] | null>(null)
   const [territoriesError, setTerritoriesError] = useState<string | null>(null)
   const [originTerritoryId, setOriginTerritoryId] = useState('')
@@ -48,6 +50,7 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
+  const loadRequestIdRef = useRef(0)
 
   // Task: replaces manual "type the origin territory id" with a
   // dropdown of the caller's own territories (max 32, so no pagination
@@ -69,11 +72,14 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
   }, [myPlayerId])
 
   async function handleLoadOrigin(originId: number) {
+    const requestId = loadRequestIdRef.current + 1
+    loadRequestIdRef.current = requestId
     setLoading(true)
     setLoadError(null)
     setOriginInstances(null)
     setSelectedInstanceIds([])
     const { data, error } = await getCardInstancesAtTerritory(originId)
+    if (loadRequestIdRef.current !== requestId) return
     setLoading(false)
     if (error) {
       setLoadError(error.message)
@@ -91,6 +97,9 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
     if (value && Number.isFinite(originId)) {
       handleLoadOrigin(originId)
     } else {
+      loadRequestIdRef.current += 1
+      setLoading(false)
+      setLoadError(null)
       setOriginInstances(null)
       setSelectedInstanceIds([])
     }
@@ -178,25 +187,33 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
                     const unitTemplate = instance.card_templates ? toUnitTemplate(instance.card_templates) : null
                     if (!unitTemplate) return null
                     const checked = selectedInstanceIds.includes(instance.instance_id)
+                    const stats = applyRank(unitTemplate.baseStats, unitTemplate.rank)
                     return (
-                      <label
+                      <div
                         key={instance.instance_id}
-                        className={`flex cursor-pointer flex-col items-center gap-1 rounded p-1 ${
+                        className={`relative flex flex-col items-center gap-1 rounded p-1 ${
                           checked ? 'ring-2 ring-red-500' : ''
                         }`}
                       >
-                        <input
-                          type="checkbox"
-                          className="sr-only"
-                          checked={checked}
-                          onChange={() => toggleInstance(instance.instance_id)}
+                        <button
+                          type="button"
+                          data-testid={`declare-attack-card-select-${instance.instance_id}`}
+                          aria-label={`Vybrat kartu ${unitTemplate.name}`}
+                          aria-pressed={checked}
+                          onClick={() => toggleInstance(instance.instance_id)}
+                          className="block w-full cursor-pointer rounded text-left transition hover:scale-[1.02]"
+                        >
+                          <TradingCard template={unitTemplate} stats={stats} compact />
+                        </button>
+                        <CardZoomIconButton
+                          cardName={unitTemplate.name}
+                          className="absolute right-2 top-2"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            openZoom(unitTemplate, stats)
+                          }}
                         />
-                        <TradingCard
-                          template={unitTemplate}
-                          stats={applyRank(unitTemplate.baseStats, unitTemplate.rank)}
-                          compact
-                        />
-                      </label>
+                      </div>
                     )
                   })}
                 </div>
@@ -213,6 +230,7 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
             >
               {submitting ? 'Vyhlašuji útok…' : `Zaútočit (${selectedInstanceIds.length} vojsk)`}
             </button>
+            <CardZoomOverlay card={zoomedCard} onClose={closeZoom} />
           </div>
         )}
       </div>

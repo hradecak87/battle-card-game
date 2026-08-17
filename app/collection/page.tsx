@@ -8,6 +8,7 @@ import { getMyCardInstances, MyCardInstance } from '@/lib/territories/api'
 import { applyRank } from '@/lib/cards/combat'
 import { RANKS, Rank, UNIT_TYPES, UnitType } from '@/lib/cards/types'
 import { TradingCard } from '@/components/cards/TradingCard'
+import { CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
 
 const UNIT_TYPE_LABELS: Record<UnitType, string> = {
   archers: 'Lučištníci',
@@ -49,6 +50,7 @@ function locationLabel(card: MyCardInstance): string {
 export default function MyCollectionPage() {
   const router = useRouter()
   const { user, loading } = useSession()
+  const { zoomedCard, openZoom, closeZoom } = useCardZoom()
 
   const [instances, setInstances] = useState<MyCardInstance[] | null>(null)
   const [fetchError, setFetchError] = useState<string | null>(null)
@@ -209,21 +211,30 @@ export default function MyCollectionPage() {
       <ul className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(170px,1fr))]">
         {filtered.map((card) => {
           const template = card.card_templates!
+          const zoomTemplate = {
+            id: template.id,
+            category: 'unit' as const,
+            unitType: template.unit_type as UnitType,
+            rank: template.rank as Rank,
+            name: template.name,
+            flavorText: template.flavor_text,
+            baseStats: template.base_stats!,
+            totalSupply: template.total_supply,
+          }
+          const stats = applyRank(template.base_stats!, template.rank as Rank)
           return (
             <li key={card.instance_id} className="flex flex-col gap-1">
-              <TradingCard
-                template={{
-                  id: template.id,
-                  category: 'unit',
-                  unitType: template.unit_type as UnitType,
-                  rank: template.rank as Rank,
-                  name: template.name,
-                  flavorText: template.flavor_text,
-                  baseStats: template.base_stats!,
-                  totalSupply: template.total_supply,
-                }}
-                stats={applyRank(template.base_stats!, template.rank as Rank)}
-              />
+              <button
+                type="button"
+                aria-label={`Zvětšit kartu ${template.name}`}
+                onClick={() => openZoom(zoomTemplate, stats)}
+                className="group relative block w-full cursor-pointer rounded-xl text-left transition hover:scale-[1.02]"
+              >
+                <TradingCard template={zoomTemplate} stats={stats} />
+                <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/65 px-2 py-1 text-[10px] text-white shadow-sm">
+                  🔍
+                </span>
+              </button>
               <p data-testid="card-location" className="text-center text-[11px] text-zinc-500">
                 {locationLabel(card)}
               </p>
@@ -231,6 +242,7 @@ export default function MyCollectionPage() {
           )
         })}
       </ul>
+      <CardZoomOverlay card={zoomedCard} onClose={closeZoom} />
     </main>
   )
 }

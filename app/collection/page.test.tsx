@@ -160,4 +160,19 @@ describe('MyCollectionPage', () => {
 
     await waitFor(() => expect(screen.getByText(/nevlastníš žádné karty/)).toBeInTheDocument())
   })
+
+  it('opens the zoom modal when an owned card is clicked', async () => {
+    ;(useSession as jest.Mock).mockReturnValue({ user: { id: 'u1' }, player: null, loading: false })
+    getMyCardInstances.mockResolvedValue({ data: fixture, error: null })
+    const user = userEvent.setup()
+
+    render(<MyCollectionPage />)
+    await waitFor(() => expect(screen.getByText('3 z 3 karet')).toBeInTheDocument())
+
+    await user.click(screen.getAllByRole('button', { name: /Zvětšit kartu / })[0])
+    expect(screen.getByTestId('card-zoom-modal')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Zavřít detail karty' }))
+    expect(screen.queryByTestId('card-zoom-modal')).not.toBeInTheDocument()
+  })
 })

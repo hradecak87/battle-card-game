@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import RosterStrip from './RosterStrip'
 import { BattleCard } from '@/lib/battles/api'
 
@@ -69,5 +70,31 @@ describe('RosterStrip', () => {
     const previewCard = screen.getByTestId('roster-card-preview-card')
     expect(previewCard).toHaveClass('ring-2', 'ring-inset', 'ring-sky-400')
     expect(previewCard).not.toHaveClass('ring-offset-2', 'ring-offset-1')
+  })
+
+  it('keeps roster selection behavior intact and opens zoom from the corner button without selecting', async () => {
+    const user = userEvent.setup()
+    const onSelect = jest.fn()
+
+    render(
+      <RosterStrip
+        title="Obránce"
+        cards={[makeCard('card-1')]}
+        clickable
+        onSelect={onSelect}
+        activeInstanceId="card-1"
+      />
+    )
+
+    const cardButton = screen.getByTestId('roster-card-card-1')
+    expect(cardButton).toHaveClass('ring-2', 'ring-inset', 'ring-amber-400')
+
+    await user.click(screen.getByRole('button', { name: 'Zvětšit kartu Karta card-1' }))
+    expect(onSelect).not.toHaveBeenCalled()
+    expect(screen.getByTestId('card-zoom-modal')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Zavřít detail karty' }))
+    await user.click(cardButton)
+    expect(onSelect).toHaveBeenCalledWith('card-1')
   })
 })
