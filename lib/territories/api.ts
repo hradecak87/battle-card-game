@@ -101,6 +101,7 @@ export interface MyTerritory {
   is_home: boolean
   castle_rank: string | null
   village_rank: string | null
+  name: string | null
 }
 
 export interface PlayerPublicInfo {
@@ -123,7 +124,7 @@ export interface PlayerPublicInfo {
 export async function getMyTerritories(ownerId: string) {
   return supabase
     .from('territories')
-    .select('id, x, y, is_home, castle_rank, village_rank')
+    .select('id, x, y, is_home, castle_rank, village_rank, name')
     .eq('owner_id', ownerId)
     .order('is_home', { ascending: false })
     .order('x')

@@ -59,3 +59,20 @@ describe('renameTerritory', () => {
     expect(rpc).toHaveBeenCalledWith('rename_territory', { territory_id: 42, new_name: '' })
   })
 })
+
+describe('getMyTerritories', () => {
+  it('selects the name column alongside the existing fields', async () => {
+    const orderChain: { order: jest.Mock } & PromiseLike<{ data: unknown[]; error: null }> = {
+      order: jest.fn(() => orderChain),
+      then: (resolve: (value: { data: unknown[]; error: null }) => unknown) =>
+        Promise.resolve({ data: [], error: null }).then(resolve),
+    } as unknown as { order: jest.Mock } & PromiseLike<{ data: unknown[]; error: null }>
+    eq.mockReturnValueOnce(orderChain as unknown as ReturnType<typeof eq>)
+
+    const { getMyTerritories } = await import('./api')
+    await getMyTerritories('player-1')
+
+    expect(select).toHaveBeenCalledWith('id, x, y, is_home, castle_rank, village_rank, name')
+    expect(eq).toHaveBeenCalledWith('owner_id', 'player-1')
+  })
+})

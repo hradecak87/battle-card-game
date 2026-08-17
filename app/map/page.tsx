@@ -125,6 +125,16 @@ export default function MapPage() {
     handleJump(home.x, home.y)
   }, [user])
 
+  const refreshOwnedTerritories = useCallback(async () => {
+    if (!user?.id) return
+    const { data, error: rpcError } = await getMyTerritories(user.id)
+    if (rpcError) {
+      setOwnedTerritories([])
+      return
+    }
+    setOwnedTerritories(data ?? [])
+  }, [user?.id])
+
   useEffect(() => {
     if (!user?.id) {
       setOwnedTerritories(null)
@@ -264,7 +274,7 @@ export default function MapPage() {
                   </option>
                   {ownedTerritories.map((territory) => (
                     <option key={territory.id} value={territory.id}>
-                      {`${getTerritoryMarker(territory)} (${territory.x}, ${territory.y})`}
+                      {`${getTerritoryMarker(territory)} ${territory.name ? `${territory.name} ` : ''}(${territory.x}, ${territory.y})`}
                     </option>
                   ))}
                 </select>
@@ -311,7 +321,12 @@ export default function MapPage() {
             incomingAttackArrivesAt={incomingAttackArrivesAt}
             onRename={async (territoryId, newName) => {
               await renameTerritory(territoryId, newName)
+              const trimmed = newName.trim()
+              setSelectedTile((current) =>
+                current && current.id === territoryId ? { ...current, name: trimmed || null } : current
+              )
               loadViewport(centerX, centerY, viewSize)
+              refreshOwnedTerritories()
             }}
           />
         )}
