@@ -129,6 +129,11 @@ function clamp(value: number) {
   return Math.max(MAP_MIN, Math.min(MAP_MAX, value))
 }
 
+function clampVisualDragOffset(value: number, cellPx: number | null) {
+  const maxVisualOffset = Math.max(1, Math.round((cellPx ?? 24) * 0.45))
+  return Math.max(-maxVisualOffset, Math.min(maxVisualOffset, value))
+}
+
 function isWithinBounds(x: number, y: number) {
   return x >= MAP_MIN && x <= MAP_MAX && y >= MAP_MIN && y <= MAP_MAX
 }
@@ -173,7 +178,7 @@ export default function MapViewport({
   const [hoveredTile, setHoveredTile] = useState<{ x: number; y: number } | null>(null)
   const dragStart = useRef<{ x: number; y: number } | null>(null)
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null)
-  const gridRef = useRef<HTMLDivElement>(null)
+  const frameRef = useRef<HTMLDivElement>(null)
   const [cellPx, setCellPx] = useState<number | null>(null)
 
   const half = Math.floor(viewSize / 2)
@@ -195,7 +200,7 @@ export default function MapViewport({
   // viewSize alone (see getIconFontSize for why that broke at some zoom
   // steps). Guarded for environments without ResizeObserver (e.g. jsdom).
   useEffect(() => {
-    const el = gridRef.current
+    const el = frameRef.current
     if (!el || typeof ResizeObserver === 'undefined') return
     const update = () => {
       const width = el.getBoundingClientRect().width
@@ -276,6 +281,13 @@ export default function MapViewport({
   }
 
   const iconStyle = { fontSize: getIconFontSize(viewSize, cellPx) }
+  const visualDragOffset = dragOffset
+    ? {
+        x: clampVisualDragOffset(dragOffset.x, cellPx),
+        y: clampVisualDragOffset(dragOffset.y, cellPx),
+      }
+    : null
+  const isDragging = dragStart.current !== null || dragOffset !== null
 
   return (
     <div className="flex flex-col gap-3" data-testid="map-viewport">
@@ -357,8 +369,8 @@ export default function MapViewport({
       </div>
 
       <div
-        ref={gridRef}
-        data-testid="map-grid"
+        ref={frameRef}
+        data-testid="map-frame"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -366,15 +378,19 @@ export default function MapViewport({
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="grid select-none cursor-grab active:cursor-grabbing"
-        style={{
-          gridTemplateColumns: `repeat(${viewSize}, minmax(0, 1fr))`,
-          transform: dragOffset ? `translate(${dragOffset.x}px,${dragOffset.y}px)` : undefined,
-          transition: dragOffset ? 'none' : 'transform 0.1s ease-out',
-        }}
+        className={`w-full ${isDragging ? 'overflow-hidden' : 'overflow-visible'}`}
       >
-        {Array.from({ length: viewSize }).map((_, row) =>
-          Array.from({ length: viewSize }).map((_, col) => {
+        <div
+          data-testid="map-grid"
+          className="grid w-full select-none cursor-grab active:cursor-grabbing overflow-visible"
+          style={{
+            gridTemplateColumns: `repeat(${viewSize}, minmax(0, 1fr))`,
+            transform: visualDragOffset ? `translate(${visualDragOffset.x}px,${visualDragOffset.y}px)` : undefined,
+            transition: visualDragOffset ? 'none' : 'transform 0.1s ease-out',
+          }}
+        >
+          {Array.from({ length: viewSize }).map((_, row) =>
+            Array.from({ length: viewSize }).map((_, col) => {
             const x = x1 + col
             const y = y1 + row
             const isVoid = !isWithinBounds(x, y)
@@ -430,8 +446,8 @@ export default function MapViewport({
                 ? `${Math.max(8, Math.round(parseInt(iconStyle.fontSize, 10) * 0.62))}px`
                 : iconStyle.fontSize
 
-            return (
-              <button
+              return (
+                <button
                 key={`${x},${y}`}
                 type="button"
                 aria-label={`Území ${x},${y}`}
@@ -494,10 +510,11 @@ export default function MapViewport({
                     ) : null}
                   </div>
                 )}
-              </button>
-            )
-          })
-        )}
+                </button>
+              )
+            })
+          )}
+        </div>
       </div>
     </div>
   )

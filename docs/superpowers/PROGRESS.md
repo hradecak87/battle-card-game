@@ -9,6 +9,39 @@ update it as work progresses (not just at the end of a session).
 
 ---
 
+## Latest update — 2026-08-18c (map drag frame fixed in worktree `feature/map-drag-frame`)
+
+User-reported **map drag-frame bug fixed** in
+`components/territories/MapViewport.tsx` without changing non-drag sizing:
+
+- Added a new static `data-testid="map-frame"` wrapper around the grid, so
+  the viewport now has a fixed outer frame and the translated map content
+  moves *inside* it instead of the whole visible box sliding with the
+  finger/mouse.
+- Moved the live drag translation to the inner `data-testid="map-grid"`
+  layer only; the outer frame now owns the drag mouse/touch handlers and
+  never receives a transform.
+- Added a **visual-only drag clamp** (`~45%` of one tile's pixel size, with
+  a `24px` fallback before measurement) so the temporary drag-follow effect
+  cannot reveal blank space at the trailing edge. Important: the existing
+  release-time `pxToTileDelta(...)` / `onPan(...)` logic still uses the full
+  raw drag distance, so actual viewport tile jumps remain unchanged.
+- Tests in `components/territories/MapViewport.test.tsx` now explicitly
+  cover the new frame wrapper staying static during drag and the inner
+  grid's clamped translate behavior, while the pre-existing pan/tap/click
+  tests still pass unchanged.
+
+Verification in this worktree:
+- baseline before change: **274/274**
+- final full Jest count: **276/276**
+- `npx tsc --noEmit` ✅
+- `npm run build` ✅ **when the required public Supabase env vars are set for
+  the command** (the worktree currently has no `.env.local`, so a plain
+  env-less build still fails with the pre-existing `supabaseUrl is required`
+  prerender error unrelated to this map change)
+
+---
+
 ## Latest update — 2026-08-18b (building-cards module merged + rank-color swap)
 
 **Building-cards module merged** (`feature/building-cards`, commit
