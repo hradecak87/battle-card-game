@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { HeartbeatBeacon } from "@/components/players/HeartbeatBeacon";
 import { AuthStatusBar } from "@/components/players/AuthStatusBar";
+import { MainNav } from "@/components/navigation/MainNav";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -32,6 +33,7 @@ export default function RootLayout({
       >
         <HeartbeatBeacon />
         <AuthStatusBar />
+        <MainNav />
         {children}
       </body>
     </html>
