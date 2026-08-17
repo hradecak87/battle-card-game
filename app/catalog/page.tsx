@@ -6,6 +6,7 @@ import { getAllTemplates } from '@/lib/cards/catalog'
 import { applyRank } from '@/lib/cards/combat'
 import { RANKS, Rank, UNIT_TYPES, UnitType } from '@/lib/cards/types'
 import { TradingCard } from '@/components/cards/TradingCard'
+import { CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
 
 const UNIT_TYPE_LABELS: Record<UnitType, string> = {
   archers: 'Lučištníci',
@@ -32,6 +33,7 @@ type RankFilter = Rank | 'all'
 export default function CollectionPage() {
   const [unitTypeFilter, setUnitTypeFilter] = useState<UnitTypeFilter>('all')
   const [rankFilter, setRankFilter] = useState<RankFilter>('all')
+  const { zoomedCard, openZoom, closeZoom } = useCardZoom()
 
   const allTemplates = useMemo(() => getAllTemplates(), [])
 
@@ -93,10 +95,21 @@ export default function CollectionPage() {
       <ul className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(170px,1fr))]">
         {filtered.map((t) => (
           <li key={t.id}>
-            <TradingCard template={t} stats={applyRank(t.baseStats, t.rank)} />
+            <button
+              type="button"
+              aria-label={`Zvětšit kartu ${t.name}`}
+              onClick={() => openZoom(t, applyRank(t.baseStats, t.rank))}
+              className="group relative block w-full cursor-pointer rounded-xl text-left transition hover:scale-[1.02]"
+            >
+              <TradingCard template={t} stats={applyRank(t.baseStats, t.rank)} />
+              <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/65 px-2 py-1 text-[10px] text-white shadow-sm">
+                🔍
+              </span>
+            </button>
           </li>
         ))}
       </ul>
+      <CardZoomOverlay card={zoomedCard} onClose={closeZoom} />
     </main>
   )
 }

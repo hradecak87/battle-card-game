@@ -10,6 +10,7 @@ import {
   startTransfer,
 } from '@/lib/territories/api'
 import { TradingCard } from '@/components/cards/TradingCard'
+import { CardZoomIconButton, CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
 import { applyRank } from '@/lib/cards/combat'
 import { Rank, UnitType, UnitCardTemplate } from '@/lib/cards/types'
 
@@ -37,6 +38,7 @@ function toUnitTemplate(row: NonNullable<CardInstanceWithTemplate['card_template
 }
 
 export default function TransferModal({ territory, myPlayerId, onClose, onTransferred }: TransferModalProps) {
+  const { zoomedCard, openZoom, closeZoom } = useCardZoom()
   const [myTerritories, setMyTerritories] = useState<MyTerritory[] | null>(null)
   const [territoriesError, setTerritoriesError] = useState<string | null>(null)
   const [originTerritoryId, setOriginTerritoryId] = useState('')
@@ -174,25 +176,33 @@ export default function TransferModal({ territory, myPlayerId, onClose, onTransf
                   const unitTemplate = instance.card_templates ? toUnitTemplate(instance.card_templates) : null
                   if (!unitTemplate) return null
                   const checked = selectedInstanceIds.includes(instance.instance_id)
+                  const stats = applyRank(unitTemplate.baseStats, unitTemplate.rank)
                   return (
-                    <label
+                    <div
                       key={instance.instance_id}
-                      className={`flex cursor-pointer flex-col items-center gap-1 rounded p-1 ${
+                      className={`relative flex flex-col items-center gap-1 rounded p-1 ${
                         checked ? 'ring-2 ring-emerald-500' : ''
                       }`}
                     >
-                      <input
-                        type="checkbox"
-                        className="sr-only"
-                        checked={checked}
-                        onChange={() => toggleInstance(instance.instance_id)}
+                      <button
+                        type="button"
+                        data-testid={`transfer-card-select-${instance.instance_id}`}
+                        aria-label={`Vybrat kartu ${unitTemplate.name}`}
+                        aria-pressed={checked}
+                        onClick={() => toggleInstance(instance.instance_id)}
+                        className="block w-full cursor-pointer rounded text-left transition hover:scale-[1.02]"
+                      >
+                        <TradingCard template={unitTemplate} stats={stats} compact />
+                      </button>
+                      <CardZoomIconButton
+                        cardName={unitTemplate.name}
+                        className="absolute right-2 top-2"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          openZoom(unitTemplate, stats)
+                        }}
                       />
-                      <TradingCard
-                        template={unitTemplate}
-                        stats={applyRank(unitTemplate.baseStats, unitTemplate.rank)}
-                        compact
-                      />
-                    </label>
+                    </div>
                   )
                 })}
               </div>
@@ -209,6 +219,7 @@ export default function TransferModal({ territory, myPlayerId, onClose, onTransf
           >
             {submitting ? 'Přesouvám vojska…' : `Přesunout vojska (${selectedInstanceIds.length})`}
           </button>
+          <CardZoomOverlay card={zoomedCard} onClose={closeZoom} />
         </div>
       </div>
     </div>

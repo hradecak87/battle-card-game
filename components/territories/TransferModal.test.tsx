@@ -120,7 +120,7 @@ describe('TransferModal', () => {
     expect(await screen.findByText('Elitní rytíři')).toBeInTheDocument()
     expect(screen.queryByText('Strážní věž')).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByText('Elitní rytíři').closest('label')!)
+    fireEvent.click(screen.getByTestId('transfer-card-select-inst-1'))
     fireEvent.click(screen.getByRole('button', { name: /Přesunout/ }))
 
     await waitFor(() => expect(startTransfer).toHaveBeenCalledWith(1, 99, ['inst-1']))
@@ -136,7 +136,7 @@ describe('TransferModal', () => {
     fireEvent.change(await screen.findByLabelText('Odkud přesouváš'), { target: { value: '1' } })
     await screen.findByText('Elitní rytíři')
 
-    fireEvent.click(screen.getByText('Elitní rytíři').closest('label')!)
+    fireEvent.click(screen.getByTestId('transfer-card-select-inst-1'))
     fireEvent.click(screen.getByRole('button', { name: /Přesunout/ }))
 
     expect(await screen.findByText('Nelze přesunout všechna vybraná vojska.')).toBeInTheDocument()
@@ -190,5 +190,25 @@ describe('TransferModal', () => {
     fireEvent.change(select, { target: { value: '' } })
 
     await waitFor(() => expect(screen.queryByText('Načítám vojska…')).not.toBeInTheDocument())
+  })
+
+  it('opens zoom from the corner button without toggling selection, while card-body clicks still toggle selection', async () => {
+    getCardInstancesAtTerritory.mockResolvedValue({ data: [unitCard], error: null })
+
+    render(<TransferModal territory={destinationTerritory} myPlayerId="me" onClose={jest.fn()} />)
+
+    fireEvent.change(await screen.findByLabelText('Odkud přesouváš'), { target: { value: '1' } })
+    await screen.findByText('Elitní rytíři')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zvětšit kartu Elitní rytíři' }))
+
+    expect(screen.getByTestId('card-zoom-modal')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Přesunout vojska \(0\)/ })).toBeDisabled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zavřít detail karty' }))
+    fireEvent.click(screen.getByTestId('transfer-card-select-inst-1'))
+
+    expect(screen.getByTestId('transfer-card-select-inst-1')).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: /Přesunout vojska \(1\)/ })).toBeEnabled()
   })
 })

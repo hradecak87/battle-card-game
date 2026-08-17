@@ -2,6 +2,7 @@
 
 import { BattleCard } from '@/lib/battles/api'
 import { TradingCard } from '@/components/cards/TradingCard'
+import { CardZoomIconButton, CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
 import { applyRank } from '@/lib/cards/combat'
 import { Rank, UnitType, UnitCardTemplate } from '@/lib/cards/types'
 
@@ -50,6 +51,7 @@ export default function RosterStrip({
   previewInstanceId,
   submittingInstanceId,
 }: RosterStripProps) {
+  const { zoomedCard, openZoom, closeZoom } = useCardZoom()
   return (
     <div data-testid="roster-strip" className="flex w-full max-w-full min-w-0 flex-col gap-2 md:w-40">
       <h3 className="text-sm font-semibold text-zinc-400">{title}</h3>
@@ -63,26 +65,37 @@ export default function RosterStrip({
           const isActive = card.instance_id === activeInstanceId
           const isPreview = card.instance_id === previewInstanceId
           const isSubmitting = card.instance_id === submittingInstanceId
+          const stats = applyRank(template.baseStats, template.rank)
           return (
-            <button
-              key={card.instance_id}
-              type="button"
-              data-testid={`roster-card-${card.instance_id}`}
-              disabled={!clickable || card.is_resting || isSubmitting}
-              onClick={() => onSelect?.(card.instance_id)}
-              className={`w-[4.875rem] shrink-0 snap-start rounded-lg text-left transition md:w-full ${
-                card.is_resting ? 'opacity-40 grayscale' : ''
-              } ${isActive ? 'ring-2 ring-inset ring-amber-400' : isPreview ? 'ring-2 ring-inset ring-sky-400' : ''} ${
-                clickable && !card.is_resting ? 'cursor-pointer hover:scale-[1.03]' : 'cursor-default'
-              }`}
-            >
-              <TradingCard template={template} stats={applyRank(template.baseStats, template.rank)} compact />
-              {card.is_resting && <p className="mt-1 text-center text-[10px] text-zinc-500">odpočívá</p>}
-            </button>
+            <div key={card.instance_id} className="relative w-[4.875rem] shrink-0 snap-start md:w-full">
+              <button
+                type="button"
+                data-testid={`roster-card-${card.instance_id}`}
+                disabled={!clickable || card.is_resting || isSubmitting}
+                onClick={() => onSelect?.(card.instance_id)}
+                className={`w-[4.875rem] shrink-0 snap-start rounded-lg text-left transition md:w-full ${
+                  card.is_resting ? 'opacity-40 grayscale' : ''
+                } ${isActive ? 'ring-2 ring-inset ring-amber-400' : isPreview ? 'ring-2 ring-inset ring-sky-400' : ''} ${
+                  clickable && !card.is_resting ? 'cursor-pointer hover:scale-[1.03]' : 'cursor-default'
+                }`}
+              >
+                <TradingCard template={template} stats={stats} compact />
+                {card.is_resting && <p className="mt-1 text-center text-[10px] text-zinc-500">odpočívá</p>}
+              </button>
+              <CardZoomIconButton
+                cardName={template.name}
+                className="absolute right-1 top-1"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  openZoom(template, stats)
+                }}
+              />
+            </div>
           )
         })}
         {cards.length === 0 && <p className="text-xs text-zinc-500">Žádná vojska</p>}
       </div>
+      <CardZoomOverlay card={zoomedCard} onClose={closeZoom} />
     </div>
   )
 }

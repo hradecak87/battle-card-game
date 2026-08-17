@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { BattleCard, BattleCardTemplate } from '@/lib/battles/api'
 import { TradingCard } from '@/components/cards/TradingCard'
+import { CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
 import { applyRank } from '@/lib/cards/combat'
 import { Rank, UnitType, UnitCardTemplate } from '@/lib/cards/types'
 
@@ -63,6 +64,7 @@ export default function DuelStage({
   score,
   lastWinnerSide,
 }: DuelStageProps) {
+  const { zoomedCard, openZoom, closeZoom } = useCardZoom()
   const remaining = useCountdown(roundDeadline)
   const attackerTemplate = attackerCard ? toUnitTemplate(attackerCard.template) : null
   const defenderTemplate = defenderCard ? toUnitTemplate(defenderCard.template) : null
@@ -86,11 +88,21 @@ export default function DuelStage({
       <div className="flex items-center gap-4">
         <div className="w-32">
           {attackerTemplate ? (
-            <TradingCard
-              template={attackerTemplate}
-              stats={applyRank(attackerTemplate.baseStats, attackerTemplate.rank)}
-              compact
-            />
+            <button
+              type="button"
+              aria-label={`Zvětšit kartu ${attackerTemplate.name}`}
+              onClick={() => openZoom(attackerTemplate, applyRank(attackerTemplate.baseStats, attackerTemplate.rank))}
+              className="group relative block w-full cursor-pointer rounded-xl text-left transition hover:scale-[1.02]"
+            >
+              <TradingCard
+                template={attackerTemplate}
+                stats={applyRank(attackerTemplate.baseStats, attackerTemplate.rank)}
+                compact
+              />
+              <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/65 px-2 py-1 text-[10px] text-white shadow-sm">
+                🔍
+              </span>
+            </button>
           ) : (
             <div className="flex aspect-[5/7] w-full items-center justify-center rounded-xl border border-dashed border-zinc-700 text-xs text-zinc-500">
               —
@@ -102,11 +114,21 @@ export default function DuelStage({
 
         <div className="w-32">
           {defenderTemplate ? (
-            <TradingCard
-              template={defenderTemplate}
-              stats={applyRank(defenderTemplate.baseStats, defenderTemplate.rank)}
-              compact
-            />
+            <button
+              type="button"
+              aria-label={`Zvětšit kartu ${defenderTemplate.name}`}
+              onClick={() => openZoom(defenderTemplate, applyRank(defenderTemplate.baseStats, defenderTemplate.rank))}
+              className="group relative block w-full cursor-pointer rounded-xl text-left transition hover:scale-[1.02]"
+            >
+              <TradingCard
+                template={defenderTemplate}
+                stats={applyRank(defenderTemplate.baseStats, defenderTemplate.rank)}
+                compact
+              />
+              <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/65 px-2 py-1 text-[10px] text-white shadow-sm">
+                🔍
+              </span>
+            </button>
           ) : (
             <div className="flex aspect-[5/7] w-full flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-zinc-700 p-2 text-center text-xs text-zinc-500">
               Čeká se na výběr obránce…
@@ -114,6 +136,7 @@ export default function DuelStage({
           )}
         </div>
       </div>
+      <CardZoomOverlay card={zoomedCard} onClose={closeZoom} />
     </div>
   )
 }

@@ -19,6 +19,26 @@ const baseTerritory: Territory = {
   name: null,
 }
 
+const stationedUnit = {
+  instance_id: 'unit-1',
+  template_id: 'tmpl-archers',
+  owner_id: 'other-player',
+  stationed_territory_id: 81,
+  status: 'stationed' as const,
+  card_templates: {
+    id: 'tmpl-archers',
+    name: 'Pohraniční lučištníci',
+    flavor_text: 'Střeží hranice království.',
+    rank: 'common',
+    category: 'unit' as const,
+    unit_type: 'archers',
+    base_stats: { str: 5, lng: 14, def: 4, hp: 9 },
+    total_supply: null,
+    defense_bonus_pct: null,
+    attack_bonus_pct: null,
+  },
+}
+
 describe('GarrisonModal', () => {
   it('shows the other player owner info when provided', () => {
     render(
@@ -405,5 +425,25 @@ describe('GarrisonModal', () => {
     expect(screen.queryByTestId('build-castle-row')).not.toBeInTheDocument()
     // village row still shows
     expect(screen.getByTestId('build-village-row')).toBeInTheDocument()
+  })
+
+  it('opens and closes the card zoom modal when a garrison card is clicked', () => {
+    render(
+      <GarrisonModal
+        territory={baseTerritory}
+        instances={[stationedUnit]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zvětšit kartu Pohraniční lučištníci' }))
+
+    expect(screen.getByTestId('card-zoom-modal')).toBeInTheDocument()
+    expect(screen.getAllByText('Pohraniční lučištníci')).toHaveLength(2)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zavřít detail karty' }))
+    expect(screen.queryByTestId('card-zoom-modal')).not.toBeInTheDocument()
   })
 })

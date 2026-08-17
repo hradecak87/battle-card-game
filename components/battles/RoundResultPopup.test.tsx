@@ -151,6 +151,31 @@ describe('RoundResultPopup', () => {
     expect(onDismiss).toHaveBeenCalledTimes(1)
   })
 
+  it('opens the zoom modal when a round-result card is clicked', () => {
+    render(<RoundResultPopup round={makeRound()} onDismiss={jest.fn()} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zvětšit kartu Elitní lučištníci' }))
+    expect(screen.getByTestId('card-zoom-modal')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zavřít detail karty' }))
+    expect(screen.queryByTestId('card-zoom-modal')).not.toBeInTheDocument()
+  })
+
+  it('pauses auto-dismiss while the zoom modal is open', () => {
+    const onDismiss = jest.fn()
+    render(<RoundResultPopup round={makeRound()} onDismiss={onDismiss} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zvětšit kartu Elitní lučištníci' }))
+    expect(screen.getByTestId('round-result-countdown')).toHaveTextContent('20s')
+
+    act(() => {
+      jest.advanceTimersByTime(20_000)
+    })
+
+    expect(onDismiss).not.toHaveBeenCalled()
+    expect(screen.getByTestId('round-result-popup')).toBeInTheDocument()
+  })
+
   it('restarts the full 20s countdown when manually closing one round and showing the next', () => {
     render(<PopupSequenceHarness />)
 

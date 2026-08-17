@@ -36,4 +36,16 @@ describe('CollectionPage', () => {
     // 3 legend variants for archers specifically
     expect(screen.getByText('3 z 248 karet')).toBeInTheDocument()
   })
+
+  it('opens the zoom modal when a catalog card is clicked', async () => {
+    const user = userEvent.setup()
+    render(<CollectionPage />)
+
+    await user.click(screen.getAllByRole('button', { name: /Zvětšit kartu / })[0])
+
+    expect(screen.getByTestId('card-zoom-modal')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Zavřít detail karty' }))
+    expect(screen.queryByTestId('card-zoom-modal')).not.toBeInTheDocument()
+  })
 })

@@ -343,7 +343,7 @@ describe('MapPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Přesunout vojska' }))
     fireEvent.change(await screen.findByLabelText('Odkud přesouváš'), { target: { value: '1' } })
     await screen.findAllByText('Lučištníci')
-    fireEvent.click(screen.getAllByText('Lučištníci')[0].closest('label')!)
+    fireEvent.click(screen.getByTestId('transfer-card-select-inst-1'))
 
     getViewport.mockClear()
     fireEvent.click(screen.getByRole('button', { name: /Přesunout vojska \(1\)/ }))
