@@ -1096,9 +1096,142 @@ the existing 7 + the earlier round-deadline test); a full `npm run build`
 also completed cleanly (catches Vercel-only ESLint failures invisible to
 `tsc`/`jest` alone, per this session's earlier lesson).
 
-**Status**: ✅ Implemented and self-verified (automated tests + build
-only). **NOT committed** — per this project's commit policy, holding
-this for the user's live two-account playtest and explicit sign-off once
-they return, even though the spec/plan/implementation work itself was
-done autonomously per their explicit delegation ("buď samostatný").
+**Status**: ✅ Implemented, verified, **committed (`3b95749`) and pushed
+to `origin/main`.** The user returned, gave explicit commit+push
+instructions, and also asked to seed two real test accounts
+(`hradecky87@gmail.com`, `hradecak87@gmail.com`) with nearby starter
+territories/troops near (0, 80) for live PvP testing — done directly
+against the live production DB (see §12 below for full details and the
+established direct-`pg`-connection pattern).
 
+---
+
+## 12. Live playtesting support: test-account seeding + "speed up" debug RPC
+
+While actively co-testing live on Vercel (no local dev server — "my už
+to máme na vercelu" / "local není potřeba"), the user asked for direct
+production-DB help to make manual playtesting practical:
+
+**Test-account seeding** (one-off, data-only, not code): assigned
+`hradecky87` territories 78 `(0,77)` and 337 `(1,80)`, and `hradecak87`
+territories 79 `(0,78)`, 82 `(0,81)`, 338 `(1,81)`, 592 `(2,79)` — each
+territory stocked with 5 common-rank unit `card_instances` (archers,
+crossbowmen, spearmen, swordsmen, knights) so both accounts had troops
+to attack/defend with immediately. Later, when the user sent troops and
+asked to skip the wait, all `in_transit` movements and active territory
+claims were backdated to already-elapsed and `resolve_due_movements()`
+was called directly — resulted in territory (0,80) completing its claim
+for `hradecak87`, and a new PvP battle (`awaiting_ready`) starting on
+territory 78 between the two test accounts, ready to test the round
+popup live.
+
+**Recurring pattern established**: connect via `pg.Client` using
+`SUPABASE_DB_URL` from `.env.local`, **parsed manually into explicit
+`{host, port, user, password, database, ssl}` fields** — passing the
+raw connection string directly intermittently fails with a mysterious
+`ENOTFOUND` even though the hostname resolves fine otherwise. Always
+write one-off scripts as a temp `.js` file (not inline `node -e`, which
+fights with PowerShell's own quoting/escaping) and delete it after use.
+
+**Permanent feature added** (code, not just data) — the user then asked
+for a *reusable* way to self-serve this speed-up without asking me each
+time: "není možné ka každému přesunu nebo zabírání nového místa dát nyní
+pro test tlačítko pro stažení daného času jen na 10 sekund?"
+
+- `supabase/migrations/0006_debug_speed_up_movement.sql` (new, deployed
+  live): `debug_speed_up_movement(p_movement_id uuid)`, `security
+  definer`, only ever touches rows owned by the calling player
+  (`troop_movements.player_id = auth.uid()` / territories where
+  `claim_locked_by = auth.uid()`) so it can't be used against anyone
+  else's timers. If the movement is still `in_transit`, shrinks
+  `transfer_arrives_at` to `now() + 10s` (and, for `kind = 'claim'`,
+  also shrinks `claim_transfer_arrives_at`/`claim_occupation_completes_at`
+  to 10s/20s so both stages remain visible); if a claim has already
+  reached `occupying`, shrinks just the remaining
+  `claim_occupation_completes_at` to 10s. Calls
+  `resolve_due_movements()` at the end so the effect is immediate.
+  **This is explicitly a testing-only gameplay-balance bypass** — noted
+  in the migration's own comment header as something to remove or
+  feature-flag before any real public launch.
+- `lib/territories/api.ts`: added `debugSpeedUpMovement(movementId)`
+  wrapping the new RPC.
+- `components/territories/MyMovementsPanel.tsx`: added a small "⏩ 10s
+  (test)" button next to every in-progress movement/claim's ETA (hidden
+  once a battle link is shown, since there's nothing left to speed up at
+  that point); clicking it disables itself, calls the RPC, and refetches
+  the movements list. Refactored the panel's `load()` out of the
+  `useEffect` so both the polling interval and the button handler share
+  it.
+- `components/territories/MyMovementsPanel.test.tsx`: added a new test
+  (button click → `debugSpeedUpMovement` called with the right id →
+  list refetched); all other existing tests untouched and still pass.
+
+**Verification**: `npx tsc --noEmit` clean; full `npx jest --ci`
+**209/209 tests passing** (32 suites, +1 new); `npm run build` clean.
+
+**Status**: ✅ Implemented and self-verified. **NOT committed** — per
+this project's commit policy, awaiting the user's live confirmation
+that the button works as expected before committing/pushing.
+
+---
+
+## 13. Bug fix: `HeartbeatBeacon` never actually kept `last_seen_at` fresh — blocked live PvP battles from ever starting
+
+While live-testing the seeded PvP battle from §12, the user reported both
+players clicked "Jsem připraven" but the battle stayed stuck at
+`awaiting_ready` forever. Root-caused directly against the live DB:
+
+- `mark_ready` only flips a battle to `active` if **both**
+  `players.last_seen_at` values are `>= now() - interval '2 minutes'`
+  (an anti-abuse "both sides genuinely online right now" check).
+- Querying the live DB found **both** real test accounts'
+  `last_seen_at` frozen at the exact same millisecond, ~10 hours in the
+  past — despite both having been actively logged in and clicking
+  buttons (`declare_attack`, `mark_ready`) minutes earlier. Across the
+  *entire* `players` table (only 2 real rows), no `last_seen_at` value
+  had ever been updated more recently than that one frozen timestamp.
+- Directly simulated a PostgREST-style authenticated call to the
+  `heartbeat()` SQL function itself (`set role authenticated; set
+  request.jwt.claims = '{"sub": "<uuid>", ...}'; select heartbeat();`)
+  and confirmed **the SQL function works perfectly** — `last_seen_at`
+  and `total_playtime_seconds` updated correctly. This isolated the bug
+  to the client: `components/players/HeartbeatBeacon.tsx` was mounted
+  in the root layout, but its interval was gated behind `useSession()`'s
+  React-derived `user` state (`if (!user) return`), which is a separate,
+  fragile piece of client state from the actual persisted Supabase
+  session that every other authenticated RPC call already relies on
+  directly. Something about that gating (most likely stalling/never
+  re-populating after certain navigations, tab backgrounding, or a
+  hydration race) meant the beacon silently never fired in practice,
+  even though the user was clearly authenticated for every other
+  purpose.
+- **Immediate unblock** (data only): manually bumped both players'
+  `last_seen_at` to `now()` directly in the DB — this let the existing
+  20s auto-retry poll in `BattleScreen.tsx` (which already re-calls
+  `markReady` while `awaiting_ready`, precisely to handle this kind of
+  transient non-overlap) succeed on its next tick. Confirmed: the
+  seeded battle (territory 78, `hradecak87` vs `hradecky87`) flipped to
+  `active` and round 1 resolved automatically.
+- **Permanent fix** (code): rewrote `HeartbeatBeacon.tsx` to no longer
+  depend on `useSession()` at all — it now calls `heartbeat()`
+  unconditionally on mount, every 30s, **and** immediately whenever the
+  tab's `visibilitychange` fires back to `visible` (covers
+  backgrounded/sleeping-laptop scenarios where browsers throttle or
+  fully suspend timers for long stretches). Calling `heartbeat()` while
+  logged out is harmless — its `where id = auth.uid()` then matches
+  zero rows. Also added error logging (`console.error`) on RPC failure,
+  since the old code silently discarded the promise entirely, which
+  would have hidden this exact class of bug from the browser console.
+  New `components/players/HeartbeatBeacon.test.tsx` (5 tests): fires on
+  mount, fires every 30s, fires on tab-visible, logs on RPC error, and
+  stops firing after unmount.
+
+**Verification**: `npx tsc --noEmit` clean; full `npx jest --ci`
+**214/214 tests passing** (33 suites, +5 new); `npm run build` in
+progress at time of writing (this section will be updated once
+confirmed clean, but the change is a small, self-contained,
+fully-covered component rewrite with no risk to other suites, which all
+passed independently).
+
+**Status**: ✅ Implemented and verified via tests. User approved commit
++ push once the build passed — see commit history for the final SHA.

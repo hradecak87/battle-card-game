@@ -1,14 +1,17 @@
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import MyMovementsPanel from './MyMovementsPanel'
 
 const getMyMovements = jest.fn()
 const getTerritoriesByIds = jest.fn()
 const getMyActiveBattles = jest.fn()
+const debugSpeedUpMovement = jest.fn()
 
 jest.mock('@/lib/territories/api', () => ({
   getMyMovements: (...args: unknown[]) => getMyMovements(...args),
   getTerritoriesByIds: (...args: unknown[]) => getTerritoriesByIds(...args),
   getMyActiveBattles: (...args: unknown[]) => getMyActiveBattles(...args),
+  debugSpeedUpMovement: (...args: unknown[]) => debugSpeedUpMovement(...args),
 }))
 
 describe('MyMovementsPanel', () => {
@@ -16,6 +19,7 @@ describe('MyMovementsPanel', () => {
     getMyMovements.mockReset()
     getTerritoriesByIds.mockReset()
     getMyActiveBattles.mockReset()
+    debugSpeedUpMovement.mockReset()
     getTerritoriesByIds.mockResolvedValue({ data: [], error: null })
     getMyActiveBattles.mockResolvedValue({ data: [], error: null })
   })
@@ -134,5 +138,41 @@ describe('MyMovementsPanel', () => {
     getMyMovements.mockResolvedValue({ data: null, error: { message: 'boom' } })
     render(<MyMovementsPanel myPlayerId="me" />)
     expect(await screen.findByText('boom')).toBeInTheDocument()
+  })
+
+  it('calls debugSpeedUpMovement and refetches when the test speed-up button is clicked', async () => {
+    const user = userEvent.setup()
+    getMyMovements.mockResolvedValue({
+      data: [
+        {
+          id: 'm1',
+          player_id: 'me',
+          kind: 'attack',
+          origin_territory_id: 80,
+          destination_territory_id: 81,
+          started_at: new Date().toISOString(),
+          transfer_arrives_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+          status: 'in_transit',
+          cancelled_at: null,
+        },
+      ],
+      error: null,
+    })
+    getTerritoriesByIds.mockResolvedValue({
+      data: [
+        { id: 80, x: 0, y: 79 },
+        { id: 81, x: 1, y: 79 },
+      ],
+      error: null,
+    })
+    debugSpeedUpMovement.mockResolvedValue({ error: null })
+
+    render(<MyMovementsPanel myPlayerId="me" />)
+
+    const button = await screen.findByRole('button', { name: /10s \(test\)/ })
+    await user.click(button)
+
+    await waitFor(() => expect(debugSpeedUpMovement).toHaveBeenCalledWith('m1'))
+    await waitFor(() => expect(getMyMovements).toHaveBeenCalledTimes(2))
   })
 })

@@ -292,6 +292,15 @@ export async function cancelClaim(territoryId: number) {
   return supabase.rpc('cancel_claim', { territory_id: territoryId })
 }
 
+/**
+ * TEST-ONLY convenience (see 0006_debug_speed_up_movement.sql): shrinks
+ * the caller's own in-flight movement/claim to ~10-20s instead of the
+ * real duration, so playtesting doesn't require waiting hours/days.
+ */
+export async function debugSpeedUpMovement(movementId: string) {
+  return supabase.rpc('debug_speed_up_movement', { p_movement_id: movementId })
+}
+
 export async function buildStructure(territoryId: number, cardInstanceId: string) {
   return supabase.rpc('build_structure', {
     territory_id: territoryId,
