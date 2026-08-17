@@ -30,11 +30,17 @@ const HIGHLIGHT_BAR_COLOR: Record<HighlightColor, string> = {
   red: 'bg-red-500',
 }
 
+// Each tile draws its own border, so the boundary between two tiles is
+// actually TWO adjacent 1px lines (one contributed by each tile), not a
+// single shared 1px line. Covering only "our" tile's 1px left a thin sliver
+// of the neighbor's plain border pixel still visible, which read as a gap.
+// The bar below is 2px wide, straddling the seam from -1px to +1px, so it
+// covers both tiles' contributing pixels.
 const HIGHLIGHT_BAR_POSITION: Record<'top' | 'right' | 'bottom' | 'left', string> = {
-  top: 'inset-x-0 -top-px h-px',
-  right: 'inset-y-0 -right-px w-px',
-  bottom: 'inset-x-0 -bottom-px h-px',
-  left: 'inset-y-0 -left-px w-px',
+  top: 'inset-x-0 -top-px h-0.5',
+  right: 'inset-y-0 -right-px w-0.5',
+  bottom: 'inset-x-0 -bottom-px h-0.5',
+  left: 'inset-y-0 -left-px w-0.5',
 }
 
 export interface MapViewportProps {
