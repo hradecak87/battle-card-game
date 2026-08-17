@@ -72,7 +72,7 @@ export default function RosterStrip({
               onClick={() => onSelect?.(card.instance_id)}
               className={`w-[4.875rem] shrink-0 snap-start rounded-lg text-left transition md:w-full ${
                 card.is_resting ? 'opacity-40 grayscale' : ''
-              } ${isActive ? 'ring-2 ring-amber-400' : isPreview ? 'ring-2 ring-sky-400' : ''} ${
+              } ${isActive ? 'ring-2 ring-inset ring-amber-400' : isPreview ? 'ring-2 ring-inset ring-sky-400' : ''} ${
                 clickable && !card.is_resting ? 'cursor-pointer hover:scale-[1.03]' : 'cursor-default'
               }`}
             >

@@ -9,6 +9,28 @@ update it as work progresses (not just at the end of a session).
 
 ---
 
+## Latest update — 2026-08-18d (roster selection ring tightened to avoid edge clipping)
+
+**Bug batch item 2 fixed in `feature/roster-highlight-fix`**: the battle /
+transfer card-selection highlight in `components/battles/RosterStrip.tsx`
+was defined directly on the clickable card wrapper button (not inside
+`components/cards/TradingCard.tsx`). The old classes were:
+`ring-2 ring-amber-400` for the active/committed card and
+`ring-2 ring-sky-400` for the defender's preview card. The mobile roster
+strip already uses `overflow-x-auto`, not `overflow-hidden`, so the real
+issue was the ring painting outside the button's border box near the scroll
+edge. Fix: changed both highlight variants to use an **inset** ring —
+`ring-2 ring-inset ring-amber-400` / `ring-2 ring-inset ring-sky-400` — so
+the highlight hugs the card edge instead of extending outward and getting
+visually clipped.
+
+Added a focused regression test in
+`components/battles/RosterStrip.test.tsx` asserting the selected cards now
+carry `ring-inset` and do **not** use `ring-offset-*`. Test count in this
+worktree: baseline **274/274**, final **275/275**. `tsc`/build clean.
+
+---
+
 ## Latest update — 2026-08-18c (map drag frame fixed in worktree `feature/map-drag-frame`)
 
 User-reported **map drag-frame bug fixed** in
@@ -39,7 +61,6 @@ Verification in this worktree:
   the command** (the worktree currently has no `.env.local`, so a plain
   env-less build still fails with the pre-existing `supabaseUrl is required`
   prerender error unrelated to this map change)
-
 ---
 
 ## Latest update — 2026-08-18b (building-cards module merged + rank-color swap)
