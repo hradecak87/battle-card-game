@@ -1,5 +1,39 @@
 # Progress & Source of Truth — Battle Card Game V2
 
+## Latest update — 2026-08-17g (first admin dashboard shipped on `feature/admin-dashboard`)
+
+A first internal-only `/admin` dashboard is now implemented in the
+`bcg-admin-dashboard` worktree branch for test/scenario setup:
+
+- New migration **`supabase/migrations/0011_admin_dashboard.sql`** adds
+  `players.is_admin boolean not null default false` (no seed admin), plus
+  admin-gated `security definer` RPCs:
+  `admin_list_online_players()`, `admin_list_active_battles()`,
+  `admin_list_player_cards(p_player_id uuid)`,
+  `admin_grant_card(p_player_id uuid, p_template_id text, p_territory_id integer)`,
+  `admin_remove_card(p_card_instance_id uuid)`, and
+  `admin_grant_xp(p_player_id uuid, p_amount integer)`.
+- Online status reuses the already-established **2 minute** freshness window
+  from `mark_ready()` / `PlayerProfileCard` (`last_seen_at >= now() - interval
+  '2 minutes'`).
+- `admin_remove_card` is deliberately conservative: it blocks deletion when a
+  card instance is already referenced by battle or troop-movement history, to
+  avoid breaking FK-backed combat/audit state.
+- Companion manual smoke-test script added:
+  `supabase/migrations/0011_admin_dashboard.verification.sql`.
+- New client wrappers in `lib/admin/api.ts` centralize `/admin` data access.
+- New `app/admin/page.tsx` provides: online players overview, active battles
+  overview, card grant/remove tooling, and XP grant tooling. Access flow:
+  logged-out users follow the existing redirect-to-`/login` pattern; logged-in
+  non-admins see **"Nemáte oprávnění"** and no admin data fetches run before the
+  admin check resolves.
+- Tests added in `lib/admin/api.test.ts` and `app/admin/page.test.tsx`.
+  Baseline Jest count in this worktree before the feature: **282**.
+  Final verification: **297/297** tests passing, `npx tsc --noEmit` clean,
+  and `npm run build` succeeds with placeholder public Supabase env vars
+  (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`).
+
+---
 **This file is the single source of truth for what to do and why.** It must
 be self-sufficient: everything needed to resume work — full context, every
 brainstorming decision, the full implementation plan, and exact current
@@ -1904,3 +1938,4 @@ overlay-span `data-testid="highlight-{edge}-{x},{y}"` elements) plus 3 new
 tests for foreign highlight, combined structure icons, and the battle-icon
 overlay — **13/13 passing**; full suite **249/249 passing** across 38 suites;
 `npm run build` clean.
+
