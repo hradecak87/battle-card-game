@@ -276,6 +276,15 @@ describe('MapPage', () => {
   it('opens the transfer modal for an owned territory and refreshes after a successful transfer', async () => {
     sessionUser = { id: 'me' }
     getCardInstancesAtTerritory.mockResolvedValueOnce({ data: [], error: null })
+    // Called twice: once for the page's own "Tvoje území" list (mounted
+    // since sessionUser is set), once for TransferModal's origin picker.
+    getMyTerritories.mockResolvedValueOnce({
+      data: [
+        { id: mockTerritory(128, 128).id, x: 128, y: 128, is_home: false },
+        { id: 1, x: 0, y: 0, is_home: true },
+      ],
+      error: null,
+    })
     getMyTerritories.mockResolvedValueOnce({
       data: [
         { id: mockTerritory(128, 128).id, x: 128, y: 128, is_home: false },
