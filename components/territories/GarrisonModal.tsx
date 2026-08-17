@@ -4,7 +4,17 @@ import { CardInstanceWithTemplate, Territory } from '@/lib/territories/api'
 import { TradingCard } from '@/components/cards/TradingCard'
 import { applyRank } from '@/lib/cards/combat'
 import { Rank, UnitType, UnitCardTemplate } from '@/lib/cards/types'
+import { NATIONS } from '@/lib/players/nations'
 import { formatEta } from '@/lib/time/formatEta'
+
+export interface GarrisonModalOwnerInfo {
+  id: string
+  display_name: string
+  nation: string
+  kingdom_name: string | null
+  xp: number
+  level: number
+}
 
 export interface GarrisonModalProps {
   territory: Territory
@@ -13,6 +23,10 @@ export interface GarrisonModalProps {
   onClose: () => void
   myPlayerId?: string | null
   onAttack?: () => void
+  onTransfer?: () => void
+  ownerInfo?: GarrisonModalOwnerInfo | null
+  ownerInfoLoading?: boolean
+  ownerInfoError?: string | null
   /**
    * Arrival time of the in-transit attack currently converging on this
    * territory, if any (fetched separately since `battle_locked_by` is
@@ -39,6 +53,10 @@ function toUnitTemplate(row: NonNullable<CardInstanceWithTemplate['card_template
   }
 }
 
+function formatNation(nationId: string) {
+  return NATIONS.find((nation) => nation.id === nationId)?.name ?? nationId
+}
+
 /**
  * Popup shown when a map tile is selected (design follow-up to Task 12):
  * renders the garrison stationed there as actual `TradingCard` visuals
@@ -51,6 +69,10 @@ export default function GarrisonModal({
   onClose,
   myPlayerId,
   onAttack,
+  onTransfer,
+  ownerInfo,
+  ownerInfoLoading,
+  ownerInfoError,
   incomingAttackArrivesAt,
 }: GarrisonModalProps) {
   const canAttack =
@@ -58,6 +80,8 @@ export default function GarrisonModal({
     territory.owner_id !== myPlayerId &&
     territory.claim_locked_by !== myPlayerId &&
     !territory.battle_locked_by
+  const canTransfer = Boolean(myPlayerId) && territory.owner_id === myPlayerId
+  const showsOtherOwnerInfo = Boolean(territory.owner_id && territory.owner_id !== myPlayerId)
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
@@ -73,6 +97,15 @@ export default function GarrisonModal({
             Posádka — území ({territory.x}, {territory.y})
           </h2>
           <div className="flex items-center gap-2">
+            {canTransfer && onTransfer && (
+              <button
+                type="button"
+                onClick={onTransfer}
+                className="rounded bg-emerald-700 hover:bg-emerald-600 px-3 py-1 text-sm font-semibold text-white"
+              >
+                Přesunout vojska
+              </button>
+            )}
             {canAttack && onAttack && (
               <button
                 type="button"
@@ -98,6 +131,30 @@ export default function GarrisonModal({
               ✕
             </button>
           </div>
+        </div>
+
+        <div className="mb-4 grid gap-2 rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 text-sm text-zinc-300 sm:grid-cols-2">
+          <p>Obtížnost: {territory.difficulty}</p>
+          <p>Souřadnice: ({territory.x}, {territory.y})</p>
+          {territory.castle_rank && <p>Hrad: {territory.castle_rank}</p>}
+          {territory.village_rank && <p>Vesnice: {territory.village_rank}</p>}
+          {showsOtherOwnerInfo && (
+            <div className="sm:col-span-2">
+              <p className="mb-1 font-semibold text-zinc-100">Vlastník území</p>
+              {ownerInfoLoading && <p className="text-zinc-400">Načítám informace o vlastníkovi…</p>}
+              {!ownerInfoLoading && ownerInfoError && (
+                <p className="text-amber-400">Nepodařilo se načíst informace o vlastníkovi.</p>
+              )}
+              {!ownerInfoLoading && !ownerInfoError && ownerInfo && (
+                <div className="grid gap-1 sm:grid-cols-2">
+                  <p>Jméno: {ownerInfo.display_name}</p>
+                  <p>Národ: {formatNation(ownerInfo.nation)}</p>
+                  {ownerInfo.kingdom_name && <p>Království: {ownerInfo.kingdom_name}</p>}
+                  <p>Úroveň: {ownerInfo.level}</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {error && <p className="text-red-400 text-sm">{error}</p>}
