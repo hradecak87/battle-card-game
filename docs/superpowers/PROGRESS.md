@@ -1227,11 +1227,59 @@ players clicked "Jsem připraven" but the battle stayed stuck at
   stops firing after unmount.
 
 **Verification**: `npx tsc --noEmit` clean; full `npx jest --ci`
-**214/214 tests passing** (33 suites, +5 new); `npm run build` in
-progress at time of writing (this section will be updated once
-confirmed clean, but the change is a small, self-contained,
-fully-covered component rewrite with no risk to other suites, which all
-passed independently).
+**214/214 tests passing** (33 suites, +5 new); `npm run build` clean.
 
-**Status**: ✅ Implemented and verified via tests. User approved commit
-+ push once the build passed — see commit history for the final SHA.
+**Status**: ✅ Implemented, verified, **committed (`c448f6f`) and pushed
+to `origin/main`** together with §12's test speed-up button (same
+commit — both were built and verified in the same session before the
+user's single "ano, pushni" approval).
+
+---
+
+## 14. Bug fix: capturing an NPC-garrisoned territory left the fight completely invisible
+
+Immediately after §13's fix, the user captured an NPC-owned territory
+with a village and reported: no fight was visible, no result shown —
+the territory just silently became theirs. Root-caused directly against
+the live DB again: a battle *had* happened (`1dd846b4…`, territory 83,
+`hradecky87` vs NPC, **164 rounds**, `status = 'resolved'`) — NPC
+defenders resolve synchronously the instant the attack's troop movement
+arrives (no `mark_ready`/human interaction needed, per the original
+battle design), so by the time the client next polled, both of these
+were already true simultaneously:
+- `get_my_movements()` only returns `status in ('in_transit',
+  'occupying')` — the attack's movement row was already `'completed'`,
+  so it dropped out of `MyMovementsPanel`'s list entirely.
+- `getMyActiveBattles()` explicitly excludes `resolved`/`expired`
+  battles (by design, for the "battle in progress" link) — so the
+  now-finished battle was excluded too.
+
+Net effect: **no UI affordance anywhere ever pointed at this battle.**
+All 164 rounds were fully recorded in `battle_rounds` and perfectly
+viewable via the existing `get_battle`/`BattleScreen`/`RoundResultPopup`
+machinery — the only bug was that nothing linked to it.
+
+**Fix**: added `getMyRecentlyResolvedBattles(playerId)` to
+`lib/territories/api.ts` — a plain `battles` table query (public
+`battles_select_all` RLS policy, no new RPC needed) for the caller's own
+battles resolved within the last 48h. `MyMovementsPanel.tsx` now also
+fetches this on every `load()` and, using the existing
+`getLastSeenRound()` helper from the round-result-popup feature
+(§11) compared against `battle.current_round`, filters to only
+still-*unseen* results — cheaply reusing the same localStorage marker
+so a battle disappears from this list once the user has actually opened
+it and watched (or skipped through) every round, without needing any
+new state. Renders as a distinct "Bitva dokončena (území N) → Zobrazit
+výsledek" row above the in-progress list; the panel's early-return-null
+guard was updated to also check this new list so it doesn't hide itself
+when there are only unseen results and no in-flight movements.
+
+Also fixed `app/map/page.test.tsx`'s mock of `lib/territories/api` (was
+missing the new export, which broke 2 of its tests — added it).
+
+**Verification**: `npx tsc --noEmit` clean; full `npx jest --ci`
+**216/216 tests passing** (33 suites, +2 new in
+`MyMovementsPanel.test.tsx`); `npm run build` clean.
+
+**Status**: ✅ Implemented and verified. **NOT committed yet** —
+awaiting the user's confirmation it looks right before commit/push.

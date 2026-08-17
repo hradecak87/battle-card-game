@@ -5,13 +5,20 @@ import MyMovementsPanel from './MyMovementsPanel'
 const getMyMovements = jest.fn()
 const getTerritoriesByIds = jest.fn()
 const getMyActiveBattles = jest.fn()
+const getMyRecentlyResolvedBattles = jest.fn()
 const debugSpeedUpMovement = jest.fn()
+const getLastSeenRound = jest.fn()
 
 jest.mock('@/lib/territories/api', () => ({
   getMyMovements: (...args: unknown[]) => getMyMovements(...args),
   getTerritoriesByIds: (...args: unknown[]) => getTerritoriesByIds(...args),
   getMyActiveBattles: (...args: unknown[]) => getMyActiveBattles(...args),
+  getMyRecentlyResolvedBattles: (...args: unknown[]) => getMyRecentlyResolvedBattles(...args),
   debugSpeedUpMovement: (...args: unknown[]) => debugSpeedUpMovement(...args),
+}))
+
+jest.mock('@/lib/battles/lastSeenRound', () => ({
+  getLastSeenRound: (...args: unknown[]) => getLastSeenRound(...args),
 }))
 
 describe('MyMovementsPanel', () => {
@@ -19,9 +26,13 @@ describe('MyMovementsPanel', () => {
     getMyMovements.mockReset()
     getTerritoriesByIds.mockReset()
     getMyActiveBattles.mockReset()
+    getMyRecentlyResolvedBattles.mockReset()
     debugSpeedUpMovement.mockReset()
+    getLastSeenRound.mockReset()
     getTerritoriesByIds.mockResolvedValue({ data: [], error: null })
     getMyActiveBattles.mockResolvedValue({ data: [], error: null })
+    getMyRecentlyResolvedBattles.mockResolvedValue({ data: [], error: null })
+    getLastSeenRound.mockReturnValue(0)
   })
 
   it('renders nothing when there is no logged-in player', () => {
@@ -138,6 +149,34 @@ describe('MyMovementsPanel', () => {
     getMyMovements.mockResolvedValue({ data: null, error: { message: 'boom' } })
     render(<MyMovementsPanel myPlayerId="me" />)
     expect(await screen.findByText('boom')).toBeInTheDocument()
+  })
+
+  it('shows a link to view results for a recently resolved (e.g. instant NPC) battle not yet viewed', async () => {
+    getMyMovements.mockResolvedValue({ data: [], error: null })
+    getMyRecentlyResolvedBattles.mockResolvedValue({
+      data: [{ id: 'battle-npc-1', territory_id: 83, current_round: 164, resolved_at: new Date().toISOString() }],
+      error: null,
+    })
+    getLastSeenRound.mockReturnValue(0)
+
+    render(<MyMovementsPanel myPlayerId="me" />)
+
+    const link = await screen.findByText('Zobrazit výsledek →')
+    expect(link.closest('a')).toHaveAttribute('href', '/battles/battle-npc-1')
+    expect(screen.getByText(/území 83/)).toBeInTheDocument()
+  })
+
+  it('hides a recently resolved battle once its rounds have already been fully viewed', async () => {
+    getMyMovements.mockResolvedValue({ data: [], error: null })
+    getMyRecentlyResolvedBattles.mockResolvedValue({
+      data: [{ id: 'battle-npc-1', territory_id: 83, current_round: 164, resolved_at: new Date().toISOString() }],
+      error: null,
+    })
+    getLastSeenRound.mockReturnValue(164)
+
+    const { container } = render(<MyMovementsPanel myPlayerId="me" />)
+    await waitFor(() => expect(getMyRecentlyResolvedBattles).toHaveBeenCalled())
+    expect(container).toBeEmptyDOMElement()
   })
 
   it('calls debugSpeedUpMovement and refetches when the test speed-up button is clicked', async () => {

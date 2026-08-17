@@ -6,12 +6,15 @@ import {
   getMyMovements,
   getTerritoriesByIds,
   getMyActiveBattles,
+  getMyRecentlyResolvedBattles,
   debugSpeedUpMovement,
   TroopMovement,
   TerritoryCoords,
   ActiveBattleRef,
+  RecentBattleRef,
 } from '@/lib/territories/api'
 import { formatEta } from '@/lib/time/formatEta'
+import { getLastSeenRound } from '@/lib/battles/lastSeenRound'
 
 export interface MyMovementsPanelProps {
   myPlayerId: string | null
@@ -38,6 +41,7 @@ export default function MyMovementsPanel({ myPlayerId, refreshKey }: MyMovements
   const [movements, setMovements] = useState<TroopMovement[] | null>(null)
   const [coordsById, setCoordsById] = useState<Map<number, TerritoryCoords>>(new Map())
   const [battleByTerritoryId, setBattleByTerritoryId] = useState<Map<number, ActiveBattleRef>>(new Map())
+  const [unseenRecentBattles, setUnseenRecentBattles] = useState<RecentBattleRef[]>([])
   const [error, setError] = useState<string | null>(null)
   const [speedingUpId, setSpeedingUpId] = useState<string | null>(null)
 
@@ -55,13 +59,17 @@ export default function MyMovementsPanel({ myPlayerId, refreshKey }: MyMovements
     const territoryIds = Array.from(
       new Set(rows.flatMap((m) => [m.origin_territory_id, m.destination_territory_id]))
     )
-    const [{ data: territoryRows }, { data: battleRows }] = await Promise.all([
+    const [{ data: territoryRows }, { data: battleRows }, { data: recentBattleRows }] = await Promise.all([
       getTerritoriesByIds(territoryIds),
       getMyActiveBattles(myPlayerId as string),
+      getMyRecentlyResolvedBattles(myPlayerId as string),
     ])
     if (cancelledRef?.current) return
     setCoordsById(new Map((territoryRows ?? []).map((t) => [t.id, t])))
     setBattleByTerritoryId(new Map((battleRows ?? []).map((b) => [b.territory_id, b])))
+    setUnseenRecentBattles(
+      (recentBattleRows ?? []).filter((b) => getLastSeenRound(b.id) < b.current_round)
+    )
   }
 
   useEffect(() => {
@@ -92,15 +100,27 @@ export default function MyMovementsPanel({ myPlayerId, refreshKey }: MyMovements
   }
 
   if (!myPlayerId) return null
-  if (movements !== null && movements.length === 0) return null
+  if (movements !== null && movements.length === 0 && unseenRecentBattles.length === 0) return null
 
   return (
     <div className="w-full rounded border border-zinc-800 p-4">
       <h2 className="mb-2 text-sm font-bold text-zinc-300">Moje probíhající akce</h2>
       {error && <p className="text-red-400 text-sm">{error}</p>}
+      {unseenRecentBattles.length > 0 && (
+        <ul className="mb-2 flex flex-col gap-1 border-b border-zinc-800 pb-2">
+          {unseenRecentBattles.map((b) => (
+            <li key={b.id} className="flex items-center justify-between text-sm text-zinc-300">
+              <span>Bitva dokončena (území {b.territory_id})</span>
+              <Link href={`/battles/${b.id}`} className="text-red-400 underline">
+                Zobrazit výsledek →
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
       {movements === null ? (
         <p className="text-sm text-zinc-400">Načítám…</p>
-      ) : (
+      ) : movements.length === 0 ? null : (
         <ul className="flex flex-col gap-1">
           {movements.map((m) => {
             const origin = coordsById.get(m.origin_territory_id)

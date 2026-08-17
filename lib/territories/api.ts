@@ -211,6 +211,40 @@ export async function getMyActiveBattles(playerId: string) {
   }>
 }
 
+export interface RecentBattleRef {
+  id: string
+  territory_id: number
+  current_round: number
+  resolved_at: string
+}
+
+/**
+ * Battles the caller was part of that resolved within the last 48h.
+ *
+ * Needed because NPC-defended battles resolve synchronously the instant
+ * the attacking troop movement arrives (see `resolve_due_movements()` /
+ * `declare_attack`'s NPC path) — by the time the client polls again, the
+ * movement is already 'completed' (so it drops out of `getMyMovements`)
+ * *and* the battle is already 'resolved' (so it's excluded by
+ * `getMyActiveBattles`). Without this, an attacker who captures an
+ * NPC-held territory never sees any link to the battle at all: the
+ * territory just silently changes owner with the full round-by-round
+ * fight (however many rounds) fully recorded but never surfaced.
+ */
+export async function getMyRecentlyResolvedBattles(playerId: string) {
+  const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
+  return supabase
+    .from('battles')
+    .select('id, territory_id, current_round, resolved_at')
+    .or(`attacker_id.eq.${playerId},defender_id.eq.${playerId}`)
+    .eq('status', 'resolved')
+    .gte('resolved_at', since)
+    .order('resolved_at', { ascending: false }) as unknown as Promise<{
+    data: RecentBattleRef[] | null
+    error: { message: string } | null
+  }>
+}
+
 export interface CardInstanceWithTemplate {
   instance_id: string
   template_id: string
