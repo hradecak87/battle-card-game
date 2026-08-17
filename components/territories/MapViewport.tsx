@@ -41,13 +41,13 @@ const HIGHLIGHT_BAR_COLOR: Record<HighlightColor, string> = {
 // (inset-x-0 / inset-y-0), the two perpendicular bars meeting at a corner
 // (e.g. the top bar and the left bar of the same tile) each stop exactly
 // at that corner point and leave a 1px notch uncovered there. Extending
-// each bar 2px past both of its own ends makes the two bars overlap fully
-// in the corner square instead of just touching, closing that notch.
+// each bar 1px past both of its own ends makes the two bars overlap in
+// the corner square instead of just touching, closing that notch.
 const HIGHLIGHT_BAR_POSITION: Record<'top' | 'right' | 'bottom' | 'left', string> = {
-  top: 'left-[-2px] right-[-2px] -top-px h-0.5',
-  right: 'top-[-2px] bottom-[-2px] -right-px w-0.5',
-  bottom: 'left-[-2px] right-[-2px] -bottom-px h-0.5',
-  left: 'top-[-2px] bottom-[-2px] -left-px w-0.5',
+  top: '-left-px -right-px -top-px h-0.5',
+  right: '-top-px -bottom-px -right-px w-0.5',
+  bottom: '-left-px -right-px -bottom-px h-0.5',
+  left: '-top-px -bottom-px -left-px w-0.5',
 }
 
 export interface MapViewportProps {
