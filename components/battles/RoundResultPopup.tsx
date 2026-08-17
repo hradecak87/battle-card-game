@@ -13,24 +13,27 @@ export interface RoundResultPopupProps {
 
 const AUTO_DISMISS_SECONDS = 20
 
-function useCountdownSeconds(seconds: number, onExpire: () => void) {
-  const [remaining, setRemaining] = useState(seconds)
+function useCountdownSeconds(seconds: number, onExpire: () => void, resetKey: string) {
+  const [{ remaining, activeKey }, setCountdown] = useState({
+    remaining: seconds,
+    activeKey: resetKey,
+  })
 
   useEffect(() => {
-    setRemaining(seconds)
+    setCountdown({ remaining: seconds, activeKey: resetKey })
     const interval = setInterval(() => {
-      setRemaining((prev) => {
-        if (prev <= 1) return 0
-        return prev - 1
+      setCountdown((prev) => {
+        if (prev.activeKey !== resetKey) return prev
+        if (prev.remaining <= 1) return { remaining: 0, activeKey: prev.activeKey }
+        return { remaining: prev.remaining - 1, activeKey: prev.activeKey }
       })
     }, 1000)
     return () => clearInterval(interval)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [seconds, resetKey])
 
   useEffect(() => {
-    if (remaining === 0) onExpire()
-  }, [remaining, onExpire])
+    if (activeKey === resetKey && remaining === 0) onExpire()
+  }, [activeKey, remaining, resetKey, onExpire])
 
   return remaining
 }
@@ -74,7 +77,7 @@ function formatPercent(probability: number | null): string | null {
  * when either side had no eligible card that round).
  */
 export default function RoundResultPopup({ round, onDismiss }: RoundResultPopupProps) {
-  const remaining = useCountdownSeconds(AUTO_DISMISS_SECONDS, onDismiss)
+  const remaining = useCountdownSeconds(AUTO_DISMISS_SECONDS, onDismiss, round.id)
 
   const attackerTemplate = round.attacker_card ? toUnitTemplate(round.attacker_card.template) : null
   const defenderTemplate = round.defender_card ? toUnitTemplate(round.defender_card.template) : null

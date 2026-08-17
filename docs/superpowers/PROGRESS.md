@@ -9,6 +9,27 @@ update it as work progresses (not just at the end of a session).
 
 ---
 
+## Latest update — 2026-08-18e (round-result popup timer reset fixed)
+
+**Bug 1 from the TODO batch is now fixed** on worktree branch
+`feature/popup-timer-reset`:
+- Root cause: `BattleScreen.tsx` keeps rendering the same
+  `RoundResultPopup` component instance while `popupQueue[0]` advances
+  from one historical round to the next, and `RoundResultPopup.tsx`'s
+  `useCountdownSeconds` interval-setup effect was mounted with `[]`
+  dependencies — the 20s countdown was tied to the popup's first mount,
+  not to the currently displayed round, so manually dismissing round N
+  and immediately showing round N+1 reused the partially-spent timer.
+- Fix: `useCountdownSeconds(...)` now receives the displayed round's
+  unique `round.id` as a reset key, so the timer fully resets whenever the
+  shown round changes. Duration remains 20s; manual-close behavior
+  unchanged.
+- Two new regression tests in `RoundResultPopup.test.tsx` cover both the
+  manual-close and auto-timeout handoff paths. Test count: baseline
+  **274**, final **276/276**. `tsc`/build clean.
+
+---
+
 ## Latest update — 2026-08-18d (roster selection ring tightened to avoid edge clipping)
 
 **Bug batch item 2 fixed in `feature/roster-highlight-fix`**: the battle /
@@ -61,8 +82,10 @@ Verification in this worktree:
   the command** (the worktree currently has no `.env.local`, so a plain
   env-less build still fails with the pre-existing `supabaseUrl is required`
   prerender error unrelated to this map change)
+
 ---
 
+>>>>>>> 0279fef76bd4c3f0a8be4649233d75724b65983a
 ## Latest update — 2026-08-18b (building-cards module merged + rank-color swap)
 
 **Building-cards module merged** (`feature/building-cards`, commit
