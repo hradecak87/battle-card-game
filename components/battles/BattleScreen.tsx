@@ -214,7 +214,10 @@ export default function BattleScreen({ battleId, currentUserId }: BattleScreenPr
         </p>
       )}
 
-      <div className="flex w-full flex-col items-center gap-4 md:flex-row md:items-start md:justify-center">
+      <div
+        data-testid="battle-layout"
+        className="flex w-full max-w-full min-w-0 flex-col items-stretch gap-4 md:flex-row md:items-start md:justify-center"
+      >
         <RosterStrip title="Útočník" cards={attackerRoster} activeInstanceId={attackerCard?.instance_id} />
 
         <DuelStage

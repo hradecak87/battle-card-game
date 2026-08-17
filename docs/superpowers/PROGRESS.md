@@ -1283,3 +1283,19 @@ missing the new export, which broke 2 of its tests — added it).
 
 **Status**: ✅ Implemented and verified. **NOT committed yet** —
 awaiting the user's confirmation it looks right before commit/push.
+
+
+## 2026-08-17 — Mobile battle roster carousel overflow fix
+
+**Problem**: On narrow screens, the stacked battle layout used `items-center`, so each mobile `RosterStrip` sized itself to its content width. That prevented the strip's own `overflow-x-auto` row from scrolling internally and instead widened the whole page horizontally once a roster had more than ~4 cards.
+
+**Fix implemented**:
+- `components/battles/BattleScreen.tsx`: battle layout row now uses `w-full max-w-full min-w-0` and `items-stretch` below `md`, plus a `battle-layout` test id for layout assertions. Desktop `md:flex-row md:items-start md:justify-center` remains unchanged.
+- `components/battles/RosterStrip.tsx`: roster root now uses `w-full max-w-full min-w-0`; the mobile scroll row now has `min-w-0`, `snap-x snap-mandatory`, and a `roster-scroll` test id; each mobile card button is `w-[4.875rem] shrink-0 snap-start` so roughly four cards fit on typical mobile widths while the rest scroll horizontally. Desktop still switches to the existing vertical `md:flex-col` / `md:w-40` layout.
+- `components/battles/DuelStage.tsx`: root now also uses `w-full max-w-full min-w-0 md:w-auto` so the middle stage cannot be the flex item that forces overflow on mobile.
+- Tests: added `components/battles/RosterStrip.test.tsx` and one new class-assertion test in `components/battles/BattleScreen.test.tsx` to lock in the width-constraining and snap-scroll utility classes.
+
+**Verification**:
+- `npx tsc --noEmit` ✅
+- `npm test -- --runInBand` ✅ (218/218 tests, 34/34 suites)
+- `npm run build` ✅ (build succeeded; existing environment emitted repeated Supabase Node 20 deprecation warnings)

@@ -68,7 +68,7 @@ export default function DuelStage({
   const defenderTemplate = defenderCard ? toUnitTemplate(defenderCard.template) : null
 
   return (
-    <div data-testid="duel-stage" className="flex flex-col items-center gap-3">
+    <div data-testid="duel-stage" className="flex w-full max-w-full min-w-0 flex-col items-center gap-3 md:w-auto">
       <p className="text-sm text-zinc-400">Kolo {roundNumber}</p>
 
       <div className="flex items-center gap-6 text-lg font-bold">
