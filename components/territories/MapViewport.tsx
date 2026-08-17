@@ -172,6 +172,7 @@ export default function MapViewport({
   const [jumpY, setJumpY] = useState(String(centerY))
   const [hoveredTile, setHoveredTile] = useState<{ x: number; y: number } | null>(null)
   const dragStart = useRef<{ x: number; y: number } | null>(null)
+  const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null)
   const gridRef = useRef<HTMLDivElement>(null)
   const [cellPx, setCellPx] = useState<number | null>(null)
 
@@ -219,8 +220,23 @@ export default function MapViewport({
     }
   }
 
+  /** Converts a pixel drag distance to tile-space delta for onPan. */
+  function pxToTileDelta(dxPx: number, dyPx: number): { tileDx: number; tileDy: number } {
+    // Negative because dragging right reveals tiles to the left.
+    return {
+      tileDx: -Math.round(dxPx / 24),
+      tileDy: -Math.round(dyPx / 24),
+    }
+  }
+
   function handleMouseDown(e: React.MouseEvent) {
     dragStart.current = { x: e.clientX, y: e.clientY }
+    setDragOffset(null)
+  }
+
+  function handleMouseMove(e: React.MouseEvent) {
+    if (!dragStart.current) return
+    setDragOffset({ x: e.clientX - dragStart.current.x, y: e.clientY - dragStart.current.y })
   }
 
   function handleMouseUp(e: React.MouseEvent) {
@@ -228,10 +244,32 @@ export default function MapViewport({
     const dxPx = e.clientX - dragStart.current.x
     const dyPx = e.clientY - dragStart.current.y
     dragStart.current = null
-    // Roughly one tile per 24px of drag; negative because dragging right
-    // should reveal tiles to the left (pan the view, not the content).
-    const tileDx = -Math.round(dxPx / 24)
-    const tileDy = -Math.round(dyPx / 24)
+    setDragOffset(null)
+    const { tileDx, tileDy } = pxToTileDelta(dxPx, dyPx)
+    if (tileDx !== 0 || tileDy !== 0) {
+      onPan(tileDx, tileDy)
+    }
+  }
+
+  function handleTouchStart(e: React.TouchEvent) {
+    if (e.touches.length !== 1) return
+    dragStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+    setDragOffset(null)
+  }
+
+  function handleTouchMove(e: React.TouchEvent) {
+    if (!dragStart.current || e.touches.length !== 1) return
+    setDragOffset({ x: e.touches[0].clientX - dragStart.current.x, y: e.touches[0].clientY - dragStart.current.y })
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (!dragStart.current) return
+    const touch = e.changedTouches[0]
+    const dxPx = touch.clientX - dragStart.current.x
+    const dyPx = touch.clientY - dragStart.current.y
+    dragStart.current = null
+    setDragOffset(null)
+    const { tileDx, tileDy } = pxToTileDelta(dxPx, dyPx)
     if (tileDx !== 0 || tileDy !== 0) {
       onPan(tileDx, tileDy)
     }
@@ -322,9 +360,18 @@ export default function MapViewport({
         ref={gridRef}
         data-testid="map-grid"
         onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         className="grid select-none cursor-grab active:cursor-grabbing"
-        style={{ gridTemplateColumns: `repeat(${viewSize}, minmax(0, 1fr))` }}
+        style={{
+          gridTemplateColumns: `repeat(${viewSize}, minmax(0, 1fr))`,
+          transform: dragOffset ? `translate(${dragOffset.x}px,${dragOffset.y}px)` : undefined,
+          transition: dragOffset ? 'none' : 'transform 0.1s ease-out',
+        }}
       >
         {Array.from({ length: viewSize }).map((_, row) =>
           Array.from({ length: viewSize }).map((_, col) => {
