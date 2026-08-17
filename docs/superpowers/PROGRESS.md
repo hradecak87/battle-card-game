@@ -1283,3 +1283,46 @@ missing the new export, which broke 2 of its tests — added it).
 
 **Status**: ✅ Implemented and verified. **NOT committed yet** —
 awaiting the user's confirmation it looks right before commit/push.
+
+## 15. Own profile battle history — implemented and verified in `feature/profile-battle-history`
+
+Added a new "Historie bitev" section to `app/profile/me/page.tsx`, rendered
+below `PlayerProfileCard` via a dedicated
+`components/players/BattleHistoryList.tsx` client component. The section loads
+the current player's **25 most recent resolved/expired battles** (attacker or
+defender) with a plain `supabase.from('battles').select(...)` query in the new
+`getMyBattleHistory(playerId)` helper in `lib/battles/api.ts`; no new
+migration/RPC was needed because `battles_select_all` already allows this
+read, matching the existing `getMyRecentlyResolvedBattles()` pattern.
+
+Data exposed per row:
+- territory coords via embedded `territories(x, y)`,
+- player role (`attacker`/`defender`),
+- opponent name (or `NPC` when `defender_id` is null),
+- outcome relative to the viewing player (`won` / `lost` / `expired`),
+- round count,
+- troop gain/loss counts,
+- inferred territory change (`gained` / `lost` / `none`).
+
+Important implementation note: troop gains/losses are counted from
+`battle_rounds` and are effectively exact for non-skipped rounds, because
+every resolved round captures exactly one losing card (`owner_id` flips to the
+winner's owner in `_resolve_round`). Territory change is inferred from the
+normal `_finalize_battle` path: any non-home attacker win is treated as a
+territory swing; this intentionally ignores the rare attacker-win-but-32-cap-
+blocked edge case because the `battles` row alone does not record that
+exception.
+
+Tests added:
+- `lib/battles/api.test.ts` — mocks the Supabase table query and verifies
+  role/opponent/outcome/troop-delta mapping for win, loss, NPC, and expired
+  cases.
+- `components/players/BattleHistoryList.test.tsx` — renders Czech UI for the
+  same scenarios, including empty-state handling and battle-detail links.
+- `app/profile/me/page.test.tsx` — updated to assert the new section appears.
+
+Verification in this worktree: `npx tsc --noEmit` clean; full `npm test`
+**220/220 tests passing** (35 suites); `npm run build` clean. Build output
+does emit repeated upstream warnings that `@supabase/supabase-js` will require
+Node 22+ in the future, but the production build succeeds on the current
+environment.

@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import ProfileMePage from './page'
 
 const push = jest.fn()
+const getMyBattleHistory = jest.fn().mockResolvedValue({ data: [], error: null })
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
 }))
@@ -29,14 +30,19 @@ jest.mock('@/lib/supabase/client', () => ({
   },
 }))
 
+jest.mock('@/lib/battles/api', () => ({
+  getMyBattleHistory: (...args: unknown[]) => getMyBattleHistory(...args),
+}))
+
 import { useSession } from '@/lib/supabase/useSession'
 
 describe('ProfileMePage', () => {
   beforeEach(() => {
     push.mockClear()
+    getMyBattleHistory.mockClear()
   })
 
-  it('shows level/XP progress, nation perk text, kingdom name and activity stats', () => {
+  it('shows level/XP progress, nation perk text, kingdom name and the battle-history section', async () => {
     ;(useSession as jest.Mock).mockReturnValue({
       user: { id: 'u1' },
       player: mockPlayer,
@@ -50,6 +56,7 @@ describe('ProfileMePage', () => {
     expect(screen.getByText(/Tisové luky/)).toBeInTheDocument()
     expect(screen.getByTestId('xp-progress-bar')).toBeInTheDocument()
     expect(screen.getByText(/5 dní/)).toBeInTheDocument()
+    expect(await screen.findByText('Historie bitev')).toBeInTheDocument()
   })
 
   it('redirects to /login when there is no user', () => {

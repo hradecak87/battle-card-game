@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useSession } from '@/lib/supabase/useSession'
 import { supabase } from '@/lib/supabase/client'
 import { PlayerProfileCard } from '@/components/players/PlayerProfileCard'
+import BattleHistoryList from '@/components/players/BattleHistoryList'
 
 export default function ProfileMePage() {
   const router = useRouter()
@@ -59,7 +60,7 @@ export default function ProfileMePage() {
         </div>
       </nav>
       <PlayerProfileCard player={player} editable onUpdateKingdom={handleUpdateKingdom} />
+      <BattleHistoryList playerId={player.id} />
     </main>
   )
 }
-
