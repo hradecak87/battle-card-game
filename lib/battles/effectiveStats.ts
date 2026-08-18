@@ -10,7 +10,8 @@ export interface EffectiveStatsInput {
   isDefendingThisRound: boolean
   castleRank: Rank | null
   villageRank: Rank | null
-  ownerNation: NationId
+  /** `null` for an NPC-owned card (no combat perk applied). */
+  ownerNation: NationId | null
 }
 
 export function computeEffectiveStats(input: EffectiveStatsInput): EffectiveCard {

@@ -1,13 +1,24 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { Territory, CardInstanceWithTemplate, MyTerritory, getCardInstancesAtTerritory, getMyTerritories } from '@/lib/territories/api'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Territory,
+  CardInstanceWithTemplate,
+  MyTerritory,
+  getCardInstancesAtTerritory,
+  getMyTerritories,
+  getPlayerPublicInfo,
+} from '@/lib/territories/api'
 import { declareAttack } from '@/lib/battles/api'
 import { TradingCard } from '@/components/cards/TradingCard'
 import { CardZoomIconButton, CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
 import { applyRank } from '@/lib/cards/combat'
 import { Rank, UnitType, UnitCardTemplate } from '@/lib/cards/types'
 import { castleAttackBonusPct, combinedDefenseBonusPct } from '@/lib/territories/structureBonus'
+import { chebyshevDistance, transferHours } from '@/lib/territories/formulas'
+import { formatEta } from '@/lib/time/formatEta'
+import { simulateAttackerWinProbability } from '@/lib/battles/battleProbability'
+import { NationId } from '@/lib/players/nations'
 
 export interface DeclareAttackModalProps {
   /** The target territory being attacked (not the caller's own). */
@@ -51,6 +62,9 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [attackerNation, setAttackerNation] = useState<NationId | null>(null)
+  const [defenderNation, setDefenderNation] = useState<NationId | null>(null)
+  const [defenderInstances, setDefenderInstances] = useState<CardInstanceWithTemplate[] | null>(null)
   const loadRequestIdRef = useRef(0)
   const castleRank = territory.castle_rank as Rank | null
   const villageRank = territory.village_rank as Rank | null
@@ -59,6 +73,30 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
   const villageDefenseBonus = villageRank ? combinedDefenseBonusPct(null, villageRank) : 0
   const totalDefenseBonus = combinedDefenseBonusPct(castleRank, villageRank)
   const showStructureBonuses = Boolean(castleRank || villageRank)
+
+  // ETA/probability preview (backlog #3, #21): the attacker's own nation
+  // (transfer-time perk) and the defender's nation (combat perk) plus the
+  // target's currently-stationed unit cards, so the preview can run the
+  // same battle simulation the server ultimately resolves.
+  useEffect(() => {
+    if (!myPlayerId) return
+    getPlayerPublicInfo(myPlayerId).then(({ data }) => {
+      setAttackerNation((data?.nation as NationId) ?? null)
+    })
+  }, [myPlayerId])
+
+  useEffect(() => {
+    if (territory.owner_id) {
+      getPlayerPublicInfo(territory.owner_id).then(({ data }) => {
+        setDefenderNation((data?.nation as NationId) ?? null)
+      })
+    } else {
+      setDefenderNation(null)
+    }
+    getCardInstancesAtTerritory(territory.id).then(({ data }) => {
+      setDefenderInstances(data ?? [])
+    })
+  }, [territory.id, territory.owner_id])
 
   // Task: replaces manual "type the origin territory id" with a
   // dropdown of the caller's own territories (max 32, so no pagination
@@ -116,6 +154,39 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
   function toggleInstance(id: string) {
     setSelectedInstanceIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]))
   }
+
+  const originTerritory = myTerritories?.find((t) => t.id === Number(originTerritoryId)) ?? null
+
+  const etaText = useMemo(() => {
+    if (!originTerritory) return null
+    const distance = chebyshevDistance(originTerritory, territory)
+    const hours = transferHours(distance, attackerNation ?? undefined)
+    return formatEta(new Date(Date.now() + hours * 3600000).toISOString())
+  }, [originTerritory, territory, attackerNation])
+
+  const winProbability = useMemo(() => {
+    if (!originInstances || selectedInstanceIds.length === 0 || defenderInstances === null) return null
+    const attackerCards = originInstances
+      .filter((ci) => selectedInstanceIds.includes(ci.instance_id))
+      .map((ci) => toUnitTemplate(ci.card_templates!))
+      .filter((t): t is UnitCardTemplate => t !== null)
+      .map((t) => ({ baseStats: t.baseStats, rank: t.rank }))
+    const defenderCards = defenderInstances
+      .filter((ci) => ci.status === 'stationed' && ci.card_templates?.category === 'unit')
+      .map((ci) => toUnitTemplate(ci.card_templates!))
+      .filter((t): t is UnitCardTemplate => t !== null)
+      .map((t) => ({ baseStats: t.baseStats, rank: t.rank }))
+    if (attackerCards.length === 0) return null
+    return simulateAttackerWinProbability({
+      attackerCards,
+      defenderCards,
+      attackerNation,
+      defenderNation,
+      castleRank,
+      villageRank,
+      trials: 200,
+    })
+  }, [originInstances, selectedInstanceIds, defenderInstances, attackerNation, defenderNation, castleRank, villageRank])
 
   async function handleSubmit() {
     const originId = Number(originTerritoryId)
@@ -196,6 +267,21 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
                 ))}
               </select>
             </label>
+
+            {etaText && (
+              <p data-testid="declare-attack-eta" className="text-sm text-zinc-300">
+                Vojska dorazí na cíl: <span className="font-semibold">{etaText}</span>
+              </p>
+            )}
+
+            {winProbability && (
+              <p data-testid="declare-attack-win-probability" className="text-sm text-zinc-300">
+                Odhad šance na výhru v bitvě:{' '}
+                <span className="font-semibold text-amber-300">
+                  {Math.round(winProbability.attackerWinProbability * 100)} %
+                </span>
+              </p>
+            )}
 
             {loading && <p className="text-sm text-zinc-400">Načítám vojska…</p>}
             {territoriesError && <p className="text-red-400 text-sm">{territoriesError}</p>}

@@ -1,18 +1,22 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   CardInstanceWithTemplate,
   MyTerritory,
   Territory,
   getCardInstancesAtTerritory,
   getMyTerritories,
+  getPlayerPublicInfo,
   startTransfer,
 } from '@/lib/territories/api'
 import { TradingCard } from '@/components/cards/TradingCard'
 import { CardZoomIconButton, CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
 import { applyRank } from '@/lib/cards/combat'
 import { Rank, UnitType, UnitCardTemplate } from '@/lib/cards/types'
+import { chebyshevDistance, transferHours } from '@/lib/territories/formulas'
+import { formatEta } from '@/lib/time/formatEta'
+import { NationId } from '@/lib/players/nations'
 
 export interface TransferModalProps {
   /** The caller-owned territory receiving the transferred troops. */
@@ -48,7 +52,15 @@ export default function TransferModal({ territory, myPlayerId, onClose, onTransf
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [attackerNation, setAttackerNation] = useState<NationId | null>(null)
   const loadRequestIdRef = useRef(0)
+
+  useEffect(() => {
+    if (!myPlayerId) return
+    getPlayerPublicInfo(myPlayerId).then(({ data }) => {
+      setAttackerNation((data?.nation as NationId) ?? null)
+    })
+  }, [myPlayerId])
 
   useEffect(() => {
     if (!myPlayerId) return
@@ -106,6 +118,15 @@ export default function TransferModal({ territory, myPlayerId, onClose, onTransf
     setSelectedInstanceIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]))
   }
 
+  const originTerritory = myTerritories?.find((t) => t.id === Number(originTerritoryId)) ?? null
+
+  const etaText = useMemo(() => {
+    if (!originTerritory) return null
+    const distance = chebyshevDistance(originTerritory, territory)
+    const hours = transferHours(distance, attackerNation ?? undefined)
+    return formatEta(new Date(Date.now() + hours * 3600000).toISOString())
+  }, [originTerritory, territory, attackerNation])
+
   async function handleSubmit() {
     const originId = Number(originTerritoryId)
     if (!Number.isFinite(originId) || selectedInstanceIds.length === 0) return
@@ -159,6 +180,12 @@ export default function TransferModal({ territory, myPlayerId, onClose, onTransf
               ))}
             </select>
           </label>
+
+          {etaText && (
+            <p data-testid="transfer-eta" className="text-sm text-zinc-300">
+              Vojska dorazí na cíl: <span className="font-semibold">{etaText}</span>
+            </p>
+          )}
 
           {loading && <p className="text-sm text-zinc-400">Načítám vojska…</p>}
           {territoriesError && <p className="text-sm text-red-400">{territoriesError}</p>}

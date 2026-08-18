@@ -31,4 +31,10 @@ describe('applyNationCombatPerk', () => {
     expect(applyNationCombatPerk(base, 'mongol_horde')).not.toBe(base)
     expect(applyNationCombatPerk(base, 'scandinavia')).not.toBe(base)
   })
+
+  it('applies no perk for a null nation (NPC-owned card)', () => {
+    const result = applyNationCombatPerk(base, null)
+    expect(result).toEqual(base)
+    expect(result).not.toBe(base)
+  })
 })

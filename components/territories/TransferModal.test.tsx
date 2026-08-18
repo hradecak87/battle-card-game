@@ -4,11 +4,13 @@ import { Territory } from '@/lib/territories/api'
 
 const getCardInstancesAtTerritory = jest.fn()
 const getMyTerritories = jest.fn()
+const getPlayerPublicInfo = jest.fn()
 const startTransfer = jest.fn()
 
 jest.mock('@/lib/territories/api', () => ({
   getCardInstancesAtTerritory: (...args: unknown[]) => getCardInstancesAtTerritory(...args),
   getMyTerritories: (...args: unknown[]) => getMyTerritories(...args),
+  getPlayerPublicInfo: (...args: unknown[]) => getPlayerPublicInfo(...args),
   startTransfer: (...args: unknown[]) => startTransfer(...args),
 }))
 
@@ -81,7 +83,9 @@ describe('TransferModal', () => {
   beforeEach(() => {
     getCardInstancesAtTerritory.mockReset()
     getMyTerritories.mockReset()
+    getPlayerPublicInfo.mockReset()
     startTransfer.mockReset()
+    getPlayerPublicInfo.mockResolvedValue({ data: null, error: null })
     getMyTerritories.mockResolvedValue({
       data: [
         { id: 99, x: 5, y: 5, is_home: false },
@@ -125,6 +129,17 @@ describe('TransferModal', () => {
 
     await waitFor(() => expect(startTransfer).toHaveBeenCalledWith(1, 99, ['inst-1']))
     expect(onTransferred).toHaveBeenCalled()
+  })
+
+  it('shows an ETA once an origin territory is picked', async () => {
+    getCardInstancesAtTerritory.mockResolvedValue({ data: [unitCard], error: null })
+
+    render(<TransferModal territory={destinationTerritory} myPlayerId="me" onClose={jest.fn()} />)
+
+    const select = await screen.findByLabelText('Odkud přesouváš')
+    fireEvent.change(select, { target: { value: '1' } })
+
+    expect(await screen.findByTestId('transfer-eta')).toBeInTheDocument()
   })
 
   it('surfaces start_transfer errors inline', async () => {

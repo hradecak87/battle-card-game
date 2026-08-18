@@ -4,11 +4,13 @@ import { Territory } from '@/lib/territories/api'
 
 const getCardInstancesAtTerritory = jest.fn()
 const getMyTerritories = jest.fn()
+const getPlayerPublicInfo = jest.fn()
 const declareAttack = jest.fn()
 
 jest.mock('@/lib/territories/api', () => ({
   getCardInstancesAtTerritory: (...args: unknown[]) => getCardInstancesAtTerritory(...args),
   getMyTerritories: (...args: unknown[]) => getMyTerritories(...args),
+  getPlayerPublicInfo: (...args: unknown[]) => getPlayerPublicInfo(...args),
 }))
 
 jest.mock('@/lib/battles/api', () => ({
@@ -64,6 +66,9 @@ describe('DeclareAttackModal', () => {
   beforeEach(() => {
     getCardInstancesAtTerritory.mockReset()
     getMyTerritories.mockReset()
+    getPlayerPublicInfo.mockReset()
+    getPlayerPublicInfo.mockResolvedValue({ data: null, error: null })
+    getCardInstancesAtTerritory.mockResolvedValue({ data: [], error: null })
     getMyTerritories.mockResolvedValue({
       data: [{ id: 1, x: 0, y: 0, is_home: true }],
       error: null,
@@ -154,7 +159,10 @@ describe('DeclareAttackModal', () => {
       ],
       error: null,
     })
-    getCardInstancesAtTerritory.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
+    getCardInstancesAtTerritory
+      .mockResolvedValueOnce({ data: [], error: null }) // defender-garrison fetch on mount
+      .mockReturnValueOnce(first.promise)
+      .mockReturnValueOnce(second.promise)
 
     render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
 
@@ -180,7 +188,9 @@ describe('DeclareAttackModal', () => {
 
   it('clears the loading state if the player deselects the origin while units are still loading', async () => {
     const pending = deferred<{ data: typeof myCard[]; error: null }>()
-    getCardInstancesAtTerritory.mockReturnValueOnce(pending.promise)
+    getCardInstancesAtTerritory
+      .mockResolvedValueOnce({ data: [], error: null }) // defender-garrison fetch on mount
+      .mockReturnValueOnce(pending.promise)
 
     render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
 
@@ -209,5 +219,30 @@ describe('DeclareAttackModal', () => {
 
     expect(screen.getByTestId('declare-attack-card-select-inst-1')).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: /Zaútočit \(1 vojsk\)/ })).toBeEnabled()
+  })
+
+  it('shows an ETA once an origin territory is picked', async () => {
+    getCardInstancesAtTerritory.mockResolvedValue({ data: [myCard], error: null })
+
+    render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
+
+    fireEvent.change(await screen.findByLabelText('Odkud útočíš'), { target: { value: '1' } })
+
+    expect(await screen.findByTestId('declare-attack-eta')).toBeInTheDocument()
+  })
+
+  it('shows a win-probability estimate once attacker cards are selected', async () => {
+    getCardInstancesAtTerritory.mockImplementation((id: number) =>
+      Promise.resolve({ data: id === territory.id ? [] : [myCard], error: null })
+    )
+
+    render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
+
+    fireEvent.change(await screen.findByLabelText('Odkud útočíš'), { target: { value: '1' } })
+    await screen.findByText('Elitní rytíři')
+    fireEvent.click(screen.getByTestId('declare-attack-card-select-inst-1'))
+
+    // Empty defender garrison means a guaranteed attacker win (100%).
+    expect(await screen.findByTestId('declare-attack-win-probability')).toHaveTextContent('100 %')
   })
 })

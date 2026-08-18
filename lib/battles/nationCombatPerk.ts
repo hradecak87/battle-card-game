@@ -1,7 +1,12 @@
 import { EffectiveCard } from '../cards/types'
 import { NationId } from '../players/nations'
 
-export function applyNationCombatPerk(stats: EffectiveCard, nation: NationId): EffectiveCard {
+/**
+ * Applies the owning nation's combat perk. `nation === null` represents an
+ * NPC-owned card (no player, hence no perk) — mirrors the SQL
+ * `_compute_effective_stats`'s `else null` branch for a null nation.
+ */
+export function applyNationCombatPerk(stats: EffectiveCard, nation: NationId | null): EffectiveCard {
   switch (nation) {
     case 'england':
       return { ...stats, lng: stats.lng * 1.15 }
@@ -13,6 +18,7 @@ export function applyNationCombatPerk(stats: EffectiveCard, nation: NationId): E
       return { ...stats, hp: stats.hp * 1.15 }
     case 'mongol_horde':
     case 'scandinavia':
+    case null:
       return { ...stats }
   }
 }

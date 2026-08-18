@@ -78,7 +78,7 @@ status inline as items are picked up.
 |---|---|---|---|---|---|
 | 1 | Battle results occasionally show a hash code instead of the opposing card | 2 | 9 | done | Fixed 2026-08-18k — `RoundHistory` now uses historical round card snapshots instead of leaking raw `instance_id` when a defender card was captured |
 | 2 | Trading offers: show card thumbnails + tap-to-zoom detail (like on map territories) | 3 | 6 | pending | Reuse existing `CardZoomOverlay`/`TradingCard` |
-| 3 | Show ETA / estimated battle duration before sending troops (claim/transfer/attack) | 4 | 7 | pending | Transfer ETA formula already exists; surface it in UI before confirming |
+| 3 | Show ETA / estimated battle duration before sending troops (claim/transfer/attack) | 4 | 7 | **done** (this session) | `TransferModal` and `DeclareAttackModal` now show a live ETA (via `transferHours`/`chebyshevDistance`/`formatEta`) once an origin territory is picked. Peaceful "claim empty territory" UI is still unbuilt (see new note below), so ETA-for-claim is out of scope until that exists. |
 | 4 | Notification badge should be on "Směnárna" nav item, not "Profil" | 1 | 5 | **done** (`ed036a0`) | Fixed 2026-08-18 directly |
 | 5 | Accepted trade offer still shows in the offer list | 2 | 8 | done | Fixed on `fix/exchange-accepted-offer`: "Moje nabídky" now filters to active (`pending`/`countered`) offers only; accepted offers remain discoverable in `Historie` |
 | 6 | Allow selecting attacking troops from multiple owned territories at once (dropdown multi-check); total ETA = slowest/farthest | 6 | 5 | pending | Changes attack-declaration rules + aggregation logic + UI |
@@ -96,7 +96,7 @@ status inline as items are picked up.
 | 18 | Periodic audits: UX, architecture, security | — | 7 | pending | Process, not a feature — schedule recurring, not one-off |
 | 19 | Ability to abandon/give up a territory (becomes unclaimed again) | 3 | 4 | pending | New action, clears `owner_id` |
 | 20 | Show potential attacker the castle/village buffs before attacking | 2 | 6 | **done** (`27cc205`) | Fixed 2026-08-18: `DeclareAttackModal` now shows defender's castle/village bonus panel, reusing existing `structureBonus.ts` helpers |
-| 21 | Estimated battle-success probability shown while selecting attack cards | 6 | 7 | pending | Can reuse `/arena` combat-probability logic, but N-card battle simulation is more complex |
+| 21 | Estimated battle-success probability shown while selecting attack cards | 6 | 7 | **done** (this session) | New `lib/battles/battleProbability.ts` Monte Carlo simulator (`simulateAttackerWinProbability`, ~400 trials default) mirrors the exact server round-resolution rules (random per-side draw, card capture/side-switch, 2-round rest, roster-count win condition) and reuses `computeEffectiveStats`/`calculateWinProbability`. Wired into `DeclareAttackModal`, live-updating as attacker cards are (de)selected. Required widening `computeEffectiveStats`'s/`applyNationCombatPerk`'s `ownerNation` param to accept `null` (NPC-owned cards get no nation perk, matching the SQL's `else null` branch) — this is a backward-compatible widening, existing callers unaffected. |
 | 22 | Ability to surrender mid-battle with whatever side currently holds | 5 | 5 | pending | New battle state + return-trip logic for attacker's remaining troops |
 | 23 | Show attacker if defender is sending reinforcements; lock out reinforcements (and recall in-transit ones) once the battle arena is ready | 7 | 6 | pending | Complex state machine + race-condition handling; closes a real "wait out the timer" exploit |
 | 24 | Timeout to auto-start a battle if nobody connects within e.g. 1 hour of arrival | 4 | 5 | pending | Extension of the existing `ready_deadline` pattern |
@@ -119,12 +119,20 @@ status inline as items are picked up.
 - **Autonomous NPC world simulation** — scheduled server job (pg_cron/edge
   function) reusing existing claim/battle mechanics for NPC expansion and
   attacks. Most complex of the three; do last.
+- **Peaceful "claim empty territory" UI** — `start_claim`/`cancel_claim` RPCs
+  exist in `lib/territories/api.ts` but are not called by any live component
+  (`TerritoryDetailPanel.tsx`, which has claim UI, is not rendered from
+  `app/map/page.tsx`). Currently `DeclareAttackModal`/`declare_attack` is the
+  only live way to take an empty/NPC territory, which resolves via combat
+  (trivial walkover if truly no NPC garrison) rather than the originally
+  designed pure-time-based peaceful claim. Needs its own small scoping
+  decision + UI before item #3's ETA preview can be extended to that case.
 
 **Recommended order** (per assistant's assessment, not yet actioned):
 1. Quick bugfixes first: items 1, 4, 5, 8, 20 (low difficulty, high impact). ✅ done.
 2. ~~Resolve open design question #25~~ — ✅ resolved 2026-08-18 (status quo kept, see item 25 note above).
-3. ETA + battle-success-probability surfacing (3, 21) — high player value. **← next up**
-4. Remaining game-balance/mechanics items (6, 10, 12, 17, 22, 23, 24, 27).
+3. ~~ETA + battle-success-probability surfacing (3, 21)~~ — ✅ done this session.
+4. Remaining game-balance/mechanics items (6, 10, 12, 17, 22, 23, 24, 27). **← next up**
 5. Larger modules (13, 26, 29, 30, 31) — each through its own brainstorming
    session, same as always.
 6. Infra (9) and audits (18) — later, not urgent at current scale.
