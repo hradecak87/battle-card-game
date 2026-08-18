@@ -410,7 +410,7 @@ maximally atomic**: each task bundles writing code + its test + running it
        function if it's more than a couple of lines, to avoid duplicating
        `start_claim`'s occupation-timer math).
   4. For the three combat-classified cases: set `status='awaiting_ready'`
-     and `ready_deadline = now() + interval '10 days'`, **unless**
+     and `ready_deadline = now() + interval '24 hours'`, **unless**
      `defender_id is null` (NPC), in which case set `status='active'` and
      `round_deadline = now()` (already-due, not `+ interval '120
      seconds'` — an NPC battle should resolve in full the moment

@@ -20,7 +20,7 @@ This spec covers exactly what subsystem #3 explicitly deferred:
   cards involved in a round enter a 2-round "rest" cooldown regardless of
   which one won.
 - The "must both be online" real-time requirement for player-vs-player
-  battles, its 10-day ready timeout, and the "didn't show up at the same
+  battles, its 24-hour ready timeout, and the "didn't show up at the same
   time" tie-break (attacker wins).
 - Territory capture on victory (subject to the existing 32-territory cap —
   an attack that would result in capture is blocked outright if the
@@ -70,7 +70,7 @@ battles row created, status='awaiting_ready' (skipped entirely for NPC
       │  targets — an NPC "defender" is always ready; goes straight to
       │  'active')
       │
-      │  10-day ready_deadline. Both players must mark ready while online.
+      │  24-hour ready_deadline. Both players must mark ready while online.
       │    - neither ready in time            → attack lapses, troops return home, no capture, no card loss
       │    - only one ever readied             → that player wins outright (territory captured if applicable)
       │    - both readied but never overlapped → attacker wins outright
@@ -157,7 +157,7 @@ create table battles (
   status text not null check (status in ('awaiting_ready','active','resolved','expired')),
   attacker_ready_at timestamptz,
   defender_ready_at timestamptz,
-  ready_deadline timestamptz not null,          -- arrival + 10 days
+  ready_deadline timestamptz not null,          -- arrival + 24 hours
   current_round integer not null default 0,
   round_deadline timestamptz,                    -- set once status='active'; null otherwise
   winner_side text check (winner_side in ('attacker','defender')),  -- null until resolved
@@ -344,7 +344,7 @@ relevant participant column.
     the one case where "attack" silently becomes "claim" rather than a
     battle, since there's no one left to fight.
   For the three combat cases, it inserts the `battles` row (`awaiting_ready`
-  + `ready_deadline = now() + interval '10 days'`, or `active` +
+  + `ready_deadline = now() + interval '24 hours'`, or `active` +
   `round_deadline = now() + interval '120 seconds'` immediately if
   `defender_id is null`), and populates `battle_attacker_roster` from the
   movement's `troop_movement_units`. For a newly `active` NPC battle, it

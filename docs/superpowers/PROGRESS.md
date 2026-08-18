@@ -24,6 +24,20 @@
   Usage documented in the script's own docstring. Use this for any future
   card-art sheet instead of writing a new crop script from scratch.
 
+## Latest update — 2026-08-19 (ready_deadline shortened to 24 hours in repo)
+
+- Backlog #24 implemented in the repository by adding
+  `supabase/migrations/0016_shorten_ready_deadline.sql`, which redefines
+  `resolve_due_movements()` from `0011_claim_xp.sql` and changes exactly the
+  3 `ready_deadline` inserts from `now() + interval '10 days'` to
+  `now() + interval '24 hours'`.
+- Added matching manual checklist
+  `supabase/migrations/0016_shorten_ready_deadline.verification.sql`.
+- Also updated living docs that still described the old timeout
+  (`docs/superpowers/specs/2026-08-16-multi-army-rts-battle-design.md` and
+  `docs/superpowers/plans/2026-08-16-multi-army-rts-battle-plan.md`).
+- Per task instructions, the migration was **not** applied to the live
+  Supabase project, and no commit/push was made.
 ## Latest update — 2026-08-18k (battle round hash fallback fixed on `fix/battle-round-hash`)
 
 Battle round history no longer leaks raw card `instance_id` / UUID-like hashes
@@ -92,14 +106,14 @@ status inline as items are picked up.
 | 14 | Ability to recall/cancel an attack in transit; recalled troops must travel back the same duration | 6 | 5 | pending | New state-machine transition on movements/battles |
 | 15 | Dynamic growth of rare/epic/legendary card supply as player count grows | 4 | 3 | pending | Adjust `total_supply` formula + one-off recompute migration |
 | 16 | Limit on number of territories a player can be actively claiming at once | 3 | 5 | pending | Validation in `start_claim` |
-| 17 | Limit on using the same card multiple times within one battle (e.g. max 3-5×) | 4 | 6 | **implemented, not yet applied/committed** | Design spec: `docs/superpowers/specs/2026-08-18-card-use-limit-design.md`. Background agent delivered: `supabase/migrations/0015_card_use_limit.sql` (+ verification checklist, new `_max_card_uses()` = 5, `battle_unit_rest.times_used`, permanent-exhaustion loss check), `lib/battles/cardUseLimit.ts` (`MAX_CARD_USES_PER_BATTLE = 5`, `isExhausted`), `RosterStrip.tsx` uses-remaining badge, `lib/battles/api.ts` (`BattleCard.times_used`). All in the working tree, uncommitted and the migration is **not yet applied** to the live Supabase project — needs review + explicit go-ahead before commit/push/apply. |
+| 17 | Limit on using the same card multiple times within one battle (e.g. max 3-5×) | 4 | 6 | **done** (`217d9a8`, migration applied 2026-08-19) | Design spec: `docs/superpowers/specs/2026-08-18-card-use-limit-design.md`. `supabase/migrations/0015_card_use_limit.sql` (`_max_card_uses()` = 5, `battle_unit_rest.times_used`, permanent-exhaustion loss check) applied directly to the live Supabase project via `pg.Client`/`SUPABASE_DB_URL` (established pattern); sanity-checked afterwards (`_max_card_uses()` returns 5, `times_used` column exists with default 0, all 5 redefined functions present). Client side: `lib/battles/cardUseLimit.ts` (`MAX_CARD_USES_PER_BATTLE = 5`, `isExhausted`), `RosterStrip.tsx` uses-remaining badge, `lib/battles/api.ts` (`BattleCard.times_used`). |
 | 18 | Periodic audits: UX, architecture, security | — | 7 | pending | Process, not a feature — schedule recurring, not one-off |
 | 19 | Ability to abandon/give up a territory (becomes unclaimed again) | 3 | 4 | pending | New action, clears `owner_id` |
 | 20 | Show potential attacker the castle/village buffs before attacking | 2 | 6 | **done** (`27cc205`) | Fixed 2026-08-18: `DeclareAttackModal` now shows defender's castle/village bonus panel, reusing existing `structureBonus.ts` helpers |
 | 21 | Estimated battle-success probability shown while selecting attack cards | 6 | 7 | **done, then replaced (this session)** | Original approach (`lib/battles/battleProbability.ts`, Monte Carlo simulator) was faithful to the real multi-round capture-based battle mechanic but caused a **user-reported bug**: even small per-duel disadvantages get amplified into near-certain routs via a gambler's-ruin-style effect (verified against real production data — an 8v7 army with a modest defender edge won only ~1-2% of simulated battles), so the displayed win% swung wildly and stayed near 0% even for reasonably matched armies. **Replaced** with `lib/battles/armyStrength.ts`'s `compareArmyStrength`: a simple, fully deterministic (no randomness/trials) comparison of aggregate card power `(max(str,lng)+def)*hp` between the two sides (defender gets castle/village + nation-perk bonuses applied, same as before), mapped to one of 4 qualitative labels — Silná výhoda / Vyrovnané síly / Riskantní / Nevýhoda — shown in `DeclareAttackModal` (`declare-attack-army-strength` testid). Old simulator + its test deleted (`battleProbability.ts`/`.test.ts`), nothing else referenced it. |
 | 22 | Ability to surrender mid-battle with whatever side currently holds | 5 | 5 | pending | New battle state + return-trip logic for attacker's remaining troops |
 | 23 | Show attacker if defender is sending reinforcements; lock out reinforcements (and recall in-transit ones) once the battle arena is ready | 7 | 6 | pending | Complex state machine + race-condition handling; closes a real "wait out the timer" exploit |
-| 24 | Timeout to auto-start a battle if nobody connects within e.g. 1 hour of arrival | 4 | 5 | pending | Extension of the existing `ready_deadline` pattern |
+| 24 | Shorten the `awaiting_ready` battle timeout to 24 hours | 4 | 5 | **done** (migration applied 2026-08-19) | `supabase/migrations/0016_shorten_ready_deadline.sql` redefines `resolve_due_movements()` (verbatim from `0011_claim_xp.sql` except 3× `interval '10 days'` → `interval '24 hours'`); confirmed byte-identical otherwise. Applied directly to the live Supabase project via `pg.Client`/`SUPABASE_DB_URL` (established pattern); verified live function now has 0 occurrences of "10 days" and 3 of "24 hours". `round_deadline` (per-round 120s timeout) untouched. |
 | 25 | Open question: does the attacker actually need to be online during battle, given defender cards are auto-picked? | 2 | 8 | **resolved (no code change)** | Decision 2026-08-18: keep status quo — both sides must be online per round. Owner wants to leave room for a *future* mechanic letting the attacker actively intervene mid-battle too (ties into item 22 "surrender mid-battle" and item 26 boost cards), so removing the attacker's online requirement now would conflict with that later. Items 3/21/23/24 are NOT blocked by this and can proceed independently. |
 | 26 | Boost cards: split into territorial/defensive vs. offensive/military; opponent sees only count + rarity, not which cards (e.g. a "Rat" card that can flip an enemy unit without a combat round) | 8 | 6 | pending | Extends the already-planned `boost-cards-module` roadmap item |
 | 27 | Card limit per player scaling with level; ability to "return a card to the central deck" (common/uncommon burn, rare+ recycles back into circulation since supply is limited) | 6 | 5 | pending | New card-economy mechanic |
