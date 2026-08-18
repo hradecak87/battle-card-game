@@ -1,3 +1,29 @@
+## Conventions & tooling (read before starting work)
+
+### Verification workflow — token efficiency
+- **During iteration on a small change**: run only the directly relevant
+  test file(s) (e.g. `npx jest components/cards/TradingCard.test.tsx`).
+  Do not run the full suite, `tsc`, or `npm run build` after every small
+  edit — that's expensive and not needed until the change is complete.
+- **Once, right before the final commit/push**: run the full suite
+  (`npx jest --runInBand --silent`), `npx tsc --noEmit`, and
+  `npm run build` — all three, in that order — as the single verification
+  pass covering everything changed since the last commit. This is also the
+  point to check for stray untracked/scratch files to clean up.
+- Always pipe/tail verbose output (`| Select-Object -Last N`, `--silent`,
+  `--ci`) rather than reading raw logs, to keep token cost low regardless
+  of how long the command actually runs.
+
+### Card-art sheet cropping tool
+- `scripts/crop-card-sheet.py` — reusable tool for slicing a grid-sheet PNG
+  of illustrated unit-card artwork into individual per-card PNGs named by
+  `card_templates.id`. Detects each tile's *actual* boundary from
+  near-transparent gutters instead of assuming a uniform fixed stride
+  (source sheets are often NOT perfectly uniform between rows/columns,
+  which causes bleed/artifacts from neighboring tiles if sliced naively).
+  Usage documented in the script's own docstring. Use this for any future
+  card-art sheet instead of writing a new crop script from scratch.
+
 ## Latest update — 2026-08-18k (battle round hash fallback fixed on `fix/battle-round-hash`)
 
 Battle round history no longer leaks raw card `instance_id` / UUID-like hashes
