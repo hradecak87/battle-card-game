@@ -9,10 +9,20 @@ export interface RoundHistoryProps {
   defenderPool: BattleCard[]
 }
 
-function cardName(instanceId: string | null, attackerRoster: BattleCard[], defenderPool: BattleCard[]): string {
-  if (!instanceId) return '—'
-  const card = attackerRoster.find((c) => c.instance_id === instanceId) ?? defenderPool.find((c) => c.instance_id === instanceId)
-  return card?.template.name ?? instanceId
+function historicalCardName(
+  liveCardId: string | null,
+  historicalCard: BattleRoundRow['attacker_card'] | BattleRoundRow['defender_card'],
+  attackerRoster: BattleCard[],
+  defenderPool: BattleCard[],
+): string {
+  if (historicalCard?.template.name) return historicalCard.template.name
+  if (!liveCardId) return '—'
+
+  const liveCard =
+    attackerRoster.find((card) => card.instance_id === liveCardId) ??
+    defenderPool.find((card) => card.instance_id === liveCardId)
+
+  return liveCard?.template.name ?? 'Neznámá jednotka'
 }
 
 /**
@@ -42,8 +52,8 @@ export default function RoundHistory({ rounds, attackerRoster, defenderPool }: R
                 <span className="text-zinc-500">přeskočeno (odpočinek)</span>
               ) : (
                 <span>
-                  {cardName(round.attacker_card_instance_id, attackerRoster, defenderPool)} vs{' '}
-                  {cardName(round.defender_card_instance_id, attackerRoster, defenderPool)} —{' '}
+                  {historicalCardName(round.attacker_card_instance_id, round.attacker_card, attackerRoster, defenderPool)} vs{' '}
+                  {historicalCardName(round.defender_card_instance_id, round.defender_card, attackerRoster, defenderPool)} —{' '}
                   <span className="font-semibold text-amber-400">
                     {round.winner_card_instance_id === round.attacker_card_instance_id ? 'útočník' : 'obránce'}
                   </span>

@@ -1,3 +1,23 @@
+## Latest update — 2026-08-18k (battle round hash fallback fixed on `fix/battle-round-hash`)
+
+Battle round history no longer leaks raw card `instance_id` / UUID-like hashes
+when a historical defender card was already captured earlier in the battle.
+
+- Root cause: `components/battles/RoundHistory.tsx` still rendered round card
+  names by searching only the **live** `attackerRoster` / `defenderPool`
+  arrays. That breaks specifically for defeated defender cards, because
+  `_resolve_round()` immediately transfers the losing card's `owner_id`, so
+  the recomputed live `defenderPool` stops containing that historical card.
+  The component then fell back to the raw `instance_id` string.
+- Fix: `RoundHistory` now prefers the historical `round.attacker_card` /
+  `round.defender_card` snapshots already returned by `get_battle()` (added in
+  `0005_battle_round_breakdown.sql` exactly for post-capture historical
+  rendering), only falling back to live roster lookup for legacy/missing data.
+  If neither source is available, the UI now shows **`Neznámá jednotka`**
+  instead of exposing a hash to the player.
+- Added Jest coverage in `components/battles/RoundHistory.test.tsx` for the
+  captured-defender scenario that previously rendered the UUID.
+
 ## Backlog — 2026-08-18 (owner's overnight ideas + open roadmap items)
 
 Owner sent a large batch of bugs/ideas after a sleepless night. Assessed by
@@ -8,7 +28,7 @@ status inline as items are picked up.
 
 | # | Item | Difficulty | Priority | Status | Note |
 |---|---|---|---|---|---|
-| 1 | Battle results occasionally show a hash code instead of the opposing card | 2 | 9 | pending | Bug — likely missing join/serialization of the card in the round-result payload |
+| 1 | Battle results occasionally show a hash code instead of the opposing card | 2 | 9 | done | Fixed 2026-08-18k — `RoundHistory` now uses historical round card snapshots instead of leaking raw `instance_id` when a defender card was captured |
 | 2 | Trading offers: show card thumbnails + tap-to-zoom detail (like on map territories) | 3 | 6 | pending | Reuse existing `CardZoomOverlay`/`TradingCard` |
 | 3 | Show ETA / estimated battle duration before sending troops (claim/transfer/attack) | 4 | 7 | pending | Transfer ETA formula already exists; surface it in UI before confirming |
 | 4 | Notification badge should be on "Směnárna" nav item, not "Profil" | 1 | 5 | pending | Cosmetic move in `MainNav.tsx` |
