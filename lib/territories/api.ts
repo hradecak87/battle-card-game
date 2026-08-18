@@ -243,6 +243,26 @@ export async function getIncomingAttackArrival(territoryId: number) {
   }>
 }
 
+/**
+ * Every currently in-transit reinforcement (transfer) heading to any of
+ * the given destination territories, for MyMovementsPanel's "defender is
+ * rushing in reinforcements" warning (backlog #23) — lets an attacker with
+ * an in-transit attack see if a reinforcement will land before their own
+ * troops do.
+ */
+export async function getIncomingReinforcements(destinationTerritoryIds: number[]) {
+  if (destinationTerritoryIds.length === 0) return { data: [], error: null }
+  return supabase
+    .from('troop_movements')
+    .select('destination_territory_id, transfer_arrives_at')
+    .eq('kind', 'transfer')
+    .eq('status', 'in_transit')
+    .in('destination_territory_id', destinationTerritoryIds) as unknown as Promise<{
+    data: { destination_territory_id: number; transfer_arrives_at: string }[] | null
+    error: { message: string } | null
+  }>
+}
+
 export interface ActiveBattleRef {
   id: string
   territory_id: number

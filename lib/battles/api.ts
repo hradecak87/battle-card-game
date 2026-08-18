@@ -233,6 +233,19 @@ export async function declareAttack(
   }) as unknown as Promise<{ data: string | null; error: { message: string } | null }>
 }
 
+/**
+ * Backlog #14 (narrow scope): lets the attacker call off their own attack
+ * while it's still in transit. Once it has arrived and a battle exists,
+ * this is rejected server-side — recalling an already-arrived battle is
+ * out of scope.
+ */
+export async function recallAttack(movementId: string) {
+  return supabase.rpc('recall_attack', { p_movement_id: movementId }) as unknown as Promise<{
+    data: null
+    error: { message: string } | null
+  }>
+}
+
 export async function getBattle(battleId: string) {
   const { data, error } = await supabase.rpc('get_battle', { p_battle_id: battleId })
   // get_battle is a `returns table (...)` function — Postgres/PostgREST

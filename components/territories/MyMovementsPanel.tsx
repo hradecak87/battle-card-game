@@ -8,11 +8,13 @@ import {
   getMyActiveBattles,
   getMyRecentlyResolvedBattles,
   debugSpeedUpMovement,
+  getIncomingReinforcements,
   TroopMovement,
   TerritoryCoords,
   ActiveBattleRef,
   RecentBattleRef,
 } from '@/lib/territories/api'
+import { recallAttack } from '@/lib/battles/api'
 import { formatEta } from '@/lib/time/formatEta'
 import { getLastSeenRound } from '@/lib/battles/lastSeenRound'
 
@@ -44,6 +46,11 @@ export default function MyMovementsPanel({ myPlayerId, refreshKey }: MyMovements
   const [unseenRecentBattles, setUnseenRecentBattles] = useState<RecentBattleRef[]>([])
   const [error, setError] = useState<string | null>(null)
   const [speedingUpId, setSpeedingUpId] = useState<string | null>(null)
+  const [recallingId, setRecallingId] = useState<string | null>(null)
+  // destination_territory_id -> earliest incoming reinforcement ETA (backlog #23).
+  const [earliestReinforcementByDestination, setEarliestReinforcementByDestination] = useState<
+    Map<number, string>
+  >(new Map())
 
   async function load(cancelledRef?: { current: boolean }) {
     const { data: movementRows, error: movementsError } = await getMyMovements()
@@ -70,6 +77,31 @@ export default function MyMovementsPanel({ myPlayerId, refreshKey }: MyMovements
     setUnseenRecentBattles(
       (recentBattleRows ?? []).filter((b) => getLastSeenRound(b.id) < b.current_round)
     )
+
+    // Backlog #23: for every still-in-transit attack, check if the
+    // defender has reinforcements en route to the same territory with an
+    // earlier ETA than our own attack.
+    const inTransitAttackDestinations = Array.from(
+      new Set(
+        rows
+          .filter((m) => m.kind === 'attack' && m.status === 'in_transit')
+          .map((m) => m.destination_territory_id)
+      )
+    )
+    if (inTransitAttackDestinations.length > 0) {
+      const { data: reinforcementRows } = await getIncomingReinforcements(inTransitAttackDestinations)
+      if (cancelledRef?.current) return
+      const earliestByDestination = new Map<number, string>()
+      for (const r of reinforcementRows ?? []) {
+        const existing = earliestByDestination.get(r.destination_territory_id)
+        if (!existing || r.transfer_arrives_at < existing) {
+          earliestByDestination.set(r.destination_territory_id, r.transfer_arrives_at)
+        }
+      }
+      setEarliestReinforcementByDestination(earliestByDestination)
+    } else {
+      setEarliestReinforcementByDestination(new Map())
+    }
   }
 
   useEffect(() => {
@@ -96,6 +128,20 @@ export default function MyMovementsPanel({ myPlayerId, refreshKey }: MyMovements
       await load()
     } finally {
       setSpeedingUpId(null)
+    }
+  }
+
+  async function handleRecall(movementId: string) {
+    setRecallingId(movementId)
+    try {
+      const { error: recallError } = await recallAttack(movementId)
+      if (recallError) {
+        setError(recallError.message)
+        return
+      }
+      await load()
+    } finally {
+      setRecallingId(null)
     }
   }
 
@@ -126,34 +172,58 @@ export default function MyMovementsPanel({ myPlayerId, refreshKey }: MyMovements
             const origin = coordsById.get(m.origin_territory_id)
             const destination = coordsById.get(m.destination_territory_id)
             const battle = battleByTerritoryId.get(m.destination_territory_id)
+            const isInTransitAttack = m.kind === 'attack' && m.status === 'in_transit' && !battle
+            const earliestReinforcement = isInTransitAttack
+              ? earliestReinforcementByDestination.get(m.destination_territory_id)
+              : undefined
+            const reinforcementArrivesFirst =
+              earliestReinforcement !== undefined && earliestReinforcement < m.transfer_arrives_at
             return (
-              <li key={m.id} className="flex items-center justify-between text-sm text-zinc-300">
-                <span>
-                  <span className="font-semibold">{KIND_LABELS[m.kind]}</span>{' '}
-                  {origin ? `(${origin.x}, ${origin.y})` : '?'} →{' '}
-                  {destination ? `(${destination.x}, ${destination.y})` : '?'}
-                </span>
-                {battle ? (
-                  <Link href={`/battles/${battle.id}`} className="text-red-400 underline">
-                    Bitva probíhá →
-                  </Link>
-                ) : (
-                  <span className="flex items-center gap-2 text-zinc-400">
-                    {formatEta(
-                      m.kind === 'claim' && destination?.claim_occupation_completes_at
-                        ? destination.claim_occupation_completes_at
-                        : m.transfer_arrives_at
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleSpeedUp(m.id)}
-                      disabled={speedingUpId === m.id}
-                      title="Testovací zkratka: zkrátí zbývající čas na ~10s"
-                      className="rounded border border-zinc-600 px-1.5 py-0.5 text-xs text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
-                    >
-                      {speedingUpId === m.id ? '…' : '⏩ 10s (test)'}
-                    </button>
+              <li key={m.id} className="flex flex-col gap-1 text-sm text-zinc-300">
+                <div className="flex items-center justify-between">
+                  <span>
+                    <span className="font-semibold">{KIND_LABELS[m.kind]}</span>{' '}
+                    {origin ? `(${origin.x}, ${origin.y})` : '?'} →{' '}
+                    {destination ? `(${destination.x}, ${destination.y})` : '?'}
                   </span>
+                  {battle ? (
+                    <Link href={`/battles/${battle.id}`} className="text-red-400 underline">
+                      Bitva probíhá →
+                    </Link>
+                  ) : (
+                    <span className="flex items-center gap-2 text-zinc-400">
+                      {formatEta(
+                        m.kind === 'claim' && destination?.claim_occupation_completes_at
+                          ? destination.claim_occupation_completes_at
+                          : m.transfer_arrives_at
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleSpeedUp(m.id)}
+                        disabled={speedingUpId === m.id}
+                        title="Testovací zkratka: zkrátí zbývající čas na ~10s"
+                        className="rounded border border-zinc-600 px-1.5 py-0.5 text-xs text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
+                      >
+                        {speedingUpId === m.id ? '…' : '⏩ 10s (test)'}
+                      </button>
+                      {isInTransitAttack && (
+                        <button
+                          type="button"
+                          onClick={() => handleRecall(m.id)}
+                          disabled={recallingId === m.id}
+                          data-testid={`recall-attack-${m.id}`}
+                          className="rounded border border-amber-600 px-1.5 py-0.5 text-xs text-amber-300 hover:bg-amber-900/40 disabled:opacity-50"
+                        >
+                          {recallingId === m.id ? '…' : 'Zrušit útok'}
+                        </button>
+                      )}
+                    </span>
+                  )}
+                </div>
+                {isInTransitAttack && reinforcementArrivesFirst && (
+                  <p data-testid={`reinforcement-warning-${m.id}`} className="text-xs text-amber-400">
+                    Obránce posílá posily, dorazí dřív než tvá vojska!
+                  </p>
                 )}
               </li>
             )

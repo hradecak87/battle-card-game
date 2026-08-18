@@ -7,7 +7,9 @@ const getTerritoriesByIds = jest.fn()
 const getMyActiveBattles = jest.fn()
 const getMyRecentlyResolvedBattles = jest.fn()
 const debugSpeedUpMovement = jest.fn()
+const getIncomingReinforcements = jest.fn()
 const getLastSeenRound = jest.fn()
+const recallAttack = jest.fn()
 
 jest.mock('@/lib/territories/api', () => ({
   getMyMovements: (...args: unknown[]) => getMyMovements(...args),
@@ -15,6 +17,11 @@ jest.mock('@/lib/territories/api', () => ({
   getMyActiveBattles: (...args: unknown[]) => getMyActiveBattles(...args),
   getMyRecentlyResolvedBattles: (...args: unknown[]) => getMyRecentlyResolvedBattles(...args),
   debugSpeedUpMovement: (...args: unknown[]) => debugSpeedUpMovement(...args),
+  getIncomingReinforcements: (...args: unknown[]) => getIncomingReinforcements(...args),
+}))
+
+jest.mock('@/lib/battles/api', () => ({
+  recallAttack: (...args: unknown[]) => recallAttack(...args),
 }))
 
 jest.mock('@/lib/battles/lastSeenRound', () => ({
@@ -28,10 +35,13 @@ describe('MyMovementsPanel', () => {
     getMyActiveBattles.mockReset()
     getMyRecentlyResolvedBattles.mockReset()
     debugSpeedUpMovement.mockReset()
+    getIncomingReinforcements.mockReset()
     getLastSeenRound.mockReset()
+    recallAttack.mockReset()
     getTerritoriesByIds.mockResolvedValue({ data: [], error: null })
     getMyActiveBattles.mockResolvedValue({ data: [], error: null })
     getMyRecentlyResolvedBattles.mockResolvedValue({ data: [], error: null })
+    getIncomingReinforcements.mockResolvedValue({ data: [], error: null })
     getLastSeenRound.mockReturnValue(0)
   })
 
@@ -213,5 +223,149 @@ describe('MyMovementsPanel', () => {
 
     await waitFor(() => expect(debugSpeedUpMovement).toHaveBeenCalledWith('m1'))
     await waitFor(() => expect(getMyMovements).toHaveBeenCalledTimes(2))
+  })
+
+  it('shows a warning when a defender reinforcement will arrive before an in-transit attack (backlog #23)', async () => {
+    const attackArrivesAt = new Date(Date.now() + 60 * 60 * 1000).toISOString()
+    const reinforcementArrivesAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
+    getMyMovements.mockResolvedValue({
+      data: [
+        {
+          id: 'm1',
+          player_id: 'me',
+          kind: 'attack',
+          origin_territory_id: 80,
+          destination_territory_id: 81,
+          started_at: new Date().toISOString(),
+          transfer_arrives_at: attackArrivesAt,
+          status: 'in_transit',
+          cancelled_at: null,
+        },
+      ],
+      error: null,
+    })
+    getTerritoriesByIds.mockResolvedValue({
+      data: [
+        { id: 80, x: 0, y: 79 },
+        { id: 81, x: 1, y: 79 },
+      ],
+      error: null,
+    })
+    getIncomingReinforcements.mockResolvedValue({
+      data: [{ destination_territory_id: 81, transfer_arrives_at: reinforcementArrivesAt }],
+      error: null,
+    })
+
+    render(<MyMovementsPanel myPlayerId="me" />)
+
+    expect(await screen.findByTestId('reinforcement-warning-m1')).toHaveTextContent(
+      'Obránce posílá posily, dorazí dřív než tvá vojska!'
+    )
+    expect(getIncomingReinforcements).toHaveBeenCalledWith([81])
+  })
+
+  it('does not show a reinforcement warning when the incoming reinforcement arrives after the attack', async () => {
+    const attackArrivesAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
+    const reinforcementArrivesAt = new Date(Date.now() + 60 * 60 * 1000).toISOString()
+    getMyMovements.mockResolvedValue({
+      data: [
+        {
+          id: 'm1',
+          player_id: 'me',
+          kind: 'attack',
+          origin_territory_id: 80,
+          destination_territory_id: 81,
+          started_at: new Date().toISOString(),
+          transfer_arrives_at: attackArrivesAt,
+          status: 'in_transit',
+          cancelled_at: null,
+        },
+      ],
+      error: null,
+    })
+    getTerritoriesByIds.mockResolvedValue({
+      data: [
+        { id: 80, x: 0, y: 79 },
+        { id: 81, x: 1, y: 79 },
+      ],
+      error: null,
+    })
+    getIncomingReinforcements.mockResolvedValue({
+      data: [{ destination_territory_id: 81, transfer_arrives_at: reinforcementArrivesAt }],
+      error: null,
+    })
+
+    render(<MyMovementsPanel myPlayerId="me" />)
+
+    await screen.findByText(/za 10 min/)
+    expect(screen.queryByTestId('reinforcement-warning-m1')).not.toBeInTheDocument()
+  })
+
+  it('lets the player recall an in-transit attack and refetches movements', async () => {
+    const user = userEvent.setup()
+    getMyMovements.mockResolvedValue({
+      data: [
+        {
+          id: 'm1',
+          player_id: 'me',
+          kind: 'attack',
+          origin_territory_id: 80,
+          destination_territory_id: 81,
+          started_at: new Date().toISOString(),
+          transfer_arrives_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+          status: 'in_transit',
+          cancelled_at: null,
+        },
+      ],
+      error: null,
+    })
+    getTerritoriesByIds.mockResolvedValue({
+      data: [
+        { id: 80, x: 0, y: 79 },
+        { id: 81, x: 1, y: 79 },
+      ],
+      error: null,
+    })
+    recallAttack.mockResolvedValue({ error: null })
+
+    render(<MyMovementsPanel myPlayerId="me" />)
+
+    const button = await screen.findByTestId('recall-attack-m1')
+    await user.click(button)
+
+    await waitFor(() => expect(recallAttack).toHaveBeenCalledWith('m1'))
+    await waitFor(() => expect(getMyMovements).toHaveBeenCalledTimes(2))
+  })
+
+  it('does not show a recall button once the attack has resolved into an active battle', async () => {
+    getMyMovements.mockResolvedValue({
+      data: [
+        {
+          id: 'm1',
+          player_id: 'me',
+          kind: 'attack',
+          origin_territory_id: 80,
+          destination_territory_id: 81,
+          started_at: new Date().toISOString(),
+          transfer_arrives_at: new Date(Date.now() - 1000).toISOString(),
+          status: 'in_transit',
+          cancelled_at: null,
+        },
+      ],
+      error: null,
+    })
+    getTerritoriesByIds.mockResolvedValue({
+      data: [
+        { id: 80, x: 0, y: 79 },
+        { id: 81, x: 1, y: 79 },
+      ],
+      error: null,
+    })
+    getMyActiveBattles.mockResolvedValue({ data: [{ id: 'battle-1', territory_id: 81 }], error: null })
+
+    render(<MyMovementsPanel myPlayerId="me" />)
+
+    await screen.findByText('Bitva probíhá →')
+    expect(screen.queryByTestId('recall-attack-m1')).not.toBeInTheDocument()
   })
 })
