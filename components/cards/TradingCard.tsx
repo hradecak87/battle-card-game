@@ -1,5 +1,6 @@
 import { UnitCardTemplate, EffectiveCard, Rank, UnitType } from '@/lib/cards/types'
 import { UnitArt } from './unit-art'
+import { hasIllustratedArt, illustratedArtSrc } from '@/lib/cards/illustrated-art'
 
 const UNIT_TYPE_LABELS: Record<UnitType, string> = {
   archers: 'Lučištníci',
@@ -90,7 +91,19 @@ export function TradingCard({
       className={`[container-type:inline-size] aspect-[5/7] w-full rounded-xl border-[5px] ${frame.border} ${frame.glow} bg-zinc-900 flex flex-col overflow-hidden`}
     >
       <div className="relative h-[38%] shrink-0">
-        <UnitArt unitType={template.unitType} variant={artVariant} />
+        {hasIllustratedArt(template.id) ? (
+          // eslint-disable-next-line @next/next/no-img-element -- many cards
+          // render at once in grids; plain <img> avoids next/image's
+          // per-instance lazy-load/placeholder overhead (same rationale as
+          // the structure icons under components/territories/icons).
+          <img
+            src={illustratedArtSrc(template.id)}
+            alt={template.name}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <UnitArt unitType={template.unitType} variant={artVariant} />
+        )}
         <span
           className={`absolute top-1 right-1 text-[5.4cqw] font-bold px-[1.8cqw] py-[0.6cqw] rounded-full ${frame.badgeBg} ${frame.badgeText}`}
         >
