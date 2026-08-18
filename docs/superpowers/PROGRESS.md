@@ -18,6 +18,28 @@ when a historical defender card was already captured earlier in the battle.
 - Added Jest coverage in `components/battles/RoundHistory.test.tsx` for the
   captured-defender scenario that previously rendered the UUID.
 
+## Latest update — 2026-08-18 (exchange accepted-offer visibility bug fixed on `fix/exchange-accepted-offer`)
+
+- Root cause confirmed: `listMyOffers()` intentionally returns all direct offers
+  regardless of status, and `/exchange` rendered that array directly in
+  **Moje nabídky**. The action handlers (`acceptOffer` / `rejectOffer` /
+  `cancelOffer`) already awaited `loadAll()`, so the refetch path was not the
+  primary bug; the stale visibility came from the missing client-side status
+  filter after a successful refresh.
+- `app/exchange/page.tsx` now derives an `activeMyOffers` view limited to
+  `pending` + `countered`, uses that filtered array for the **Moje nabídky**
+  tab, and clears the selected-offer detail when an offer leaves the active
+  list after resolution.
+- `app/exchange/page.test.tsx` now covers both:
+  1. accepted offers fetched from `listMyOffers()` are hidden from
+     **Moje nabídky** but still visible in **Historie**
+  2. accepting a pending offer triggers the existing refetch path and the
+     refreshed resolved offer disappears from **Moje nabídky**
+- Verification in this worktree:
+  - Full Jest suite: **337/337 passing**
+  - `npx tsc --noEmit` ✅
+  - `npm run build` ✅
+
 ## Backlog — 2026-08-18 (owner's overnight ideas + open roadmap items)
 
 Owner sent a large batch of bugs/ideas after a sleepless night. Assessed by
@@ -32,7 +54,7 @@ status inline as items are picked up.
 | 2 | Trading offers: show card thumbnails + tap-to-zoom detail (like on map territories) | 3 | 6 | pending | Reuse existing `CardZoomOverlay`/`TradingCard` |
 | 3 | Show ETA / estimated battle duration before sending troops (claim/transfer/attack) | 4 | 7 | pending | Transfer ETA formula already exists; surface it in UI before confirming |
 | 4 | Notification badge should be on "Směnárna" nav item, not "Profil" | 1 | 5 | pending | Cosmetic move in `MainNav.tsx` |
-| 5 | Accepted trade offer still shows in the offer list | 2 | 8 | pending | Bug — likely missing refetch/filter after accept |
+| 5 | Accepted trade offer still shows in the offer list | 2 | 8 | done | Fixed on `fix/exchange-accepted-offer`: "Moje nabídky" now filters to active (`pending`/`countered`) offers only; accepted offers remain discoverable in `Historie` |
 | 6 | Allow selecting attacking troops from multiple owned territories at once (dropdown multi-check); total ETA = slowest/farthest | 6 | 5 | pending | Changes attack-declaration rules + aggregation logic + UI |
 | 7 | Battle history in profile: one compact row per battle with drill-down to details | 3 | 4 | pending | UI refactor of existing component |
 | 8 | Mobile card collection shows 1 card per row (portrait) — should be 3 per row | 2 | 7 | pending | CSS grid fix, high visibility |

@@ -29,6 +29,7 @@ import { CreateTradeOfferModal } from '@/components/exchange/CreateTradeOfferMod
 import { TradeOfferList } from '@/components/exchange/TradeOfferList'
 
 type ExchangeTab = 'mine' | 'market' | 'history'
+const ACTIVE_MY_OFFER_STATUSES: TradeOffer['status'][] = ['pending', 'countered']
 
 function filterUnitCards(cards: TradeSelectableCard[]) {
   return cards.filter((card) => card.template_base_stats && card.template_unit_type)
@@ -100,6 +101,11 @@ export default function ExchangePage() {
     return threadOffers
   }, [marketplaceOffers, myOffers, selectedOffer])
 
+  const activeMyOffers = useMemo(
+    () => myOffers.filter((offer) => ACTIVE_MY_OFFER_STATUSES.includes(offer.status)),
+    [myOffers]
+  )
+
   async function loadAll() {
     const filters: TradeMarketplaceFilters = {
       rank: (marketFilters.rank || null) as TradeMarketplaceFilters['rank'],
@@ -160,9 +166,9 @@ export default function ExchangePage() {
 
   useEffect(() => {
     if (!selectedOffer) return
-    const nextSelected = myOffers.find((offer) => offer.id === selectedOffer.id)
+    const nextSelected = activeMyOffers.find((offer) => offer.id === selectedOffer.id)
     setSelectedOffer(nextSelected ?? null)
-  }, [myOffers, selectedOffer])
+  }, [activeMyOffers, selectedOffer])
 
   async function handleSearchPlayers(query: string) {
     if (!user || modalState?.direction === 'respond') return
@@ -308,7 +314,7 @@ export default function ExchangePage() {
             <div>
               <h2 className="mb-4 text-2xl font-semibold">Moje nabídky</h2>
               <TradeOfferList
-                offers={myOffers}
+                offers={activeMyOffers}
                 emptyMessage="Zatím tu nemáš žádné nabídky."
                 selectedOfferId={selectedOffer?.id ?? null}
                 onSelect={setSelectedOffer}
