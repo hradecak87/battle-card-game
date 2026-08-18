@@ -1,3 +1,67 @@
+## Backlog — 2026-08-18 (owner's overnight ideas + open roadmap items)
+
+Owner sent a large batch of bugs/ideas after a sleepless night. Assessed by
+the assistant with a difficulty (1=easiest .. 10=hardest) and priority
+(1=lowest .. 10=highest) score. Nothing here is implemented yet except
+where explicitly marked done below. Do NOT re-triage from scratch — update
+status inline as items are picked up.
+
+| # | Item | Difficulty | Priority | Status | Note |
+|---|---|---|---|---|---|
+| 1 | Battle results occasionally show a hash code instead of the opposing card | 2 | 9 | pending | Bug — likely missing join/serialization of the card in the round-result payload |
+| 2 | Trading offers: show card thumbnails + tap-to-zoom detail (like on map territories) | 3 | 6 | pending | Reuse existing `CardZoomOverlay`/`TradingCard` |
+| 3 | Show ETA / estimated battle duration before sending troops (claim/transfer/attack) | 4 | 7 | pending | Transfer ETA formula already exists; surface it in UI before confirming |
+| 4 | Notification badge should be on "Směnárna" nav item, not "Profil" | 1 | 5 | pending | Cosmetic move in `MainNav.tsx` |
+| 5 | Accepted trade offer still shows in the offer list | 2 | 8 | pending | Bug — likely missing refetch/filter after accept |
+| 6 | Allow selecting attacking troops from multiple owned territories at once (dropdown multi-check); total ETA = slowest/farthest | 6 | 5 | pending | Changes attack-declaration rules + aggregation logic + UI |
+| 7 | Battle history in profile: one compact row per battle with drill-down to details | 3 | 4 | pending | UI refactor of existing component |
+| 8 | Mobile card collection shows 1 card per row (portrait) — should be 3 per row | 2 | 7 | pending | CSS grid fix, high visibility |
+| 9 | Multiple game servers via separate Supabase DBs per region (Europe/USA/Asia), chosen at login | 9 | 2 | pending | Major infra change; not needed at current player count |
+| 10 | Attacks must go through adjacent/border territory — can't target a territory fully surrounded by another player's land | 7 | 6 | pending | Needs adjacency/reachability graph per player |
+| 11 | Territory difficulty shown via terrain texture (1/5 grass .. 5/5 rock/sea) as tile background, castle/village drawn on top | 5 | 3 | pending | Mostly art asset work + render layering |
+| 12 | New unit attribute: Speed (movement speed); group speed = slowest unit | 6 | 5 | pending | New stat, migration, affects all ETA formulas + balancing |
+| 13 | "News feed" module: recent + upcoming attacks visible to all players | 6 | 4 | pending | Needs its own brainstorming session |
+| 14 | Ability to recall/cancel an attack in transit; recalled troops must travel back the same duration | 6 | 5 | pending | New state-machine transition on movements/battles |
+| 15 | Dynamic growth of rare/epic/legendary card supply as player count grows | 4 | 3 | pending | Adjust `total_supply` formula + one-off recompute migration |
+| 16 | Limit on number of territories a player can be actively claiming at once | 3 | 5 | pending | Validation in `start_claim` |
+| 17 | Limit on using the same card multiple times within one battle (e.g. max 3-5×) | 4 | 6 | pending | Battle-round card-selection logic change; real balance fix |
+| 18 | Periodic audits: UX, architecture, security | — | 7 | pending | Process, not a feature — schedule recurring, not one-off |
+| 19 | Ability to abandon/give up a territory (becomes unclaimed again) | 3 | 4 | pending | New action, clears `owner_id` |
+| 20 | Show potential attacker the castle/village buffs before attacking | 2 | 6 | pending | Data already exists (`defense_bonus_pct` etc.), just surface in UI |
+| 21 | Estimated battle-success probability shown while selecting attack cards | 6 | 7 | pending | Can reuse `/arena` combat-probability logic, but N-card battle simulation is more complex |
+| 22 | Ability to surrender mid-battle with whatever side currently holds | 5 | 5 | pending | New battle state + return-trip logic for attacker's remaining troops |
+| 23 | Show attacker if defender is sending reinforcements; lock out reinforcements (and recall in-transit ones) once the battle arena is ready | 7 | 6 | pending | Complex state machine + race-condition handling; closes a real "wait out the timer" exploit |
+| 24 | Timeout to auto-start a battle if nobody connects within e.g. 1 hour of arrival | 4 | 5 | pending | Extension of the existing `ready_deadline` pattern |
+| 25 | Open question: does the attacker actually need to be online during battle, given defender cards are auto-picked? | 2 | 8 | pending | Foundational design question — resolving it simplifies items 3, 21, 23, 24 |
+| 26 | Boost cards: split into territorial/defensive vs. offensive/military; opponent sees only count + rarity, not which cards (e.g. a "Rat" card that can flip an enemy unit without a combat round) | 8 | 6 | pending | Extends the already-planned `boost-cards-module` roadmap item |
+| 27 | Card limit per player scaling with level; ability to "return a card to the central deck" (common/uncommon burn, rare+ recycles back into circulation since supply is limited) | 6 | 5 | pending | New card-economy mechanic |
+| 28 | Add a "King" card that establishes a royal home city | 5 | 3 | pending | New special card + home-territory logic |
+| 29 | Diplomacy module: default neutral relations, attacking declares war, diplomacy resolves it (e.g. tribute) | 8 | 3 | pending | Idea only, needs its own brainstorming, large scope |
+| 30 | Coalition module: leader roles, combined armies for bigger battles | 9 | 2 | pending | Large scope, depends on diplomacy |
+| 31 | Chat / messaging module between players/kingdoms | 5 | 4 | pending | Medium scope, needs realtime infra |
+
+**Also still open from earlier roadmap discussions** (tracked in the session
+`todos` table, not yet started):
+- **Boost cards module** — new card type: territory-stationed % stat
+  multipliers. Needs its own brainstorming (persistent/consumable, stacking,
+  acquisition). Overlaps with/extends item 26 above.
+- **Notifications module** — attack alerts + trade offer notifications,
+  delivery mechanism TBD (email/push/in-app). Not designed yet. Overlaps
+  with items 4, 13, 23 above.
+- **Autonomous NPC world simulation** — scheduled server job (pg_cron/edge
+  function) reusing existing claim/battle mechanics for NPC expansion and
+  attacks. Most complex of the three; do last.
+
+**Recommended order** (per assistant's assessment, not yet actioned):
+1. Quick bugfixes first: items 1, 4, 5, 8, 20 (low difficulty, high impact).
+2. Resolve open design question #25 (attacker online requirement) — affects
+   items 3, 21, 23, 24.
+3. ETA + battle-success-probability surfacing (3, 21) — high player value.
+4. Remaining game-balance/mechanics items (6, 10, 12, 17, 22, 23, 24, 27).
+5. Larger modules (13, 26, 29, 30, 31) — each through its own brainstorming
+   session, same as always.
+6. Infra (9) and audits (18) — later, not urgent at current scale.
+
 ## Latest update — 2026-08-17j (trading/exchange module shipped on `feature/trading-exchange`)
 
 Trading / Exchange ("Směnárna") is now implemented on this worktree branch:
