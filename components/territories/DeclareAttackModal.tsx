@@ -17,7 +17,7 @@ import { Rank, UnitType, UnitCardTemplate } from '@/lib/cards/types'
 import { castleAttackBonusPct, combinedDefenseBonusPct } from '@/lib/territories/structureBonus'
 import { chebyshevDistance, transferHours } from '@/lib/territories/formulas'
 import { formatEta } from '@/lib/time/formatEta'
-import { simulateAttackerWinProbability } from '@/lib/battles/battleProbability'
+import { compareArmyStrength, ArmyStrengthLabel } from '@/lib/battles/armyStrength'
 import { NationId } from '@/lib/players/nations'
 
 export interface DeclareAttackModalProps {
@@ -164,7 +164,14 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
     return formatEta(new Date(Date.now() + hours * 3600000).toISOString())
   }, [originTerritory, territory, attackerNation])
 
-  const winProbability = useMemo(() => {
+  // Simple, deterministic army-strength comparison (not a battle-outcome
+  // simulation): tells the attacker whether their selected cards roughly
+  // match the defender's garrison in strength and number. A prior Monte
+  // Carlo multi-round simulation was replaced here because the real
+  // capture-based battle mechanic amplifies even small per-duel
+  // disadvantages into near-certain routs, making a simulated win-percent
+  // swing wildly for small changes in the selection.
+  const armyStrength = useMemo(() => {
     if (!originInstances || selectedInstanceIds.length === 0 || defenderInstances === null) return null
     const attackerCards = originInstances
       .filter((ci) => selectedInstanceIds.includes(ci.instance_id))
@@ -177,16 +184,22 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
       .filter((t): t is UnitCardTemplate => t !== null)
       .map((t) => ({ baseStats: t.baseStats, rank: t.rank }))
     if (attackerCards.length === 0) return null
-    return simulateAttackerWinProbability({
+    return compareArmyStrength({
       attackerCards,
       defenderCards,
       attackerNation,
       defenderNation,
       castleRank,
       villageRank,
-      trials: 200,
     })
   }, [originInstances, selectedInstanceIds, defenderInstances, attackerNation, defenderNation, castleRank, villageRank])
+
+  const armyStrengthCopy: Record<ArmyStrengthLabel, { text: string; className: string }> = {
+    'strong-advantage': { text: 'Silná výhoda', className: 'text-emerald-400' },
+    even: { text: 'Vyrovnané síly', className: 'text-amber-300' },
+    risky: { text: 'Riskantní', className: 'text-orange-400' },
+    disadvantage: { text: 'Nevýhoda', className: 'text-red-400' },
+  }
 
   async function handleSubmit() {
     const originId = Number(originTerritoryId)
@@ -274,11 +287,11 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
               </p>
             )}
 
-            {winProbability && (
-              <p data-testid="declare-attack-win-probability" className="text-sm text-zinc-300">
-                Odhad šance na výhru v bitvě:{' '}
-                <span className="font-semibold text-amber-300">
-                  {Math.round(winProbability.attackerWinProbability * 100)} %
+            {armyStrength && (
+              <p data-testid="declare-attack-army-strength" className="text-sm text-zinc-300">
+                Poměr sil vůči obránci:{' '}
+                <span className={`font-semibold ${armyStrengthCopy[armyStrength.label].className}`}>
+                  {armyStrengthCopy[armyStrength.label].text}
                 </span>
               </p>
             )}

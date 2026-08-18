@@ -26,6 +26,7 @@ function makeCard(instanceId: string, template: BattleCardTemplate): BattleCard 
     status: 'stationed',
     template,
     is_resting: false,
+    times_used: 0,
   }
 }
 

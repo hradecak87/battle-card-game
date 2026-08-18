@@ -9,6 +9,7 @@ function makeCard(instanceId: string, name: string): BattleCard {
     owner_id: 'player-1',
     status: 'stationed',
     is_resting: false,
+    times_used: 0,
     template: {
       id: `template-${instanceId}`,
       category: 'unit',

@@ -231,7 +231,7 @@ describe('DeclareAttackModal', () => {
     expect(await screen.findByTestId('declare-attack-eta')).toBeInTheDocument()
   })
 
-  it('shows a win-probability estimate once attacker cards are selected', async () => {
+  it('shows an army-strength comparison once attacker cards are selected', async () => {
     getCardInstancesAtTerritory.mockImplementation((id: number) =>
       Promise.resolve({ data: id === territory.id ? [] : [myCard], error: null })
     )
@@ -242,7 +242,7 @@ describe('DeclareAttackModal', () => {
     await screen.findByText('Elitní rytíři')
     fireEvent.click(screen.getByTestId('declare-attack-card-select-inst-1'))
 
-    // Empty defender garrison means a guaranteed attacker win (100%).
-    expect(await screen.findByTestId('declare-attack-win-probability')).toHaveTextContent('100 %')
+    // Empty defender garrison means a guaranteed strong advantage.
+    expect(await screen.findByTestId('declare-attack-army-strength')).toHaveTextContent('Silná výhoda')
   })
 })

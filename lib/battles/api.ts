@@ -46,6 +46,7 @@ export interface BattleCard {
   status: 'stationed' | 'in_transit'
   template: BattleCardTemplate
   is_resting: boolean
+  times_used: number
 }
 
 export interface BattleRoundRow {

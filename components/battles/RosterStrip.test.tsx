@@ -3,12 +3,16 @@ import userEvent from '@testing-library/user-event'
 import RosterStrip from './RosterStrip'
 import { BattleCard } from '@/lib/battles/api'
 
-function makeCard(instanceId: string): BattleCard {
+function makeCard(
+  instanceId: string,
+  overrides: Partial<BattleCard & { times_used: number }> = {}
+): BattleCard & { times_used: number } {
   return {
     instance_id: instanceId,
     owner_id: 'player-1',
     status: 'stationed',
     is_resting: false,
+    times_used: 0,
     template: {
       id: `template-${instanceId}`,
       category: 'unit',
@@ -22,6 +26,7 @@ function makeCard(instanceId: string): BattleCard {
       total_supply: null,
       minted_count: 1,
     },
+    ...overrides,
   }
 }
 
@@ -96,5 +101,31 @@ describe('RosterStrip', () => {
     await user.click(screen.getByRole('button', { name: 'Zavřít detail karty' }))
     await user.click(cardButton)
     expect(onSelect).toHaveBeenCalledWith('card-1')
+  })
+
+  it('renders the per-battle use badge under each card', () => {
+    render(<RosterStrip title="Obránce" cards={[makeCard('card-1', { times_used: 3 })]} />)
+
+    expect(screen.getByText('3/5 použití')).toBeInTheDocument()
+  })
+
+  it('disables selection once a card is exhausted, even when it is not resting', async () => {
+    const user = userEvent.setup()
+    const onSelect = jest.fn()
+
+    render(
+      <RosterStrip
+        title="Obránce"
+        cards={[makeCard('card-1', { times_used: 5 })]}
+        clickable
+        onSelect={onSelect}
+      />
+    )
+
+    const cardButton = screen.getByTestId('roster-card-card-1')
+    expect(cardButton).toBeDisabled()
+
+    await user.click(cardButton)
+    expect(onSelect).not.toHaveBeenCalled()
   })
 })

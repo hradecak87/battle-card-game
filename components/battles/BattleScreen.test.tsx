@@ -39,6 +39,7 @@ const attackerCard = {
   status: 'stationed' as const,
   template: makeTemplate(),
   is_resting: false,
+  times_used: 0,
 }
 
 const defenderCard = {
@@ -47,6 +48,7 @@ const defenderCard = {
   status: 'stationed' as const,
   template: makeTemplate({ id: 'spearmen-common-01', name: 'Oštěpníci', unit_type: 'spearmen' }),
   is_resting: false,
+  times_used: 0,
 }
 
 function awaitingReadyFixture(): GetBattleResult {

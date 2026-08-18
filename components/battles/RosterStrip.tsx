@@ -3,6 +3,7 @@
 import { BattleCard } from '@/lib/battles/api'
 import { TradingCard } from '@/components/cards/TradingCard'
 import { CardZoomIconButton, CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
+import { MAX_CARD_USES_PER_BATTLE, isExhausted } from '@/lib/battles/cardUseLimit'
 import { applyRank } from '@/lib/cards/combat'
 import { Rank, UnitType, UnitCardTemplate } from '@/lib/cards/types'
 
@@ -65,22 +66,28 @@ export default function RosterStrip({
           const isActive = card.instance_id === activeInstanceId
           const isPreview = card.instance_id === previewInstanceId
           const isSubmitting = card.instance_id === submittingInstanceId
+          const exhausted = isExhausted(card.times_used)
           const stats = applyRank(template.baseStats, template.rank)
           return (
             <div key={card.instance_id} className="relative w-[4.875rem] shrink-0 snap-start md:w-full">
               <button
                 type="button"
                 data-testid={`roster-card-${card.instance_id}`}
-                disabled={!clickable || card.is_resting || isSubmitting}
+                disabled={!clickable || card.is_resting || exhausted || isSubmitting}
                 onClick={() => onSelect?.(card.instance_id)}
                 className={`w-[4.875rem] shrink-0 snap-start rounded-lg text-left transition md:w-full ${
-                  card.is_resting ? 'opacity-40 grayscale' : ''
+                  card.is_resting || exhausted ? 'opacity-40 grayscale' : ''
                 } ${isActive ? 'ring-2 ring-inset ring-amber-400' : isPreview ? 'ring-2 ring-inset ring-sky-400' : ''} ${
-                  clickable && !card.is_resting ? 'cursor-pointer hover:scale-[1.03]' : 'cursor-default'
+                  clickable && !card.is_resting && !exhausted ? 'cursor-pointer hover:scale-[1.03]' : 'cursor-default'
                 }`}
               >
                 <TradingCard template={template} stats={stats} compact />
-                {card.is_resting && <p className="mt-1 text-center text-[10px] text-zinc-500">odpočívá</p>}
+                <div className="mt-1 space-y-1">
+                  <p className={`text-center text-[10px] ${exhausted ? 'text-amber-300' : 'text-zinc-500'}`}>
+                    {card.times_used}/{MAX_CARD_USES_PER_BATTLE} použití
+                  </p>
+                  {card.is_resting && <p className="text-center text-[10px] text-zinc-500">odpočívá</p>}
+                </div>
               </button>
               <CardZoomIconButton
                 cardName={template.name}
