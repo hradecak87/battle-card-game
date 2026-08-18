@@ -7,6 +7,7 @@ import { TradingCard } from '@/components/cards/TradingCard'
 import { CardZoomIconButton, CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
 import { applyRank } from '@/lib/cards/combat'
 import { Rank, UnitType, UnitCardTemplate } from '@/lib/cards/types'
+import { castleAttackBonusPct, combinedDefenseBonusPct } from '@/lib/territories/structureBonus'
 
 export interface DeclareAttackModalProps {
   /** The target territory being attacked (not the caller's own). */
@@ -51,6 +52,13 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const loadRequestIdRef = useRef(0)
+  const castleRank = territory.castle_rank as Rank | null
+  const villageRank = territory.village_rank as Rank | null
+  const castleDefenseBonus = castleRank ? combinedDefenseBonusPct(castleRank, null) : 0
+  const castleAttackBonus = castleAttackBonusPct(castleRank)
+  const villageDefenseBonus = villageRank ? combinedDefenseBonusPct(null, villageRank) : 0
+  const totalDefenseBonus = combinedDefenseBonusPct(castleRank, villageRank)
+  const showStructureBonuses = Boolean(castleRank || villageRank)
 
   // Task: replaces manual "type the origin territory id" with a
   // dropdown of the caller's own territories (max 32, so no pagination
@@ -151,6 +159,24 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
           </p>
         ) : (
           <div className="flex flex-col gap-3">
+            {showStructureBonuses && (
+              <div
+                data-testid="declare-attack-structure-bonuses"
+                className="rounded-xl border border-amber-700/60 bg-amber-950/40 p-3 text-sm text-amber-100"
+              >
+                <p className="font-semibold text-amber-200">Bonusy obránce na tomto území</p>
+                <div className="mt-2 flex flex-col gap-1 text-xs sm:text-sm">
+                  {castleRank && (
+                    <p>{`Hrad (${castleRank}): +${castleDefenseBonus} % obrana, +${castleAttackBonus} % útok zblízka i na dálku`}</p>
+                  )}
+                  {villageRank && (
+                    <p>{`Vesnice (${villageRank}): +${villageDefenseBonus} % obrana`}</p>
+                  )}
+                  <p className="text-amber-300">{`Celkem pro obránce: +${totalDefenseBonus} % obrana, +${castleAttackBonus} % útok zblízka i na dálku`}</p>
+                </div>
+              </div>
+            )}
+
             <label className="flex flex-col gap-1 text-sm text-zinc-400">
               Odkud útočíš
               <select
