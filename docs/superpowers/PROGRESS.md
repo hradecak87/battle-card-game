@@ -53,11 +53,11 @@ status inline as items are picked up.
 | 1 | Battle results occasionally show a hash code instead of the opposing card | 2 | 9 | done | Fixed 2026-08-18k — `RoundHistory` now uses historical round card snapshots instead of leaking raw `instance_id` when a defender card was captured |
 | 2 | Trading offers: show card thumbnails + tap-to-zoom detail (like on map territories) | 3 | 6 | pending | Reuse existing `CardZoomOverlay`/`TradingCard` |
 | 3 | Show ETA / estimated battle duration before sending troops (claim/transfer/attack) | 4 | 7 | pending | Transfer ETA formula already exists; surface it in UI before confirming |
-| 4 | Notification badge should be on "Směnárna" nav item, not "Profil" | 1 | 5 | pending | Cosmetic move in `MainNav.tsx` |
+| 4 | Notification badge should be on "Směnárna" nav item, not "Profil" | 1 | 5 | **done** (`ed036a0`) | Fixed 2026-08-18 directly |
 | 5 | Accepted trade offer still shows in the offer list | 2 | 8 | done | Fixed on `fix/exchange-accepted-offer`: "Moje nabídky" now filters to active (`pending`/`countered`) offers only; accepted offers remain discoverable in `Historie` |
 | 6 | Allow selecting attacking troops from multiple owned territories at once (dropdown multi-check); total ETA = slowest/farthest | 6 | 5 | pending | Changes attack-declaration rules + aggregation logic + UI |
 | 7 | Battle history in profile: one compact row per battle with drill-down to details | 3 | 4 | pending | UI refactor of existing component |
-| 8 | Mobile card collection shows 1 card per row (portrait) — should be 3 per row | 2 | 7 | pending | CSS grid fix, high visibility |
+| 8 | Mobile card collection shows 1 card per row (portrait) — should be 3 per row | 2 | 7 | **done** (`ed036a0`) | Fixed 2026-08-18 directly |
 | 9 | Multiple game servers via separate Supabase DBs per region (Europe/USA/Asia), chosen at login | 9 | 2 | pending | Major infra change; not needed at current player count |
 | 10 | Attacks must go through adjacent/border territory — can't target a territory fully surrounded by another player's land | 7 | 6 | pending | Needs adjacency/reachability graph per player |
 | 11 | Territory difficulty shown via terrain texture (1/5 grass .. 5/5 rock/sea) as tile background, castle/village drawn on top | 5 | 3 | pending | Mostly art asset work + render layering |
@@ -69,7 +69,7 @@ status inline as items are picked up.
 | 17 | Limit on using the same card multiple times within one battle (e.g. max 3-5×) | 4 | 6 | pending | Battle-round card-selection logic change; real balance fix |
 | 18 | Periodic audits: UX, architecture, security | — | 7 | pending | Process, not a feature — schedule recurring, not one-off |
 | 19 | Ability to abandon/give up a territory (becomes unclaimed again) | 3 | 4 | pending | New action, clears `owner_id` |
-| 20 | Show potential attacker the castle/village buffs before attacking | 2 | 6 | pending | Data already exists (`defense_bonus_pct` etc.), just surface in UI |
+| 20 | Show potential attacker the castle/village buffs before attacking | 2 | 6 | **done** (`27cc205`) | Fixed 2026-08-18: `DeclareAttackModal` now shows defender's castle/village bonus panel, reusing existing `structureBonus.ts` helpers |
 | 21 | Estimated battle-success probability shown while selecting attack cards | 6 | 7 | pending | Can reuse `/arena` combat-probability logic, but N-card battle simulation is more complex |
 | 22 | Ability to surrender mid-battle with whatever side currently holds | 5 | 5 | pending | New battle state + return-trip logic for attacker's remaining troops |
 | 23 | Show attacker if defender is sending reinforcements; lock out reinforcements (and recall in-transit ones) once the battle arena is ready | 7 | 6 | pending | Complex state machine + race-condition handling; closes a real "wait out the timer" exploit |
