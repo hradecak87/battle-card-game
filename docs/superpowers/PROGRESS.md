@@ -100,7 +100,7 @@ status inline as items are picked up.
 | 22 | Ability to surrender mid-battle with whatever side currently holds | 5 | 5 | pending | New battle state + return-trip logic for attacker's remaining troops |
 | 23 | Show attacker if defender is sending reinforcements; lock out reinforcements (and recall in-transit ones) once the battle arena is ready | 7 | 6 | pending | Complex state machine + race-condition handling; closes a real "wait out the timer" exploit |
 | 24 | Timeout to auto-start a battle if nobody connects within e.g. 1 hour of arrival | 4 | 5 | pending | Extension of the existing `ready_deadline` pattern |
-| 25 | Open question: does the attacker actually need to be online during battle, given defender cards are auto-picked? | 2 | 8 | pending | Foundational design question — resolving it simplifies items 3, 21, 23, 24 |
+| 25 | Open question: does the attacker actually need to be online during battle, given defender cards are auto-picked? | 2 | 8 | **resolved (no code change)** | Decision 2026-08-18: keep status quo — both sides must be online per round. Owner wants to leave room for a *future* mechanic letting the attacker actively intervene mid-battle too (ties into item 22 "surrender mid-battle" and item 26 boost cards), so removing the attacker's online requirement now would conflict with that later. Items 3/21/23/24 are NOT blocked by this and can proceed independently. |
 | 26 | Boost cards: split into territorial/defensive vs. offensive/military; opponent sees only count + rarity, not which cards (e.g. a "Rat" card that can flip an enemy unit without a combat round) | 8 | 6 | pending | Extends the already-planned `boost-cards-module` roadmap item |
 | 27 | Card limit per player scaling with level; ability to "return a card to the central deck" (common/uncommon burn, rare+ recycles back into circulation since supply is limited) | 6 | 5 | pending | New card-economy mechanic |
 | 28 | Add a "King" card that establishes a royal home city | 5 | 3 | pending | New special card + home-territory logic |
@@ -121,14 +121,14 @@ status inline as items are picked up.
   attacks. Most complex of the three; do last.
 
 **Recommended order** (per assistant's assessment, not yet actioned):
-1. Quick bugfixes first: items 1, 4, 5, 8, 20 (low difficulty, high impact).
-2. Resolve open design question #25 (attacker online requirement) — affects
-   items 3, 21, 23, 24.
-3. ETA + battle-success-probability surfacing (3, 21) — high player value.
+1. Quick bugfixes first: items 1, 4, 5, 8, 20 (low difficulty, high impact). ✅ done.
+2. ~~Resolve open design question #25~~ — ✅ resolved 2026-08-18 (status quo kept, see item 25 note above).
+3. ETA + battle-success-probability surfacing (3, 21) — high player value. **← next up**
 4. Remaining game-balance/mechanics items (6, 10, 12, 17, 22, 23, 24, 27).
 5. Larger modules (13, 26, 29, 30, 31) — each through its own brainstorming
    session, same as always.
 6. Infra (9) and audits (18) — later, not urgent at current scale.
+
 
 ## Latest update — 2026-08-18k (attack buff preview in declare-attack modal)
 
