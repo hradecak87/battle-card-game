@@ -22,9 +22,9 @@ export function MainNav() {
       { href: '/', label: 'Domů' },
       { href: '/map', label: 'Mapa' },
       { href: '/collection', label: 'Moje sbírka' },
-      { href: '/exchange', label: 'Směnárna' },
+      { href: '/exchange', label: 'Směnárna', badge: pendingCount },
       { href: '/leaderboard', label: 'Žebříček' },
-      { href: '/profile/me', label: 'Můj profil', badge: pendingCount },
+      { href: '/profile/me', label: 'Můj profil' },
     ]
   }, [pendingCount, user])
 

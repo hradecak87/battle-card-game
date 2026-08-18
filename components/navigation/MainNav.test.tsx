@@ -41,7 +41,7 @@ describe('MainNav', () => {
     })
   })
 
-  it('shows the unread pending-offer badge next to the profile link for logged-in users', async () => {
+  it('shows the unread pending-offer badge next to the exchange link for logged-in users', async () => {
     ;(useSession as jest.Mock).mockReturnValue({
       user: { id: 'me' },
       player: { onboarding_completed: true },
@@ -50,7 +50,7 @@ describe('MainNav', () => {
 
     render(<MainNav />)
 
-    expect(await screen.findByRole('link', { name: /Můj profil/ })).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: /Směnárna/ })).toBeInTheDocument()
     await waitFor(() => expect(screen.getByText('1')).toBeInTheDocument())
   })
 })

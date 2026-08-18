@@ -208,7 +208,7 @@ export default function MyCollectionPage() {
         <p className="text-zinc-400 text-sm">Zatím nevlastníš žádné karty vojsk.</p>
       )}
 
-      <ul className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(170px,1fr))]">
+      <ul className="grid grid-cols-3 gap-2 sm:gap-4 sm:grid-cols-[repeat(auto-fill,minmax(170px,1fr))]">
         {filtered.map((card) => {
           const template = card.card_templates!
           const zoomTemplate = {
