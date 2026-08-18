@@ -62,6 +62,28 @@ status inline as items are picked up.
    session, same as always.
 6. Infra (9) and audits (18) — later, not urgent at current scale.
 
+## Latest update — 2026-08-18k (attack buff preview in declare-attack modal)
+
+Task #20 from the backlog is now implemented in this worktree branch:
+
+- `components/territories/DeclareAttackModal.tsx` now shows a compact
+  defender-bonus panel whenever the target territory has a castle and/or
+  village, before the attacker commits troops.
+- The panel reuses the existing `lib/territories/structureBonus.ts` logic
+  rather than duplicating new game rules: castle lines show their defense
+  and defender attack bonus (`str` + `lng`), village lines show their
+  defense bonus, and a total row summarizes the defender's combined bonus.
+- No combat logic changed; this is UI-only surfacing of already-existing
+  territory structure effects.
+- `components/territories/DeclareAttackModal.test.tsx` now verifies both
+  cases: the panel appears with representative castle/village data and stays
+  hidden when the target has no structures.
+
+Verification in this worktree so far:
+- Full Jest suite: **337/337 passing**
+- `npx tsc --noEmit` ✅
+- `npm run build` ✅
+
 ## Latest update — 2026-08-17j (trading/exchange module shipped on `feature/trading-exchange`)
 
 Trading / Exchange ("Směnárna") is now implemented on this worktree branch:

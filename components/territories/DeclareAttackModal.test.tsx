@@ -121,6 +121,29 @@ describe('DeclareAttackModal', () => {
     expect(options).toEqual(['— vyber území —', 'Domov (0, 0)', 'Území (3, 4)'])
   })
 
+  it('renders the defender structure bonus panel when the target has castle and village', async () => {
+    render(
+      <DeclareAttackModal
+        territory={{ ...territory, castle_rank: 'rare', village_rank: 'common' }}
+        myPlayerId="me"
+        onClose={jest.fn()}
+      />
+    )
+
+    expect(await screen.findByTestId('declare-attack-structure-bonuses')).toBeInTheDocument()
+    expect(screen.getByText('Bonusy obránce na tomto území')).toBeInTheDocument()
+    expect(screen.getByText('Hrad (rare): +55 % obrana, +35 % útok zblízka i na dálku')).toBeInTheDocument()
+    expect(screen.getByText('Vesnice (common): +10 % obrana')).toBeInTheDocument()
+    expect(screen.getByText('Celkem pro obránce: +65 % obrana, +35 % útok zblízka i na dálku')).toBeInTheDocument()
+  })
+
+  it('does not render the defender structure bonus panel when the target has no structures', async () => {
+    render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
+
+    await screen.findByLabelText('Odkud útočíš')
+    expect(screen.queryByTestId('declare-attack-structure-bonuses')).not.toBeInTheDocument()
+  })
+
   it('ignores stale origin loads when the player quickly switches origin territory', async () => {
     const first = deferred<{ data: typeof myCard[]; error: null }>()
     const second = deferred<{ data: typeof myCard[]; error: null }>()
