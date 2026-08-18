@@ -8,7 +8,9 @@ import {
   getCardInstancesAtTerritory,
   getMyTerritories,
   getPlayerPublicInfo,
+  getTerritoryNeighborOwners,
 } from '@/lib/territories/api'
+import { isTerritoryAttackable } from '@/lib/territories/attackReachability'
 import { declareAttack } from '@/lib/battles/api'
 import { TradingCard } from '@/components/cards/TradingCard'
 import { CardZoomIconButton, CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
@@ -65,6 +67,7 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
   const [attackerNation, setAttackerNation] = useState<NationId | null>(null)
   const [defenderNation, setDefenderNation] = useState<NationId | null>(null)
   const [defenderInstances, setDefenderInstances] = useState<CardInstanceWithTemplate[] | null>(null)
+  const [reachable, setReachable] = useState<boolean | null>(null)
   const loadRequestIdRef = useRef(0)
   const castleRank = territory.castle_rank as Rank | null
   const villageRank = territory.village_rank as Rank | null
@@ -97,6 +100,32 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
       setDefenderInstances(data ?? [])
     })
   }, [territory.id, territory.owner_id])
+
+  // Attack-adjacency pre-check (backlog #10): territories owned by a player
+  // can only be attacked if at least one of their 4 orthogonal neighbors is
+  // not owned by that same player, mirroring declare_attack()'s server-side
+  // check (0017_attack_adjacency.sql). Empty/NPC targets (owner_id null) are
+  // always reachable, so skip the lookup entirely for those.
+  useEffect(() => {
+    if (!territory.owner_id) {
+      setReachable(true)
+      return
+    }
+    let cancelled = false
+    getTerritoryNeighborOwners(territory.x, territory.y).then(({ data, error }) => {
+      if (cancelled) return
+      if (error || !data) {
+        // Fail open: don't block the attacker on a lookup error, the
+        // authoritative check still runs server-side in declare_attack.
+        setReachable(true)
+        return
+      }
+      setReachable(isTerritoryAttackable(territory.owner_id, data))
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [territory.id, territory.owner_id, territory.x, territory.y])
 
   // Task: replaces manual "type the origin territory id" with a
   // dropdown of the caller's own territories (max 32, so no pagination
@@ -240,6 +269,10 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
         {success ? (
           <p className="text-sm text-emerald-400">
             Útok vyslán! Vojska dorazí na cíl po uplynutí doby přesunu, poté začne bitva.
+          </p>
+        ) : reachable === false ? (
+          <p data-testid="declare-attack-unreachable" className="text-sm text-amber-400">
+            Toto území je obklíčeno nepřátelským územím – nejprve dobyj okrajová území.
           </p>
         ) : (
           <div className="flex flex-col gap-3">

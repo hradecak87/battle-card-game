@@ -192,6 +192,34 @@ export async function getTerritoriesByIds(ids: number[]) {
 }
 
 /**
+ * The `owner_id` of a territory's 4 orthogonal (up/down/left/right)
+ * neighbors, for the client-side `isTerritoryAttackable` pre-check
+ * (backlog #10). Off-grid neighbors (target on the edge of the 256x256
+ * grid) simply have no matching row and are represented as `null`, matching
+ * the server-side `declare_attack` check's `t2.id is null` case.
+ */
+export async function getTerritoryNeighborOwners(x: number, y: number) {
+  const { data, error } = await supabase
+    .from('territories')
+    .select('x, y, owner_id')
+    .in('x', [x - 1, x, x + 1])
+    .in('y', [y - 1, y, y + 1]) as unknown as {
+    data: { x: number; y: number; owner_id: string | null }[] | null
+    error: { message: string } | null
+  }
+  if (error) return { data: null, error }
+  const byCoord = new Map((data ?? []).map((t) => [`${t.x},${t.y}`, t.owner_id]))
+  const neighborCoords: [number, number][] = [
+    [x, y - 1],
+    [x, y + 1],
+    [x - 1, y],
+    [x + 1, y],
+  ]
+  const owners = neighborCoords.map(([nx, ny]) => byCoord.get(`${nx},${ny}`) ?? null)
+  return { data: owners, error: null }
+}
+
+/**
  * The arrival time of the (at most one, enforced by declare_attack's
  * battle_locked_by check-and-lock) in-transit attack currently converging
  * on this territory. Territories don't carry this directly (only claims

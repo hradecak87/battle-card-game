@@ -5,12 +5,14 @@ import { Territory } from '@/lib/territories/api'
 const getCardInstancesAtTerritory = jest.fn()
 const getMyTerritories = jest.fn()
 const getPlayerPublicInfo = jest.fn()
+const getTerritoryNeighborOwners = jest.fn()
 const declareAttack = jest.fn()
 
 jest.mock('@/lib/territories/api', () => ({
   getCardInstancesAtTerritory: (...args: unknown[]) => getCardInstancesAtTerritory(...args),
   getMyTerritories: (...args: unknown[]) => getMyTerritories(...args),
   getPlayerPublicInfo: (...args: unknown[]) => getPlayerPublicInfo(...args),
+  getTerritoryNeighborOwners: (...args: unknown[]) => getTerritoryNeighborOwners(...args),
 }))
 
 jest.mock('@/lib/battles/api', () => ({
@@ -68,6 +70,8 @@ describe('DeclareAttackModal', () => {
     getMyTerritories.mockReset()
     getPlayerPublicInfo.mockReset()
     getPlayerPublicInfo.mockResolvedValue({ data: null, error: null })
+    getTerritoryNeighborOwners.mockReset()
+    getTerritoryNeighborOwners.mockResolvedValue({ data: [null, null, null, null], error: null })
     getCardInstancesAtTerritory.mockResolvedValue({ data: [], error: null })
     getMyTerritories.mockResolvedValue({
       data: [{ id: 1, x: 0, y: 0, is_home: true }],
@@ -108,6 +112,32 @@ describe('DeclareAttackModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /Zaútočit/ }))
 
     expect(await screen.findByText('territory ownership cap (32) reached')).toBeInTheDocument()
+  })
+
+  it('hides the attack form and shows a message when the target is surrounded by the same owner (backlog #10)', async () => {
+    getTerritoryNeighborOwners.mockResolvedValue({
+      data: ['other-player', 'other-player', 'other-player', 'other-player'],
+      error: null,
+    })
+
+    render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
+
+    expect(await screen.findByTestId('declare-attack-unreachable')).toHaveTextContent(
+      'Toto území je obklíčeno nepřátelským územím'
+    )
+    expect(screen.queryByLabelText('Odkud útočíš')).not.toBeInTheDocument()
+  })
+
+  it('allows attacking a territory with at least one differing neighbor (backlog #10)', async () => {
+    getTerritoryNeighborOwners.mockResolvedValue({
+      data: ['other-player', 'other-player', 'other-player', null],
+      error: null,
+    })
+
+    render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
+
+    expect(await screen.findByLabelText('Odkud útočíš')).toBeInTheDocument()
+    expect(screen.queryByTestId('declare-attack-unreachable')).not.toBeInTheDocument()
   })
 
   it('lists the caller\'s own territories in the origin dropdown, home first', async () => {
