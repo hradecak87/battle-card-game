@@ -1,5 +1,6 @@
 import { UnitCardTemplate, EffectiveCard, Rank, UnitType } from '@/lib/cards/types'
 import { UnitArt } from './unit-art'
+import { UNIT_ART_THEME } from '@/lib/cards/unit-art-theme'
 import { hasIllustratedArt, illustratedArtSrc } from '@/lib/cards/illustrated-art'
 
 const UNIT_TYPE_LABELS: Record<UnitType, string> = {
@@ -92,15 +93,27 @@ export function TradingCard({
     >
       <div className="relative h-[38%] shrink-0">
         {hasIllustratedArt(template.id) ? (
-          // eslint-disable-next-line @next/next/no-img-element -- many cards
-          // render at once in grids; plain <img> avoids next/image's
-          // per-instance lazy-load/placeholder overhead (same rationale as
-          // the structure icons under components/territories/icons).
-          <img
-            src={illustratedArtSrc(template.id)}
-            alt={template.name}
-            className="h-full w-full object-cover"
-          />
+          // Illustrated cards keep the same themed gradient backdrop as the
+          // SVG emblem cards (so the panel never shows a hard-edged
+          // transparent PNG against the card body) and layer the artwork
+          // on top of it.
+          <div
+            className="w-full h-full"
+            style={{
+              background: `radial-gradient(ellipse at 50% 45%, ${UNIT_ART_THEME[template.unitType].gradientFrom} 0%, ${UNIT_ART_THEME[template.unitType].gradientTo} 100%)`,
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element -- many
+                cards render at once in grids; plain <img> avoids
+                next/image's per-instance lazy-load/placeholder overhead
+                (same rationale as the structure icons under
+                components/territories/icons). */}
+            <img
+              src={illustratedArtSrc(template.id)}
+              alt={template.name}
+              className="h-full w-full object-cover"
+            />
+          </div>
         ) : (
           <UnitArt unitType={template.unitType} variant={artVariant} />
         )}
