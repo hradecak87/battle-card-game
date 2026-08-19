@@ -14,7 +14,11 @@ fixed stride, so each tile is cropped exactly on its real boundary.
 Requirements: source sheet must have a transparent (alpha ~0) background,
 with the actual illustration also mostly-transparent margins around it —
 detection works by finding rows/columns of near-zero non-transparent pixel
-counts near each expected boundary.
+counts near each expected boundary. If the sheet has NO real alpha channel
+(fully opaque, with a baked-in neutral-gray "checkerboard" pattern standing
+in for transparency instead), the script automatically falls back to
+color-based background detection and punches real transparency into the
+output crops.
 
 Usage:
     python scripts/crop-card-sheet.py <sheet.png> <rows> <cols> <names.json> [outdir]
@@ -94,8 +98,31 @@ def crop_sheet(sheet_path: str, n_rows: int, n_cols: int, names: list, outdir: s
     w, h = im.size
     alpha = np.array(im.getchannel('A'))
 
-    row_nonzero = (alpha > 10).sum(axis=1)  # per row, across full width
-    col_nonzero = (alpha > 10).sum(axis=0)  # per column, across full height
+    baked_in_checker_bg = alpha.min() >= 250
+    if baked_in_checker_bg:
+        # No real alpha channel — some source sheets bake in a flat/near-flat
+        # neutral-gray "checkerboard" background instead of true transparency
+        # (alpha is fully opaque everywhere). Detect background pixels by
+        # color instead: near-white/light-gray with very low chroma
+        # (max-min channel difference), which the checker squares are but
+        # actual illustration content (colored armor, terrain, etc.) isn't.
+        print('No real alpha channel detected — falling back to neutral-gray background detection.')
+        rgb = np.array(im.convert('RGB')).astype(int)
+        maxc = rgb.max(axis=2)
+        minc = rgb.min(axis=2)
+        chroma = maxc - minc
+        is_background = (minc >= 195) & (chroma <= 8)
+        foreground = ~is_background
+        # Punch real transparency into the working image so saved crops
+        # match the project's transparent-PNG convention instead of keeping
+        # the baked-in checker squares visible.
+        new_alpha = np.where(is_background, 0, 255).astype(np.uint8)
+        im.putalpha(Image.fromarray(new_alpha, mode='L'))
+    else:
+        foreground = alpha > 10
+
+    row_nonzero = foreground.sum(axis=1)  # per row, across full width
+    col_nonzero = foreground.sum(axis=0)  # per column, across full height
 
     row_bounds = detect_boundaries(row_nonzero, h, n_rows)
     col_bounds = detect_boundaries(col_nonzero, w, n_cols)
