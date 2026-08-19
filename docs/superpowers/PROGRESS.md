@@ -14,6 +14,50 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-19g (attacker identity/home-link + mobile-friendly territory modal)
+
+Fixed two UX gaps surfaced by the newly-live NPC attack on player "Martin"
+(territory 0,77 / NPC England): the territory-click modal gave no clue *who*
+was attacking, and an incoming attack never showed up in the defender's own
+"Moje probíhající akce" panel. Also reworked `GarrisonModal` for narrow
+portrait phone screens (previously content/buttons overflowed).
+
+- New migration `supabase/migrations/0028_incoming_attack_visibility.sql`
+  (applied live), adding two RPCs:
+  - `get_incoming_attack_info(p_territory_id)` — attacker id/display
+    name/kingdom/`is_npc` + their home territory x/y, plus the existing ETA.
+    Replaces the old bare `troop_movements` select in
+    `getIncomingAttackArrival` (renamed `getIncomingAttackInfo` in
+    `lib/territories/api.ts`).
+  - `get_incoming_attacks_on_my_territories()` — every in-transit attack
+    converging on a territory the caller owns (or is claiming), for the
+    defender's own "Moje probíhající akce" list (`get_my_movements()` only
+    ever returns the caller's own initiated movements, by design — this is
+    a separate, additive RPC, not a change to that one).
+- `GarrisonModal.tsx`: `incomingAttackArrivesAt` prop replaced with
+  `incomingAttackInfo` (richer object) + new `onNavigateToTerritory(x, y)`
+  prop; the battle-locked status line now reads "Útok od {NPC }{jméno} —
+  vojska dorazí …" with a "🏠 Domov útočníka (x, y)" button that pans the
+  map there and closes the modal. Also made mobile-responsive: header now
+  stacks title above a wrapping button row below `sm:`, backdrop/modal
+  padding shrinks on small screens, and the rename form wraps.
+- `MyMovementsPanel.tsx`: new defender-attacks section (before the regular
+  movement list) listing each incoming attack with attacker identity, ETA,
+  and the same "🏠 Domov útočníka" jump button; wired via a new
+  `onNavigateToTerritory` prop.
+- `app/map/page.tsx`: wires `handleJump` through to both `GarrisonModal` and
+  `MyMovementsPanel` as `onNavigateToTerritory`; swapped
+  `getIncomingAttackArrival` → `getIncomingAttackInfo`.
+- Verified live directly against the real NPC England → territory 78 (0,77)
+  attack: `get_incoming_attack_info(78)` correctly returns attacker "NPC
+  England" / kingdom "Koruna Albionu" / home (251, 255).
+- Removed a stray leftover diagnostic scratch file (`scratch-check-077.mjs`)
+  from the earlier outage investigation. `karty5.png`/`karty5-names.json`/
+  `karty5-tiles.json` (abandoned card-art batch, explicitly halted by the
+  user) are left untouched/untracked.
+- Verification: `npx jest --silent` 430/430, `npx tsc --noEmit` clean,
+  `npm run build` clean.
+
 ## Latest update — 2026-08-19d (boost cards end-to-end, merged + applied to live DB)
 
 Approved boost-card feature is now implemented across schema/migrations,

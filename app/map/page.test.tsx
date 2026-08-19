@@ -32,7 +32,7 @@ const getMinimapOverview = jest.fn().mockResolvedValue({ data: [], error: null }
 const getCardInstancesAtTerritory = jest.fn().mockResolvedValue({ data: [], error: null })
 const getMyHomeTerritory = jest.fn().mockResolvedValue({ data: [], error: null })
 const getMyTerritories = jest.fn().mockResolvedValue({ data: [], error: null })
-const getIncomingAttackArrival = jest.fn().mockResolvedValue({ data: null, error: null })
+const getIncomingAttackInfo = jest.fn().mockResolvedValue({ data: null, error: null })
 const getPlayerPublicInfo = jest.fn().mockResolvedValue({ data: null, error: null })
 const startTransfer = jest.fn().mockResolvedValue({ data: null, error: null })
 const getMyMovements = jest.fn().mockResolvedValue({ data: [], error: null })
@@ -51,7 +51,7 @@ jest.mock('@/lib/territories/api', () => ({
   getCardInstancesAtTerritory: (...args: unknown[]) => getCardInstancesAtTerritory(...args),
   getMyHomeTerritory: (...args: unknown[]) => getMyHomeTerritory(...args),
   getMyTerritories: (...args: unknown[]) => getMyTerritories(...args),
-  getIncomingAttackArrival: (...args: unknown[]) => getIncomingAttackArrival(...args),
+  getIncomingAttackInfo: (...args: unknown[]) => getIncomingAttackInfo(...args),
   getPlayerPublicInfo: (...args: unknown[]) => getPlayerPublicInfo(...args),
   startTransfer: (...args: unknown[]) => startTransfer(...args),
   getMyMovements: (...args: unknown[]) => getMyMovements(...args),
@@ -102,8 +102,8 @@ describe('MapPage', () => {
     getCardInstancesAtTerritory.mockResolvedValue({ data: [], error: null })
     getMyHomeTerritory.mockReset()
     getMyHomeTerritory.mockResolvedValue({ data: [], error: null })
-    getIncomingAttackArrival.mockReset()
-    getIncomingAttackArrival.mockResolvedValue({ data: null, error: null })
+    getIncomingAttackInfo.mockReset()
+    getIncomingAttackInfo.mockResolvedValue({ data: null, error: null })
     getPlayerPublicInfo.mockClear()
     getMyTerritories.mockReset()
     getMyTerritories.mockResolvedValue({ data: [], error: null })

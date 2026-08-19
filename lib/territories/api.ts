@@ -242,26 +242,57 @@ export async function getTerritoryNeighborOwners(x: number, y: number) {
   return { data: owners, error: null }
 }
 
+export interface IncomingAttackInfo {
+  transfer_arrives_at: string
+  attacker_id: string
+  attacker_display_name: string | null
+  attacker_kingdom_name: string | null
+  attacker_is_npc: boolean
+  attacker_home_x: number | null
+  attacker_home_y: number | null
+}
+
 /**
- * The arrival time of the (at most one, enforced by declare_attack's
+ * Details of the (at most one, enforced by declare_attack's
  * battle_locked_by check-and-lock) in-transit attack currently converging
- * on this territory. Territories don't carry this directly (only claims
- * get a `claim_transfer_arrives_at` column) — this is a small, publicly
- * readable (`troop_movements_select_all`) direct query so anyone viewing
- * a battle-locked-but-not-yet-active tile can see when the attacker's
- * army will actually arrive and the battle will start.
+ * on this territory: arrival time plus the attacker's identity and home
+ * territory coordinates (migration 0028) — so a battle-locked-but-not-yet-
+ * active tile's detail view can show *who* is attacking and link through
+ * to their home, not just "an attack is on the way".
  */
-export async function getIncomingAttackArrival(territoryId: number) {
-  return supabase
-    .from('troop_movements')
-    .select('transfer_arrives_at')
-    .eq('destination_territory_id', territoryId)
-    .eq('kind', 'attack')
-    .eq('status', 'in_transit')
-    .order('started_at', { ascending: false })
-    .limit(1)
-    .maybeSingle() as unknown as Promise<{
-    data: { transfer_arrives_at: string } | null
+export async function getIncomingAttackInfo(territoryId: number) {
+  const { data, error } = await supabase.rpc('get_incoming_attack_info', {
+    p_territory_id: territoryId,
+  })
+  if (error) return { data: null, error }
+  const rows = (data ?? []) as IncomingAttackInfo[]
+  return { data: rows[0] ?? null, error: null }
+}
+
+export interface IncomingAttackOnMyTerritory {
+  movement_id: string
+  territory_id: number
+  territory_x: number
+  territory_y: number
+  territory_name: string | null
+  attacker_id: string
+  attacker_display_name: string | null
+  attacker_is_npc: boolean
+  attacker_home_x: number | null
+  attacker_home_y: number | null
+  transfer_arrives_at: string
+}
+
+/**
+ * Every in-transit attack currently converging on a territory the caller
+ * owns (or is claiming), for MyMovementsPanel's defender section —
+ * `get_my_movements()` only ever returns movements the caller personally
+ * sent, so incoming attacks (where the *attacker* is `player_id`) were
+ * previously invisible to the defender anywhere except a blinking map tile.
+ */
+export async function getIncomingAttacksOnMyTerritories() {
+  return supabase.rpc('get_incoming_attacks_on_my_territories') as unknown as Promise<{
+    data: IncomingAttackOnMyTerritory[] | null
     error: { message: string } | null
   }>
 }

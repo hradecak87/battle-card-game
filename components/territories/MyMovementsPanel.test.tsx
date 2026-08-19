@@ -8,6 +8,7 @@ const getMyActiveBattles = jest.fn()
 const getMyRecentlyResolvedBattles = jest.fn()
 const debugSpeedUpMovement = jest.fn()
 const getIncomingReinforcements = jest.fn()
+const getIncomingAttacksOnMyTerritories = jest.fn()
 const getLastSeenRound = jest.fn()
 const recallAttack = jest.fn()
 
@@ -18,6 +19,7 @@ jest.mock('@/lib/territories/api', () => ({
   getMyRecentlyResolvedBattles: (...args: unknown[]) => getMyRecentlyResolvedBattles(...args),
   debugSpeedUpMovement: (...args: unknown[]) => debugSpeedUpMovement(...args),
   getIncomingReinforcements: (...args: unknown[]) => getIncomingReinforcements(...args),
+  getIncomingAttacksOnMyTerritories: (...args: unknown[]) => getIncomingAttacksOnMyTerritories(...args),
 }))
 
 jest.mock('@/lib/battles/api', () => ({
@@ -36,12 +38,14 @@ describe('MyMovementsPanel', () => {
     getMyRecentlyResolvedBattles.mockReset()
     debugSpeedUpMovement.mockReset()
     getIncomingReinforcements.mockReset()
+    getIncomingAttacksOnMyTerritories.mockReset()
     getLastSeenRound.mockReset()
     recallAttack.mockReset()
     getTerritoriesByIds.mockResolvedValue({ data: [], error: null })
     getMyActiveBattles.mockResolvedValue({ data: [], error: null })
     getMyRecentlyResolvedBattles.mockResolvedValue({ data: [], error: null })
     getIncomingReinforcements.mockResolvedValue({ data: [], error: null })
+    getIncomingAttacksOnMyTerritories.mockResolvedValue({ data: [], error: null })
     getLastSeenRound.mockReturnValue(0)
   })
 

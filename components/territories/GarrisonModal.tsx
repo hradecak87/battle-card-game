@@ -10,6 +10,7 @@ import { BoostCardTemplate, Rank, UnitType, UnitCardTemplate } from '@/lib/cards
 import { NATIONS } from '@/lib/players/nations'
 import { formatEta } from '@/lib/time/formatEta'
 import { MaskedBoostSummaryTile, VisibleBoostCardTile } from '@/components/cards/BoostCardTile'
+import { IncomingAttackInfo } from '@/lib/territories/api'
 
 export interface GarrisonModalOwnerInfo {
   id: string
@@ -33,14 +34,16 @@ export interface GarrisonModalProps {
   ownerInfoLoading?: boolean
   ownerInfoError?: string | null
   /**
-   * Arrival time of the in-transit attack currently converging on this
+   * Identity + ETA of the in-transit attack currently converging on this
    * territory, if any (fetched separately since `battle_locked_by` is
    * set at declare-attack time, before the battle itself exists — see
-   * `getIncomingAttackArrival`). Only relevant when `territory.battle_locked_by`
+   * `getIncomingAttackInfo`). Only relevant when `territory.battle_locked_by`
    * is set and `territory.battle_id` isn't (once a battle exists, selecting
    * this tile navigates straight to the battle screen instead).
    */
-  incomingAttackArrivesAt?: string | null
+  incomingAttackInfo?: IncomingAttackInfo | null
+  /** Called to pan the map to the given coordinates (e.g. attacker's home) and close this modal. */
+  onNavigateToTerritory?: (x: number, y: number) => void
   /** Called when the owner saves a new name (or an empty string to clear). */
   onRename: (territoryId: number, newName: string) => Promise<void>
   /**
@@ -118,7 +121,8 @@ export default function GarrisonModal({
   ownerInfo,
   ownerInfoLoading,
   ownerInfoError,
-  incomingAttackArrivesAt,
+  incomingAttackInfo,
+  onNavigateToTerritory,
   onRename,
   structureCardOptions,
   onBuildStructure,
@@ -211,15 +215,15 @@ export default function GarrisonModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 sm:p-6"
       onClick={onClose}
     >
       <div
         data-testid="garrison-modal"
-        className="max-h-[85vh] w-full max-w-4xl overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-950 p-6"
+        className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-950 p-3 sm:p-6"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-0.5">
             {territory.name && (
               <h2 className="text-lg font-bold" data-testid="territory-name">{territory.name}</h2>
@@ -228,7 +232,7 @@ export default function GarrisonModal({
               Posádka — území ({territory.x}, {territory.y})
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {canTransfer && onTransfer && (
               <button
                 type="button"
@@ -277,10 +281,34 @@ export default function GarrisonModal({
               </button>
             )}
             {territory.battle_locked_by && (
-              <span className="text-xs text-red-400">
-                {incomingAttackArrivesAt
-                  ? `Útok na cestě — vojska dorazí ${formatEta(incomingAttackArrivesAt)}`
-                  : 'Toto území je právě v boji'}
+              <span className="flex flex-wrap items-center gap-1 text-xs text-red-400">
+                {incomingAttackInfo ? (
+                  <>
+                    <span>
+                      Útok od {incomingAttackInfo.attacker_is_npc ? 'NPC ' : ''}
+                      {incomingAttackInfo.attacker_display_name ?? 'neznámý hráč'} — vojska dorazí{' '}
+                      {formatEta(incomingAttackInfo.transfer_arrives_at)}
+                    </span>
+                    {incomingAttackInfo.attacker_home_x !== null &&
+                      incomingAttackInfo.attacker_home_y !== null &&
+                      onNavigateToTerritory && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onNavigateToTerritory(
+                              incomingAttackInfo.attacker_home_x as number,
+                              incomingAttackInfo.attacker_home_y as number
+                            )
+                          }
+                          className="rounded border border-red-700 px-1.5 py-0.5 text-[11px] text-red-300 hover:bg-red-900/40"
+                        >
+                          🏠 Domov útočníka ({incomingAttackInfo.attacker_home_x}, {incomingAttackInfo.attacker_home_y})
+                        </button>
+                      )}
+                  </>
+                ) : (
+                  'Toto území je právě v boji'
+                )}
               </span>
             )}
             <button
@@ -295,7 +323,7 @@ export default function GarrisonModal({
         </div>
 
         {canTransfer && renaming && (
-          <div className="mb-4 flex items-center gap-2" data-testid="rename-form">
+          <div className="mb-4 flex flex-wrap items-center gap-2" data-testid="rename-form">
             <input
               aria-label="Nové jméno území"
               type="text"

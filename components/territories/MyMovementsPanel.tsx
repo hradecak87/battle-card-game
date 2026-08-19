@@ -9,10 +9,12 @@ import {
   getMyRecentlyResolvedBattles,
   debugSpeedUpMovement,
   getIncomingReinforcements,
+  getIncomingAttacksOnMyTerritories,
   TroopMovement,
   TerritoryCoords,
   ActiveBattleRef,
   RecentBattleRef,
+  IncomingAttackOnMyTerritory,
 } from '@/lib/territories/api'
 import { recallAttack } from '@/lib/battles/api'
 import { formatEta } from '@/lib/time/formatEta'
@@ -22,6 +24,8 @@ export interface MyMovementsPanelProps {
   myPlayerId: string | null
   /** Bumped by the parent (e.g. after loadViewport) to trigger a refetch. */
   refreshKey?: number
+  /** Called to pan the map to the given coordinates (e.g. an attacker's home). */
+  onNavigateToTerritory?: (x: number, y: number) => void
 }
 
 const KIND_LABELS: Record<TroopMovement['kind'], string> = {
@@ -39,11 +43,12 @@ const KIND_LABELS: Record<TroopMovement['kind'], string> = {
  * (each poll's `getMyMovements()` call also triggers the server's lazy
  * `resolve_due_movements()`, so arrivals actually get processed).
  */
-export default function MyMovementsPanel({ myPlayerId, refreshKey }: MyMovementsPanelProps) {
+export default function MyMovementsPanel({ myPlayerId, refreshKey, onNavigateToTerritory }: MyMovementsPanelProps) {
   const [movements, setMovements] = useState<TroopMovement[] | null>(null)
   const [coordsById, setCoordsById] = useState<Map<number, TerritoryCoords>>(new Map())
   const [battleByTerritoryId, setBattleByTerritoryId] = useState<Map<number, ActiveBattleRef>>(new Map())
   const [unseenRecentBattles, setUnseenRecentBattles] = useState<RecentBattleRef[]>([])
+  const [incomingAttacks, setIncomingAttacks] = useState<IncomingAttackOnMyTerritory[]>([])
   const [error, setError] = useState<string | null>(null)
   const [speedingUpId, setSpeedingUpId] = useState<string | null>(null)
   const [recallingId, setRecallingId] = useState<string | null>(null)
@@ -66,17 +71,20 @@ export default function MyMovementsPanel({ myPlayerId, refreshKey }: MyMovements
     const territoryIds = Array.from(
       new Set(rows.flatMap((m) => [m.origin_territory_id, m.destination_territory_id]))
     )
-    const [{ data: territoryRows }, { data: battleRows }, { data: recentBattleRows }] = await Promise.all([
-      getTerritoriesByIds(territoryIds),
-      getMyActiveBattles(myPlayerId as string),
-      getMyRecentlyResolvedBattles(myPlayerId as string),
-    ])
+    const [{ data: territoryRows }, { data: battleRows }, { data: recentBattleRows }, { data: incomingAttackRows }] =
+      await Promise.all([
+        getTerritoriesByIds(territoryIds),
+        getMyActiveBattles(myPlayerId as string),
+        getMyRecentlyResolvedBattles(myPlayerId as string),
+        getIncomingAttacksOnMyTerritories(),
+      ])
     if (cancelledRef?.current) return
     setCoordsById(new Map((territoryRows ?? []).map((t) => [t.id, t])))
     setBattleByTerritoryId(new Map((battleRows ?? []).map((b) => [b.territory_id, b])))
     setUnseenRecentBattles(
       (recentBattleRows ?? []).filter((b) => getLastSeenRound(b.id) < b.current_round)
     )
+    setIncomingAttacks(incomingAttackRows ?? [])
 
     // Backlog #23: for every still-in-transit attack, check if the
     // defender has reinforcements en route to the same territory with an
@@ -146,7 +154,13 @@ export default function MyMovementsPanel({ myPlayerId, refreshKey }: MyMovements
   }
 
   if (!myPlayerId) return null
-  if (movements !== null && movements.length === 0 && unseenRecentBattles.length === 0) return null
+  if (
+    movements !== null &&
+    movements.length === 0 &&
+    unseenRecentBattles.length === 0 &&
+    incomingAttacks.length === 0
+  )
+    return null
 
   return (
     <div className="w-full rounded border border-zinc-800 p-4">
@@ -160,6 +174,34 @@ export default function MyMovementsPanel({ myPlayerId, refreshKey }: MyMovements
               <Link href={`/battles/${b.id}`} className="text-red-400 underline">
                 Zobrazit výsledek →
               </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+      {incomingAttacks.length > 0 && (
+        <ul className="mb-2 flex flex-col gap-1 border-b border-zinc-800 pb-2">
+          {incomingAttacks.map((atk) => (
+            <li key={atk.movement_id} className="flex flex-col gap-1 text-sm text-red-300">
+              <div className="flex flex-wrap items-center justify-between gap-1">
+                <span>
+                  ⚔️ Útok od {atk.attacker_is_npc ? 'NPC ' : ''}
+                  {atk.attacker_display_name ?? 'neznámý hráč'} na{' '}
+                  {atk.territory_name ? `${atk.territory_name} ` : ''}
+                  ({atk.territory_x}, {atk.territory_y})
+                </span>
+                <span className="flex items-center gap-2 text-red-400">
+                  {formatEta(atk.transfer_arrives_at)}
+                  {atk.attacker_home_x !== null && atk.attacker_home_y !== null && onNavigateToTerritory && (
+                    <button
+                      type="button"
+                      onClick={() => onNavigateToTerritory(atk.attacker_home_x as number, atk.attacker_home_y as number)}
+                      className="rounded border border-red-700 px-1.5 py-0.5 text-xs text-red-300 hover:bg-red-900/40"
+                    >
+                      🏠 Domov útočníka
+                    </button>
+                  )}
+                </span>
+              </div>
             </li>
           ))}
         </ul>

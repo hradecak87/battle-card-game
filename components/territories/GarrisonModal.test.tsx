@@ -206,7 +206,7 @@ describe('GarrisonModal', () => {
     expect(screen.getByText('Toto území je právě v boji')).toBeInTheDocument()
   })
 
-  it('shows the incoming-attack ETA instead of the generic message when known', () => {
+  it('shows the incoming-attack info instead of the generic message when known', () => {
     const arrivesAt = new Date(Date.now() + 5 * 60 * 1000).toISOString()
     render(
       <GarrisonModal
@@ -215,12 +215,22 @@ describe('GarrisonModal', () => {
         error={null}
         onClose={jest.fn()}
         onRename={jest.fn()}
-        incomingAttackArrivesAt={arrivesAt}
+        incomingAttackInfo={{
+          transfer_arrives_at: arrivesAt,
+          attacker_id: 'attacker-1',
+          attacker_display_name: 'Útočník Karel',
+          attacker_kingdom_name: null,
+          attacker_is_npc: false,
+          attacker_home_x: 10,
+          attacker_home_y: 20,
+        }}
+        onNavigateToTerritory={jest.fn()}
       />
     )
 
-    expect(screen.getByText(/Útok na cestě — vojska dorazí/)).toBeInTheDocument()
+    expect(screen.getByText(/Útok od Útočník Karel — vojska dorazí/)).toBeInTheDocument()
     expect(screen.queryByText('Toto území je právě v boji')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Domov útočníka/ })).toHaveTextContent('(10, 20)')
   })
 
   it('shows the claim-in-progress ETA when a claim is underway', () => {

@@ -7,7 +7,7 @@ import {
   getViewport,
   getCardInstancesAtTerritory,
   getMyHomeTerritory,
-  getIncomingAttackArrival,
+  getIncomingAttackInfo,
   getPlayerPublicInfo,
   getMyTerritories,
   getActiveBattleForTerritory,
@@ -20,6 +20,7 @@ import {
   PlayerPublicInfo,
   MyTerritory,
   Territory,
+  IncomingAttackInfo,
 } from '@/lib/territories/api'
 import MapViewport from '@/components/territories/MapViewport'
 import GarrisonModal from '@/components/territories/GarrisonModal'
@@ -71,7 +72,7 @@ export default function MapPage() {
   const [ownerInfo, setOwnerInfo] = useState<SelectedOwnerInfo | null>(null)
   const [ownerInfoLoading, setOwnerInfoLoading] = useState(false)
   const [ownerInfoError, setOwnerInfoError] = useState<string | null>(null)
-  const [incomingAttackArrivesAt, setIncomingAttackArrivesAt] = useState<string | null>(null)
+  const [incomingAttackInfo, setIncomingAttackInfo] = useState<IncomingAttackInfo | null>(null)
   const [homeStatus, setHomeStatus] = useState<'idle' | 'searching' | 'not-found'>('idle')
   const [ownedTerritories, setOwnedTerritories] = useState<MyTerritory[] | null>(null)
   const [structureCardInstances, setStructureCardInstances] = useState<CardInstanceWithTemplate[] | null>(null)
@@ -279,7 +280,7 @@ export default function MapPage() {
     setGarrisonError(null)
     setOwnerInfo(null)
     setOwnerInfoError(null)
-    setIncomingAttackArrivesAt(null)
+    setIncomingAttackInfo(null)
     setShowAttackModal(false)
     setShowTransferModal(false)
     const shouldLoadOwnerInfo = Boolean(tile.owner_id && tile.owner_id !== user?.id)
@@ -306,9 +307,9 @@ export default function MapPage() {
       // well before the attacking army physically arrives and a battle
       // row exists — fetch that arrival ETA separately so the modal can
       // show "vojska dorazí za X" instead of just "v boji" with no info.
-      getIncomingAttackArrival(tile.id).then(({ data }) => {
+      getIncomingAttackInfo(tile.id).then(({ data }) => {
         if (selectionRequestIdRef.current !== requestId) return
-        setIncomingAttackArrivesAt(data?.transfer_arrives_at ?? null)
+        setIncomingAttackInfo(data ?? null)
       })
     }
     const { data, error: rpcError } = await getCardInstancesAtTerritory(tile.id)
@@ -376,7 +377,11 @@ export default function MapPage() {
           </div>
         )}
 
-        <MyMovementsPanel myPlayerId={user?.id ?? null} refreshKey={movementsRefreshKey} />
+        <MyMovementsPanel
+          myPlayerId={user?.id ?? null}
+          refreshKey={movementsRefreshKey}
+          onNavigateToTerritory={handleJump}
+        />
 
         {incomingBattleAlerts.length > 0 && (
           <div className="flex flex-col gap-3">
@@ -447,7 +452,11 @@ export default function MapPage() {
             ownerInfo={ownerInfo}
             ownerInfoLoading={ownerInfoLoading}
             ownerInfoError={ownerInfoError}
-            incomingAttackArrivesAt={incomingAttackArrivesAt}
+            incomingAttackInfo={incomingAttackInfo}
+            onNavigateToTerritory={(x, y) => {
+              handleJump(x, y)
+              setSelectedTile(null)
+            }}
             onRename={async (territoryId, newName) => {
               await renameTerritory(territoryId, newName)
               const trimmed = newName.trim()
