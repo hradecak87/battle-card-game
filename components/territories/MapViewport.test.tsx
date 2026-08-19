@@ -44,6 +44,18 @@ function renderViewport(
 }
 
 describe('MapViewport', () => {
+  it.each([
+    [1, 'terrain-difficulty-1'],
+    [2, 'terrain-difficulty-2'],
+    [3, 'terrain-difficulty-3'],
+    [4, 'terrain-difficulty-4'],
+    [5, 'terrain-difficulty-5'],
+  ] as const)('applies %s/5 terrain styling class to the tile background', (difficulty, terrainClass) => {
+    renderViewport([makeTerritory({ difficulty })], 'me')
+
+    expect(screen.getByRole('button', { name: 'Území 10,10' })).toHaveClass(terrainClass)
+  })
+
   it('shows "Tvé území" when hovering a tile owned by the current user', () => {
     renderViewport([makeTerritory({ owner_id: 'me' })], 'me')
 

@@ -11,12 +11,12 @@ import {
   VILLAGE_VARIANTS,
 } from '@/components/territories/icons/StructureIcons'
 
-const DIFFICULTY_COLOR: Record<1 | 2 | 3 | 4 | 5, string> = {
-  1: 'bg-green-900',
-  2: 'bg-lime-900',
-  3: 'bg-yellow-900',
-  4: 'bg-orange-900',
-  5: 'bg-red-950',
+const DIFFICULTY_TERRAIN_CLASS: Record<1 | 2 | 3 | 4 | 5, string> = {
+  1: 'terrain-difficulty-1',
+  2: 'terrain-difficulty-2',
+  3: 'terrain-difficulty-3',
+  4: 'terrain-difficulty-4',
+  5: 'terrain-difficulty-5',
 }
 
 const MAP_MIN = 0
@@ -416,7 +416,7 @@ export default function MapViewport({
             const y = y1 + row
             const isVoid = !isWithinBounds(x, y)
             const tile = byCoord.get(`${x},${y}`)
-            const color = tile ? DIFFICULTY_COLOR[tile.difficulty] : 'bg-zinc-900'
+            const terrainClass = tile ? DIFFICULTY_TERRAIN_CLASS[tile.difficulty] : 'bg-zinc-900'
             const isHovered = hoveredTile?.x === x && hoveredTile?.y === y
             const isOwnedByMe = Boolean(tile?.owner_id && currentUserId && tile.owner_id === currentUserId)
             const isUnderAttack = Boolean(tile?.battle_locked_by)
@@ -521,7 +521,7 @@ export default function MapViewport({
                 onMouseLeave={() => setHoveredTile((current) => (current?.x === x && current?.y === y ? null : current))}
                 data-owned-by-me={isOwnedByMe ? 'true' : 'false'}
                 data-under-attack={isUnderAttack ? 'true' : 'false'}
-                className={`relative aspect-square min-w-0 min-h-0 border border-zinc-800 flex flex-col items-center justify-center gap-0.5 overflow-visible ${color} ${
+                className={`relative terrain-tile aspect-square min-w-0 min-h-0 border border-zinc-800 flex flex-col items-center justify-center gap-0.5 overflow-visible ${terrainClass} ${
                   isUnderAttack ? 'animate-pulse' : ''
                 }`}
               >
@@ -535,7 +535,11 @@ export default function MapViewport({
                     />
                   ))}
                 {structureIcons.length > 0 && (
-                  <div className={`flex flex-row items-center justify-center gap-0.5 ${isUnderAttack ? 'opacity-40' : ''}`}>
+                  <div
+                    className={`relative z-10 flex flex-row items-center justify-center gap-0.5 rounded-sm border border-black/25 bg-black/25 px-0.5 py-px shadow-sm ${
+                      isUnderAttack ? 'opacity-40' : ''
+                    }`}
+                  >
                     {structureIcons.map((s) => (
                       <span key={s.key} className="leading-none">
                         {s.node}
