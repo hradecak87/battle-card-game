@@ -3,6 +3,7 @@ import {
   chebyshevDistance,
   DIFFICULTY_MULTIPLIER,
   Difficulty,
+  multiOriginAttackHours,
   occupationHours,
   transferHours,
 } from './formulas'
@@ -80,6 +81,24 @@ describe('transferHours', () => {
   })
 })
 
+describe('multiOriginAttackHours', () => {
+  it('uses the slowest contingent ETA as the combined arrival time', () => {
+    expect(
+      multiOriginAttackHours(
+        [
+          { origin: { x: 4, y: 5 }, groupSpeed: 10 },
+          { origin: { x: 0, y: 0 }, groupSpeed: 3 },
+        ],
+        { x: 5, y: 5 }
+      )
+    ).toBeCloseTo(2.5, 5)
+  })
+
+  it('returns null for an empty contingent list', () => {
+    expect(multiOriginAttackHours([], { x: 5, y: 5 })).toBeNull()
+  })
+})
+
 describe('DIFFICULTY_MULTIPLIER', () => {
   it('matches the 5-level scale from spec §9.1', () => {
     expect(DIFFICULTY_MULTIPLIER).toEqual({ 1: 1.0, 2: 1.5, 3: 2.25, 4: 3.4, 5: 5.0 })
@@ -138,3 +157,4 @@ describe('occupationHours', () => {
     }
   )
 })
+

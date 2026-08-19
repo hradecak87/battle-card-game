@@ -24,6 +24,17 @@
   Usage documented in the script's own docstring. Use this for any future
   card-art sheet instead of writing a new crop script from scratch.
 
+## Latest update — 2026-08-19c (multi-origin attack declaration, backlog #6)
+
+Players can now assemble one attack from **multiple owned origin territories at once** instead of being limited to a single source tile.
+
+- `components/territories/DeclareAttackModal.tsx`: replaced the single-origin `<select>` with a multi-check dropdown listing the caller's territories; each checked origin loads its own garrison panel and contributes selected cards to one shared attack submission. The ETA preview now uses the new `multiOriginAttackHours()` helper and shows the **combined arrival time of the slowest/farthest selected contingent**; strength/occupation previews aggregate selected cards across all origins.
+- `lib/territories/api.ts`: new territory-domain `declareAttack(targetTerritoryId, originGroups)` wrapper sends `{ target_territory_id, origin_groups }` to Supabase, where each group carries one `origin_territory_id` plus its selected `card_instance_ids`.
+- `lib/territories/formulas.ts`: new pure helper `multiOriginAttackHours(contingents, target, nation)` returns the max of the per-origin `transferHours(...)` values.
+- `supabase/migrations/0024_multi_origin_attack.sql`: new migration adds nullable `troop_movement_units.origin_territory_id`, redefines `declare_attack` with a new multi-origin JSON signature plus a legacy single-origin wrapper, and preserves all prior checks from `0022_claim_limit.sql` (adjacency, 32-cap, 5-claim-cap, own-territory rejection, NPC/empty claim path, battle lock, etc.). The attack still creates **one** `troop_movements` row / one future `battles` row; the stored ETA is the max contingent travel time, while per-card origin metadata is only used later for recall / attacker retreat splitting. `recall_attack()` now fans a cancelled in-transit multi-origin attack back into one return transfer per original source territory, and `_finalize_battle()` sends non-capturing attacker survivors back by their stored origins instead of collapsing them onto a single tile.
+- Added/updated tests in `components/territories/DeclareAttackModal.test.tsx`, `lib/territories/formulas.test.ts`, and `lib/territories/api.test.ts`.
+- Verification in this worktree: full Jest suite **399/399 passing**, `npx tsc --noEmit` ✅, `npm run build` ✅ (same pre-existing Next warning about `components/territories/icons/StructureIcons.tsx` using `<img>` and repeated Supabase Node 20 deprecation warnings during static generation).
+
 ## Latest update — 2026-08-19b (occupation-ETA preview + Osadníci/Settlers unit type)
 
 Two related additions (both from a live conversation, brainstormed and
@@ -156,7 +167,7 @@ status inline as items are picked up.
 | 3 | Show ETA / estimated battle duration before sending troops (claim/transfer/attack) | 4 | 7 | **done** (this session) | `TransferModal` and `DeclareAttackModal` now show a live ETA (via `transferHours`/`chebyshevDistance`/`formatEta`) once an origin territory is picked. Peaceful "claim empty territory" UI is still unbuilt (see new note below), so ETA-for-claim is out of scope until that exists. |
 | 4 | Notification badge should be on "Směnárna" nav item, not "Profil" | 1 | 5 | **done** (`ed036a0`) | Fixed 2026-08-18 directly |
 | 5 | Accepted trade offer still shows in the offer list | 2 | 8 | done | Fixed on `fix/exchange-accepted-offer`: "Moje nabídky" now filters to active (`pending`/`countered`) offers only; accepted offers remain discoverable in `Historie` |
-| 6 | Allow selecting attacking troops from multiple owned territories at once (dropdown multi-check); total ETA = slowest/farthest | 6 | 5 | pending | Changes attack-declaration rules + aggregation logic + UI |
+| 6 | Allow selecting attacking troops from multiple owned territories at once (dropdown multi-check); total ETA = slowest/farthest | 6 | 5 | done | Fixed 2026-08-19c — modal now supports multi-origin multi-check selection, ETA uses max contingent travel time, and SQL migration 0024 preserves per-card origin metadata for recall / non-capturing retreat splits |
 | 7 | Battle history in profile: one compact row per battle with drill-down to details | 3 | 4 | **done** (`c7169af`, parallel agent) | `BattleHistoryList` rows now default to a compact collapsed summary line with `aria-expanded` accordion expand/collapse revealing round count/troops/territory-change details; existing "Detail bitvy →" link unchanged. |
 | 8 | Mobile card collection shows 1 card per row (portrait) — should be 3 per row | 2 | 7 | **done** (`ed036a0`) | Fixed 2026-08-18 directly |
 | 9 | Multiple game servers via separate Supabase DBs per region (Europe/USA/Asia), chosen at login | 9 | 2 | pending | Major infra change; not needed at current player count |
