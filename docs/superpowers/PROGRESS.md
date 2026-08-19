@@ -14,6 +14,42 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-19i (card-art batch 5: karty5-8 sheets, 99 template ids)
+
+Replaced/added card art for 99 template ids from 4 new source sheets
+(`karty5.png`–`karty8.png`, untracked, not committed — same convention as
+prior batches). 25 ids overwritten, 74 new ids got art for the first time.
+
+- User supplied each sheet with an ordered Czech-name + unitType list;
+  sheets had **irregular per-row grids** (not a uniform grid) — row item
+  counts were 5/5/5/5/5, 6/5/5/5/4, 5/5/5/5/4, 5/6/5/5/4 for karty5-8
+  respectively, and card widths/heights vary *within* a row (some cards
+  more square, some more widescreen) — a uniform equal-width column split
+  was tried first and was wrong; the correct approach:
+  1. Detect row bands via per-row alpha-pixel-count profile (threshold
+     >350, keep bands ≥15px tall).
+  2. Within each row, detect column content-runs at an escalating alpha
+     threshold (2,4,6,8,10,14,18,24,30) until run count ≥ expected card
+     count for that row (low thresholds can falsely split one
+     illustration into multiple runs when figures are spaced apart).
+  3. Keep only the largest (expected−1) gaps between runs as true card
+     boundaries; merge all smaller gaps into the same card.
+  4. Refine each card's bounding box with a low threshold (>2) to recover
+     soft/faint edges, but clamp expansion so it can't cross into a
+     neighboring card's original bounds.
+  5. Cross-checked candidate row-major reading order against the user's
+     ordered name list semantically (unit type + literal art content,
+     e.g. "Improvizovaný trebuchet" ↔ trebuchet art) — confirmed exact
+     match before cropping the full batch.
+- Name→template-id resolution done via `lib/cards/catalog-data.json`
+  (name + unitType lookup) — all 99 names resolved cleanly.
+- Visually verified all 4 sheets via alpha-composited contact sheets
+  before copying into `public/cards/units/{id}.png`.
+- Scratch script/diagnostics lived in `tmp_diag/` (deleted after use,
+  not committed). Source sheets `karty5.png`–`karty8.png` also left
+  untracked per existing convention (never committed for prior batches
+  either).
+
 ## Latest update — 2026-08-19h (close-button position, own-territory blink under attack, double-NPC text fix, admin nav link)
 
 Follow-up fixes to the 19g work, all requested directly by the user after
