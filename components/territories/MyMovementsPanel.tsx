@@ -184,8 +184,7 @@ export default function MyMovementsPanel({ myPlayerId, refreshKey, onNavigateToT
             <li key={atk.movement_id} className="flex flex-col gap-1 text-sm text-red-300">
               <div className="flex flex-wrap items-center justify-between gap-1">
                 <span>
-                  ⚔️ Útok od {atk.attacker_is_npc ? 'NPC ' : ''}
-                  {atk.attacker_display_name ?? 'neznámý hráč'} na{' '}
+                  ⚔️ Útok od {atk.attacker_display_name ?? 'neznámý hráč'} na{' '}
                   {atk.territory_name ? `${atk.territory_name} ` : ''}
                   ({atk.territory_x}, {atk.territory_y})
                 </span>

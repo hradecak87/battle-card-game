@@ -10,10 +10,16 @@ jest.mock('@/lib/trading/api', () => ({
   listMyOffers: (...args: unknown[]) => listMyOffers(...args),
 }))
 
+const getAdminStatus = jest.fn()
+jest.mock('@/lib/admin/api', () => ({
+  getAdminStatus: (...args: unknown[]) => getAdminStatus(...args),
+}))
+
 import { useSession } from '@/lib/supabase/useSession'
 
 describe('MainNav', () => {
   beforeEach(() => {
+    getAdminStatus.mockReset().mockResolvedValue({ data: { is_admin: false }, error: null })
     listMyOffers.mockReset().mockResolvedValue({
       data: [
         {
@@ -52,5 +58,32 @@ describe('MainNav', () => {
 
     expect(await screen.findByRole('link', { name: /Směnárna/ })).toBeInTheDocument()
     await waitFor(() => expect(screen.getByText('1')).toBeInTheDocument())
+  })
+
+  it('does not show an admin link for a non-admin player', async () => {
+    ;(useSession as jest.Mock).mockReturnValue({
+      user: { id: 'me' },
+      player: { onboarding_completed: true },
+      loading: false,
+    })
+    getAdminStatus.mockResolvedValue({ data: { is_admin: false }, error: null })
+
+    render(<MainNav />)
+
+    await screen.findByRole('link', { name: /Směnárna/ })
+    expect(screen.queryByRole('link', { name: /Admin/ })).not.toBeInTheDocument()
+  })
+
+  it('shows an admin link for a player flagged as admin', async () => {
+    ;(useSession as jest.Mock).mockReturnValue({
+      user: { id: 'me' },
+      player: { onboarding_completed: true },
+      loading: false,
+    })
+    getAdminStatus.mockResolvedValue({ data: { is_admin: true }, error: null })
+
+    render(<MainNav />)
+
+    expect(await screen.findByRole('link', { name: /Admin/ })).toHaveAttribute('href', '/admin')
   })
 })

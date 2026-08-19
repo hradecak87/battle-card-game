@@ -14,6 +14,42 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-19h (close-button position, own-territory blink under attack, double-NPC text fix, admin nav link)
+
+Follow-up fixes to the 19g work, all requested directly by the user after
+trying it live:
+
+- `GarrisonModal.tsx`: the ✕ close button is now an absolutely-positioned
+  element pinned to the modal's top-right corner (`absolute right-2 top-2
+  ... sm:right-4 sm:top-4`) instead of living inside the wrapping button
+  row — on narrow phones it no longer gets pushed to an arbitrary spot
+  among the other buttons.
+- `MapViewport.tsx`: territory highlight borders are now two independent
+  layers instead of one battle-overrides-ownership color. `getHighlightInfo`
+  is ownership-only (mine/NPC/foreign); a new `getBattleHighlightInfo` draws
+  a *separate*, higher z-index red perimeter bar with `animate-pulse`
+  applied directly to that bar (not the whole tile anymore). Since
+  Tailwind's `animate-pulse` only dims to 50% opacity (never fully
+  transparent), the ownership-colored bar underneath now shows through as
+  the red bar pulses — a player's own territory under attack blinks
+  red/sky instead of fading to the plain grid border. Removed the
+  whole-tile `animate-pulse` class (it was dimming everything, including
+  the border, uniformly).
+- Fixed a duplicated-NPC-label bug: `GarrisonModal.tsx` and
+  `MyMovementsPanel.tsx` were prefixing attacker names with `"NPC "` even
+  though `attacker_display_name` already contains it (seeded NPCs are named
+  e.g. `"NPC Francia"`) — produced "Útok od NPC NPC Francia". Removed the
+  redundant prefix in both places.
+- Added an admin nav link: `components/navigation/MainNav.tsx` now checks
+  `getAdminStatus(user.id)` (same RPC/table check as `app/admin/page.tsx`)
+  and appends a "🛠️ Admin" link to the persistent top nav bar only for
+  players with `players.is_admin = true`.
+- New/updated tests: `MainNav.test.tsx` (admin link shown/hidden by
+  `is_admin`), updated `GarrisonModal.test.tsx` incoming-attack-info test
+  text.
+- Verification: `npx jest --silent` 432/432, `npx tsc --noEmit` clean,
+  `npm run build` clean.
+
 ## Latest update — 2026-08-19g (attacker identity/home-link + mobile-friendly territory modal)
 
 Fixed two UX gaps surfaced by the newly-live NPC attack on player "Martin"

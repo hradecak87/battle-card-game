@@ -4,10 +4,12 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useSession } from '@/lib/supabase/useSession'
 import { listMyOffers } from '@/lib/trading/api'
+import { getAdminStatus } from '@/lib/admin/api'
 
 export function MainNav() {
   const { user, player, loading } = useSession()
   const [pendingCount, setPendingCount] = useState(0)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   const links = useMemo(() => {
     if (!user) {
@@ -18,7 +20,7 @@ export function MainNav() {
       ]
     }
 
-    return [
+    const baseLinks = [
       { href: '/', label: 'Domů' },
       { href: '/map', label: 'Mapa' },
       { href: '/collection', label: 'Moje sbírka' },
@@ -26,7 +28,23 @@ export function MainNav() {
       { href: '/leaderboard', label: 'Žebříček' },
       { href: '/profile/me', label: 'Můj profil' },
     ]
-  }, [pendingCount, user])
+    return isAdmin ? [...baseLinks, { href: '/admin', label: '🛠️ Admin' }] : baseLinks
+  }, [isAdmin, pendingCount, user])
+
+  useEffect(() => {
+    if (!user?.id) {
+      setIsAdmin(false)
+      return
+    }
+    let cancelled = false
+    getAdminStatus(user.id).then(({ data, error }) => {
+      if (cancelled || error) return
+      setIsAdmin(Boolean(data?.is_admin))
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [user?.id])
 
   useEffect(() => {
     if (!user) {

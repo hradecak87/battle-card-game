@@ -220,10 +220,18 @@ export default function GarrisonModal({
     >
       <div
         data-testid="garrison-modal"
-        className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-950 p-3 sm:p-6"
+        className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-950 p-3 sm:p-6"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <button
+          type="button"
+          aria-label="Zavřít"
+          onClick={onClose}
+          className="absolute right-2 top-2 z-30 rounded-full px-3 py-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 sm:right-4 sm:top-4"
+        >
+          ✕
+        </button>
+        <div className="mb-4 flex flex-col gap-2 pr-10 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-0.5">
             {territory.name && (
               <h2 className="text-lg font-bold" data-testid="territory-name">{territory.name}</h2>
@@ -285,8 +293,7 @@ export default function GarrisonModal({
                 {incomingAttackInfo ? (
                   <>
                     <span>
-                      Útok od {incomingAttackInfo.attacker_is_npc ? 'NPC ' : ''}
-                      {incomingAttackInfo.attacker_display_name ?? 'neznámý hráč'} — vojska dorazí{' '}
+                      Útok od {incomingAttackInfo.attacker_display_name ?? 'neznámý hráč'} — vojska dorazí{' '}
                       {formatEta(incomingAttackInfo.transfer_arrives_at)}
                     </span>
                     {incomingAttackInfo.attacker_home_x !== null &&
@@ -311,14 +318,6 @@ export default function GarrisonModal({
                 )}
               </span>
             )}
-            <button
-              type="button"
-              aria-label="Zavřít"
-              onClick={onClose}
-              className="rounded-full px-3 py-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
-            >
-              ✕
-            </button>
           </div>
         </div>
 

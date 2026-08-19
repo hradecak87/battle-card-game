@@ -115,17 +115,14 @@ function getOwnerLabel(tile: Territory, currentUserId?: string | null) {
 // A tile's highlight "group": tiles that share the same group key merge
 // their shared edge (no colored line drawn between them), while the
 // outline is drawn wherever the group key changes. Battle takes priority
-// (a defended tile still reads as "in battle" first), then ownership by
-// the current player, then any other owner (each getting their own stable
-// color via getForeignOwnerColorClass).
+// (ownership only — battle status is drawn as a separate overlaid pulsing
+// bar via getBattleHighlightInfo, so a tile that's both "mine" and "under
+// attack" still shows its ownership color underneath the pulsing red).
 function getHighlightInfo(
   t: Territory | undefined,
   currentUserId?: string | null
 ): { key: string; color: HighlightColor; colorClass: string } | null {
   if (!t) return null
-  if (t.battle_locked_by) {
-    return { key: `battle:${t.battle_locked_by}`, color: 'red', colorClass: HIGHLIGHT_BAR_COLOR.red }
-  }
   if (currentUserId && t.owner_id === currentUserId) {
     return { key: 'me', color: 'sky', colorClass: HIGHLIGHT_BAR_COLOR.sky }
   }
@@ -136,6 +133,17 @@ function getHighlightInfo(
     return { key: `owner:${t.owner_id}`, color: 'foreign', colorClass: getForeignOwnerColorClass(t.owner_id) }
   }
   return null
+}
+
+// Battle status is its own highlight layer, drawn on top of (not instead
+// of) the ownership bars above: a pulsing red bar whose opacity oscillates
+// between 1 and 0.5 (Tailwind's `animate-pulse`), letting the ownership
+// color underneath show through as it dims — so a player's own territory
+// under attack reads as "red/mine blinking", not plain red fading to the
+// bare grid border.
+function getBattleHighlightInfo(t: Territory | undefined): { key: string; colorClass: string } | null {
+  if (!t?.battle_locked_by) return null
+  return { key: `battle:${t.battle_locked_by}`, colorClass: HIGHLIGHT_BAR_COLOR.red }
 }
 
 function clamp(value: number) {
@@ -445,6 +453,7 @@ export default function MapViewport({
             }
 
             const tileHighlight = getHighlightInfo(tile, currentUserId)
+            const battleHighlight = getBattleHighlightInfo(tile)
 
             const matchingHighlight = (neighbor?: Territory) => {
               if (!tileHighlight) return false
@@ -452,9 +461,21 @@ export default function MapViewport({
               return neighborHighlight?.key === tileHighlight.key
             }
 
+            const matchingBattleHighlight = (neighbor?: Territory) => {
+              if (!battleHighlight) return false
+              const neighborBattleHighlight = getBattleHighlightInfo(neighbor)
+              return neighborBattleHighlight?.key === battleHighlight.key
+            }
+
             const perimeterEdges = tileHighlight
               ? (['top', 'right', 'bottom', 'left'] as const).filter(
                   (edge) => !matchingHighlight(neighbors[edge])
+                )
+              : []
+
+            const battlePerimeterEdges = battleHighlight
+              ? (['top', 'right', 'bottom', 'left'] as const).filter(
+                  (edge) => !matchingBattleHighlight(neighbors[edge])
                 )
               : []
 
@@ -526,9 +547,7 @@ export default function MapViewport({
                 onMouseLeave={() => setHoveredTile((current) => (current?.x === x && current?.y === y ? null : current))}
                 data-owned-by-me={isOwnedByMe ? 'true' : 'false'}
                 data-under-attack={isUnderAttack ? 'true' : 'false'}
-                className={`relative terrain-tile aspect-square min-w-0 min-h-0 border border-zinc-800 flex flex-col items-center justify-center gap-0.5 overflow-visible ${terrainClass} ${
-                  isUnderAttack ? 'animate-pulse' : ''
-                }`}
+                className={`relative terrain-tile aspect-square min-w-0 min-h-0 border border-zinc-800 flex flex-col items-center justify-center gap-0.5 overflow-visible ${terrainClass}`}
               >
                 {tileHighlight &&
                   perimeterEdges.map((edge) => (
@@ -537,6 +556,15 @@ export default function MapViewport({
                       aria-hidden="true"
                       data-testid={`highlight-${edge}-${x},${y}`}
                       className={`pointer-events-none absolute z-10 ${HIGHLIGHT_BAR_POSITION[edge]} ${tileHighlight.colorClass}`}
+                    />
+                  ))}
+                {battleHighlight &&
+                  battlePerimeterEdges.map((edge) => (
+                    <span
+                      key={`battle-${edge}`}
+                      aria-hidden="true"
+                      data-testid={`highlight-battle-${edge}-${x},${y}`}
+                      className={`pointer-events-none absolute z-20 animate-pulse ${HIGHLIGHT_BAR_POSITION[edge]} ${battleHighlight.colorClass}`}
                     />
                   ))}
                 {structureIcons.length > 0 && (
