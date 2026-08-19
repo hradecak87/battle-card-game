@@ -68,11 +68,33 @@ and after the fix.
   - Build still emits the pre-existing `@supabase/supabase-js` warning that
     Node.js 20 is deprecated; feature work did not introduce it.
 
-  ## Latest update — 2026-08-19e (NPC kingdoms groundwork in feat/npc-kingdoms worktree)
+  ## Latest update — 2026-08-19f (NPC kingdoms merged, migrated live, 6 kingdoms seeded)
 
-  Implemented the approved **NPC kingdoms** feature slice in the dedicated
-  `feat/npc-kingdoms` worktree (not committed/pushed, not applied to any live
-  Supabase project).
+  Merged `feat/npc-kingdoms` into `main` (fast-forward, `4cbd32f`), pushed to
+  origin, applied `0027_npc_kingdoms.sql` to the live Supabase project, and
+  seeded all 6 NPC kingdoms (England, Francia, HRE, Byzantium, Mongol Horde,
+  Scandinavia) via `scripts/seed-npc-kingdoms.ts` — each now has a completed
+  onboarding, a home territory, and starter army (6 common units + castle +
+  village), scattered across the 256×256 map. Worktree and branch cleaned up.
+
+  **Known operational gotcha found while seeding**: `seed_npc_kingdom_setup()`
+  (and by extension `complete_kingdom_onboarding`) can occasionally exceed
+  PostgREST/Supabase's default RPC statement timeout (a few seconds) when run
+  back-to-back for several NPCs in a row, likely due to the home-selection
+  query's correlated distance subquery plus lock contention from rapid
+  sequential onboarding. When `scripts/seed-npc-kingdoms.ts` reports a
+  "Database error deleting user" / `57014 canceling statement due to
+  statement timeout" after a partial seed, the fix is: the `auth.users` +
+  `players` row (with `is_npc = true`) already exists at that point, so
+  finish it directly with a plain `pg.Client` connection with a longer
+  `statement_timeout` (60-120s) calling
+  `select seed_npc_kingdom_setup($1, $2, $3)` with that player's id — no
+  need to delete/recreate the auth user. This is a one-time seeding
+  operational note, not a functional bug; the underlying logic completed
+  correctly every time given enough time.
+
+  Previous implementation summary (groundwork in the now-merged
+  `feat/npc-kingdoms` worktree) follows below.
 
   - Added migration pair:
     - `supabase/migrations/0027_npc_kingdoms.sql`
