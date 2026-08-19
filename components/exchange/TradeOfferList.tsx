@@ -1,5 +1,10 @@
 'use client'
 
+import type { KeyboardEvent, MouseEvent } from 'react'
+import { CardZoomIconButton, CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
+import { TradingCard } from '@/components/cards/TradingCard'
+import { applyRank } from '@/lib/cards/combat'
+import type { Rank, UnitCardTemplate, UnitType } from '@/lib/cards/types'
 import type { TradeOffer } from '@/lib/trading/api'
 
 interface TradeOfferListProps {
@@ -7,6 +12,50 @@ interface TradeOfferListProps {
   emptyMessage: string
   selectedOfferId?: string | null
   onSelect?: (offer: TradeOffer) => void
+}
+
+function toUnitTemplate(card: TradeOffer['offered_cards'][number]): UnitCardTemplate | null {
+  if (!card.template_base_stats || !card.template_unit_type) return null
+  return {
+    id: card.template_id,
+    category: 'unit',
+    unitType: card.template_unit_type as UnitType,
+    rank: card.template_rank as Rank,
+    name: card.template_name,
+    flavorText: card.template_flavor_text,
+    baseStats: card.template_base_stats,
+    totalSupply: card.template_total_supply,
+  }
+}
+
+function OfferCardThumbnail({
+  card,
+  onZoom,
+}: {
+  card: TradeOffer['offered_cards'][number]
+  onZoom: (event: MouseEvent<HTMLButtonElement>, card: UnitCardTemplate) => void
+}) {
+  const template = toUnitTemplate(card)
+  if (!template) {
+    return (
+      <span className="rounded-full bg-zinc-800 px-2 py-1 text-xs text-zinc-200">
+        {card.template_name}
+      </span>
+    )
+  }
+
+  const stats = applyRank(template.baseStats, template.rank)
+
+  return (
+    <div className="relative w-24 shrink-0">
+      <TradingCard template={template} stats={stats} compact />
+      <CardZoomIconButton
+        cardName={template.name}
+        className="absolute right-1 top-1"
+        onClick={(event) => onZoom(event, template)}
+      />
+    </div>
+  )
 }
 
 function criteriaLabel(offer: TradeOffer) {
@@ -24,80 +73,103 @@ export function TradeOfferList({
   selectedOfferId = null,
   onSelect,
 }: TradeOfferListProps) {
+  const { zoomedCard, openZoom, closeZoom } = useCardZoom()
+
+  function handleOfferKeyDown(event: KeyboardEvent<HTMLDivElement>, offer: TradeOffer) {
+    if (event.key !== 'Enter' && event.key !== ' ') return
+    event.preventDefault()
+    onSelect?.(offer)
+  }
+
   if (offers.length === 0) {
     return <p className="text-sm text-zinc-400">{emptyMessage}</p>
   }
 
   return (
-    <ul className="flex flex-col gap-3">
-      {offers.map((offer) => (
-        <li key={offer.id}>
-          <button
-            type="button"
-            onClick={() => onSelect?.(offer)}
-            className={`w-full rounded-2xl border p-4 text-left transition ${
-              selectedOfferId === offer.id
-                ? 'border-amber-500 bg-amber-950/20'
-                : 'border-zinc-800 bg-zinc-950/60 hover:border-zinc-700'
-            }`}
-          >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <div className="text-xs uppercase tracking-wide text-zinc-500">
-                  {offer.type === 'public' ? 'Veřejná nabídka' : 'Přímá nabídka'} · {offer.status}
+    <>
+      <ul className="flex flex-col gap-3">
+        {offers.map((offer) => (
+          <li key={offer.id}>
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => onSelect?.(offer)}
+              onKeyDown={(event) => handleOfferKeyDown(event, offer)}
+              className={`w-full rounded-2xl border p-4 text-left transition ${
+                selectedOfferId === offer.id
+                  ? 'border-amber-500 bg-amber-950/20'
+                  : 'border-zinc-800 bg-zinc-950/60 hover:border-zinc-700'
+              }`}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-zinc-500">
+                    {offer.type === 'public' ? 'Veřejná nabídka' : 'Přímá nabídka'} · {offer.status}
+                  </div>
+                  <h3 className="mt-1 text-lg font-semibold">
+                    <span>{offer.initiator_display_name}</span>
+                    {offer.target_display_name && (
+                      <>
+                        <span aria-hidden="true"> → </span>
+                        <span>{offer.target_display_name}</span>
+                      </>
+                    )}
+                  </h3>
+                  {offer.message && <p className="mt-1 text-sm text-zinc-300">{offer.message}</p>}
                 </div>
-                <h3 className="mt-1 text-lg font-semibold">
-                  <span>{offer.initiator_display_name}</span>
-                  {offer.target_display_name && (
-                    <>
-                      <span aria-hidden="true"> → </span>
-                      <span>{offer.target_display_name}</span>
-                    </>
-                  )}
-                </h3>
-                {offer.message && <p className="mt-1 text-sm text-zinc-300">{offer.message}</p>}
+                <div className="text-right text-xs text-zinc-500">
+                  <div>Vytvořeno {new Date(offer.created_at).toLocaleString('cs-CZ')}</div>
+                  <div>Vyprší {new Date(offer.expires_at).toLocaleString('cs-CZ')}</div>
+                </div>
               </div>
-              <div className="text-right text-xs text-zinc-500">
-                <div>Vytvořeno {new Date(offer.created_at).toLocaleString('cs-CZ')}</div>
-                <div>Vyprší {new Date(offer.expires_at).toLocaleString('cs-CZ')}</div>
-              </div>
-            </div>
 
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Nabízí</div>
-                <div className="mt-1 flex flex-wrap gap-2">
-                  {offer.offered_cards.map((card) => (
-                    <span key={card.instance_id} className="rounded-full bg-zinc-800 px-2 py-1 text-xs text-zinc-200">
-                      {card.template_name}
-                    </span>
-                  ))}
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Nabízí</div>
+                  <div className="mt-1 flex flex-wrap gap-3">
+                    {offer.offered_cards.map((card) => (
+                      <OfferCardThumbnail
+                        key={card.instance_id}
+                        card={card}
+                        onZoom={(event, template) => {
+                          event.stopPropagation()
+                          openZoom(template, applyRank(template.baseStats, template.rank))
+                        }}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                  {offer.type === 'public' ? 'Hledá' : 'Požaduje'}
-                </div>
-                <div className="mt-1 flex flex-wrap gap-2">
-                  {offer.type === 'public' ? (
-                    <span className="rounded-full bg-zinc-800 px-2 py-1 text-xs text-zinc-200">
-                      {criteriaLabel(offer)}
-                    </span>
-                  ) : offer.requested_cards.length > 0 ? (
-                    offer.requested_cards.map((card) => (
-                      <span key={card.instance_id} className="rounded-full bg-zinc-800 px-2 py-1 text-xs text-zinc-200">
-                        {card.template_name}
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                    {offer.type === 'public' ? 'Hledá' : 'Požaduje'}
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-3">
+                    {offer.type === 'public' ? (
+                      <span className="rounded-full bg-zinc-800 px-2 py-1 text-xs text-zinc-200">
+                        {criteriaLabel(offer)}
                       </span>
-                    ))
-                  ) : (
-                    <span className="rounded-full bg-zinc-800 px-2 py-1 text-xs text-zinc-200">Bez konkrétní karty</span>
-                  )}
+                    ) : offer.requested_cards.length > 0 ? (
+                      offer.requested_cards.map((card) => (
+                        <OfferCardThumbnail
+                          key={card.instance_id}
+                          card={card}
+                          onZoom={(event, template) => {
+                            event.stopPropagation()
+                            openZoom(template, applyRank(template.baseStats, template.rank))
+                          }}
+                        />
+                      ))
+                    ) : (
+                      <span className="rounded-full bg-zinc-800 px-2 py-1 text-xs text-zinc-200">Bez konkrétní karty</span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </button>
-        </li>
-      ))}
-    </ul>
+          </li>
+        ))}
+      </ul>
+      <CardZoomOverlay card={zoomedCard} onClose={closeZoom} />
+    </>
   )
 }

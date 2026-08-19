@@ -1,3 +1,4 @@
+import userEvent from '@testing-library/user-event'
 import { render, screen } from '@testing-library/react'
 import { TradeOfferList } from './TradeOfferList'
 import type { TradeOffer } from '@/lib/trading/api'
@@ -58,7 +59,38 @@ describe('TradeOfferList', () => {
     expect(screen.getByText('Král Artuš')).toBeInTheDocument()
     expect(screen.getByText('Karel')).toBeInTheDocument()
     expect(screen.getByText('Vyměníme luky za kopí?')).toBeInTheDocument()
-    expect(screen.getByText('Lučištníci')).toBeInTheDocument()
-    expect(screen.getByText('Kopiníci')).toBeInTheDocument()
+    expect(screen.getAllByText('Lučištníci').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Kopiníci').length).toBeGreaterThan(0)
+  })
+
+  it('renders zoomable card thumbnails for offered and requested cards', () => {
+    render(<TradeOfferList offers={[offer]} emptyMessage="Nic tu není." onSelect={jest.fn()} />)
+
+    expect(screen.getByRole('button', { name: 'Zvětšit kartu Lučištníci' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Zvětšit kartu Kopiníci' })).toBeInTheDocument()
+    expect(screen.getAllByText('Common').length).toBeGreaterThan(0)
+  })
+
+  it('opens card zoom without selecting the offer', async () => {
+    const user = userEvent.setup()
+    const onSelect = jest.fn()
+
+    render(<TradeOfferList offers={[offer]} emptyMessage="Nic tu není." onSelect={onSelect} />)
+
+    await user.click(screen.getByRole('button', { name: 'Zvětšit kartu Lučištníci' }))
+
+    expect(screen.getByTestId('card-zoom-modal')).toBeInTheDocument()
+    expect(onSelect).not.toHaveBeenCalled()
+  })
+
+  it('still selects the offer when the offer card is clicked', async () => {
+    const user = userEvent.setup()
+    const onSelect = jest.fn()
+
+    render(<TradeOfferList offers={[offer]} emptyMessage="Nic tu není." onSelect={onSelect} />)
+
+    await user.click(screen.getByText('Vyměníme luky za kopí?'))
+
+    expect(onSelect).toHaveBeenCalledWith(offer)
   })
 })
