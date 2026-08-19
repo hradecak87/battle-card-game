@@ -1,7 +1,16 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { getBattle, markReady, pickDefenderCard, surrenderBattle, GetBattleResult, BattleCard, BattleRoundRow } from '@/lib/battles/api'
+import {
+  activateBoostCard,
+  getBattle,
+  markReady,
+  pickDefenderCard,
+  surrenderBattle,
+  GetBattleResult,
+  BattleCard,
+  BattleRoundRow,
+} from '@/lib/battles/api'
 import { useBattleChannel } from '@/lib/battles/useBattleChannel'
 import { getLastSeenRound, setLastSeenRound } from '@/lib/battles/lastSeenRound'
 import { applyRank, calculateWinProbability } from '@/lib/cards/combat'
@@ -9,6 +18,8 @@ import RosterStrip from './RosterStrip'
 import DuelStage, { toUnitTemplate } from './DuelStage'
 import RoundHistory from './RoundHistory'
 import RoundResultPopup from './RoundResultPopup'
+import { MaskedBoostSummaryTile, VisibleBoostCardTile } from '@/components/cards/BoostCardTile'
+import { BoostCardTemplate, Rank } from '@/lib/cards/types'
 
 export interface BattleScreenProps {
   battleId: string
@@ -50,6 +61,7 @@ export default function BattleScreen({ battleId, currentUserId }: BattleScreenPr
   const [previewInstanceId, setPreviewInstanceId] = useState<string | null>(null)
   const [confirmingSurrender, setConfirmingSurrender] = useState(false)
   const [surrenderSubmitting, setSurrenderSubmitting] = useState(false)
+  const [boostSubmittingId, setBoostSubmittingId] = useState<string | null>(null)
 
   const load = useCallback(() => {
     getBattle(battleId).then(({ data: result, error: rpcError }) => {
@@ -192,6 +204,18 @@ export default function BattleScreen({ battleId, currentUserId }: BattleScreenPr
     load()
   }
 
+  async function handleActivateBoost(instanceId: string) {
+    setBoostSubmittingId(instanceId)
+    setActionError(null)
+    const { error: rpcError } = await activateBoostCard(battleId, instanceId)
+    setBoostSubmittingId(null)
+    if (rpcError) {
+      setActionError(rpcError.message)
+      return
+    }
+    load()
+  }
+
   if (error) return <p className="text-red-400 text-sm">{error}</p>
   if (!data) return <p className="text-zinc-400 text-sm">Načítám…</p>
 
@@ -227,6 +251,47 @@ export default function BattleScreen({ battleId, currentUserId }: BattleScreenPr
           applyRank(previewTemplate.baseStats, previewTemplate.rank)
         )
       : null
+  const myBoostCards =
+    (isAttacker ? battle.attacker_boost_cards : battle.defender_boost_cards) ?? []
+  const opponentBoostCards =
+    (isAttacker ? battle.defender_boost_cards : battle.attacker_boost_cards) ?? []
+  const maskedOpponentBoostCounts = opponentBoostCards.reduce<Record<string, number>>((acc, card) => {
+    if (!card.template.is_masked) return acc
+    acc[card.template.rank] = (acc[card.template.rank] ?? 0) + 1
+    return acc
+  }, {})
+  const visibleOpponentBoosts = opponentBoostCards
+    .filter((card) => !card.template.is_masked)
+    .map((card) => ({ card, template: toBoostTemplate(card) }))
+    .filter((entry): entry is { card: (typeof myBoostCards)[number]; template: BoostCardTemplate } => Boolean(entry.template))
+
+  function toBoostTemplate(card: (typeof myBoostCards)[number]): BoostCardTemplate | null {
+    const template = card.template
+    if (
+      template.category !== 'boost' ||
+      !template.name ||
+      !template.flavor_text ||
+      !template.boost_type ||
+      !template.effect_kind
+    ) {
+      return null
+    }
+    return {
+      id: template.id,
+      category: 'boost',
+      rank: template.rank as Rank,
+      name: template.name,
+      flavorText: template.flavor_text,
+      boostType: template.boost_type,
+      effectKind: template.effect_kind,
+      instantEffectKind: template.instant_effect_kind ?? null,
+      pctStr: template.pct_str ?? null,
+      pctLng: template.pct_lng ?? null,
+      pctDef: template.pct_def ?? null,
+      pctHp: template.pct_hp ?? null,
+      totalSupply: template.total_supply,
+    }
+  }
 
   return (
     <div data-testid="battle-screen" className="flex flex-col items-center gap-6 p-4">
@@ -234,6 +299,53 @@ export default function BattleScreen({ battleId, currentUserId }: BattleScreenPr
         Tvá role v této bitvě: {isAttacker ? 'útočník' : isDefender ? 'obránce' : 'divák (nejsi účastník)'}
       </p>
       {actionError && <p className="text-red-400 text-sm">{actionError}</p>}
+
+      {myBoostCards.length > 0 && (
+        <div className="w-full max-w-3xl rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
+          <p className="mb-2 text-sm font-semibold text-zinc-200">Tvé boost karty v bitvě</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {myBoostCards.map((card) => {
+              const template = toBoostTemplate(card)
+              if (!template) return null
+              return (
+                <div key={card.instance_id} className="flex flex-col gap-2">
+                  <VisibleBoostCardTile template={template} compact />
+                  <button
+                    type="button"
+                    disabled={boostSubmittingId === card.instance_id}
+                    onClick={() => handleActivateBoost(card.instance_id)}
+                    className="rounded bg-amber-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                  >
+                    {boostSubmittingId === card.instance_id ? 'Aktivuji…' : 'Aktivovat boost kartu'}
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {Object.keys(maskedOpponentBoostCounts).length > 0 && (
+        <div className="w-full max-w-3xl rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
+          <p className="mb-2 text-sm font-semibold text-zinc-200">Soupeřovy skryté boost karty</p>
+          <div data-testid="battle-opponent-boost-summary" className="grid gap-2 sm:grid-cols-3">
+            {Object.entries(maskedOpponentBoostCounts).map(([rank, count]) => (
+              <MaskedBoostSummaryTile key={rank} rank={rank as Rank} count={count} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {visibleOpponentBoosts.length > 0 && (
+        <div className="w-full max-w-3xl rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
+          <p className="mb-2 text-sm font-semibold text-zinc-200">Odhalené soupeřovy boost karty</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {visibleOpponentBoosts.map(({ card, template }) => (
+              <VisibleBoostCardTile key={card.instance_id} template={template} compact />
+            ))}
+          </div>
+        </div>
+      )}
 
       {canSurrender && (
         <div className="flex flex-col items-center gap-2">

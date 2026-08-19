@@ -16,12 +16,13 @@ import { isTerritoryAttackable } from '@/lib/territories/attackReachability'
 import { TradingCard } from '@/components/cards/TradingCard'
 import { CardZoomIconButton, CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
 import { applyRank } from '@/lib/cards/combat'
-import { Rank, UnitType, UnitCardTemplate } from '@/lib/cards/types'
+import { BoostCardTemplate, Rank, UnitType, UnitCardTemplate } from '@/lib/cards/types'
 import { castleAttackBonusPct, combinedDefenseBonusPct } from '@/lib/territories/structureBonus'
 import { multiOriginAttackHours, occupationHours, armyPower, Difficulty } from '@/lib/territories/formulas'
 import { formatEta } from '@/lib/time/formatEta'
 import { compareArmyStrength, ArmyStrengthLabel } from '@/lib/battles/armyStrength'
 import { NationId } from '@/lib/players/nations'
+import { MaskedBoostSummaryTile, VisibleBoostCardTile } from '@/components/cards/BoostCardTile'
 
 export interface DeclareAttackModalProps {
   /** The target territory being attacked (not the caller's own). */
@@ -40,8 +41,8 @@ function toUnitTemplate(row: NonNullable<CardInstanceWithTemplate['card_template
     category: 'unit',
     unitType: row.unit_type as UnitType,
     rank: row.rank as Rank,
-    name: row.name,
-    flavorText: row.flavor_text,
+    name: row.name ?? 'Neznámá karta',
+    flavorText: row.flavor_text ?? '',
     baseStats: row.base_stats,
     totalSupply: row.total_supply,
   }
@@ -49,6 +50,25 @@ function toUnitTemplate(row: NonNullable<CardInstanceWithTemplate['card_template
 
 function territoryLabel(territory: MyTerritory) {
   return `${territory.is_home ? 'Domov' : 'Území'} (${territory.x}, ${territory.y})`
+}
+
+function toBoostTemplate(row: NonNullable<CardInstanceWithTemplate['card_templates']>): BoostCardTemplate | null {
+  if (row.category !== 'boost' || !row.name || !row.flavor_text || !row.boost_type || !row.effect_kind) return null
+  return {
+    id: row.id,
+    category: 'boost',
+    rank: row.rank as Rank,
+    name: row.name,
+    flavorText: row.flavor_text,
+    boostType: row.boost_type,
+    effectKind: row.effect_kind,
+    instantEffectKind: row.instant_effect_kind ?? null,
+    pctStr: row.pct_str ?? null,
+    pctLng: row.pct_lng ?? null,
+    pctDef: row.pct_def ?? null,
+    pctHp: row.pct_hp ?? null,
+    totalSupply: row.total_supply,
+  }
 }
 
 export default function DeclareAttackModal({ territory, myPlayerId, onClose, onDeclared }: DeclareAttackModalProps) {
@@ -64,6 +84,7 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [selectedBoostInstanceId, setSelectedBoostInstanceId] = useState<string | null>(null)
   const [attackerNation, setAttackerNation] = useState<NationId | null>(null)
   const [defenderNation, setDefenderNation] = useState<NationId | null>(null)
   const [defenderInstances, setDefenderInstances] = useState<CardInstanceWithTemplate[] | null>(null)
@@ -225,7 +246,9 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
     }
     const eligible = (data ?? []).filter(
       (instance) =>
-        instance.owner_id === myPlayerId && instance.status === 'stationed' && instance.card_templates?.category === 'unit'
+        instance.owner_id === myPlayerId &&
+        instance.status === 'stationed' &&
+        ['unit', 'boost'].includes(instance.card_templates?.category ?? '')
     )
     setOriginInstancesById((prev) => ({ ...prev, [originId]: eligible }))
   }
@@ -263,7 +286,7 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
     if (selectedOriginGroups.length === 0) return
     setSubmitting(true)
     setSubmitError(null)
-    const { error } = await declareAttack(territory.id, selectedOriginGroups)
+    const { error } = await declareAttack(territory.id, selectedOriginGroups, selectedBoostInstanceId)
     setSubmitting(false)
     if (error) {
       setSubmitError(error.message)
@@ -374,6 +397,27 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
               </p>
             )}
 
+            {(() => {
+              const maskedBoostCounts = (defenderInstances ?? []).reduce<Record<string, number>>((acc, instance) => {
+                const row = instance.card_templates
+                if (row?.category !== 'boost' || row.name) return acc
+                acc[row.rank] = (acc[row.rank] ?? 0) + 1
+                return acc
+              }, {})
+              const entries = Object.entries(maskedBoostCounts)
+              if (entries.length === 0) return null
+              return (
+                <div>
+                  <p className="mb-2 text-sm text-zinc-300">Soupeřovy skryté boost karty</p>
+                  <div data-testid="declare-attack-defender-boost-summary" className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {entries.map(([rank, count]) => (
+                      <MaskedBoostSummaryTile key={rank} rank={rank as Rank} count={count} />
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
+
             {occupationEtaText && (
               <p data-testid="declare-attack-occupation-eta" className="text-sm text-zinc-300">
                 Toto území je prázdné — po příjezdu bude obsazování trvat:{' '}
@@ -445,6 +489,36 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
                       </div>
                     </fieldset>
                   )}
+
+                  {originInstances !== null &&
+                    originInstances !== undefined &&
+                    originInstances.some((instance) => instance.card_templates?.category === 'boost') && (
+                      <div className="mt-3 flex flex-col gap-2">
+                        <p className="text-sm text-zinc-400">Volitelná útočná boost karta</p>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {originInstances.map((instance) => {
+                            const boostTemplate = instance.card_templates ? toBoostTemplate(instance.card_templates) : null
+                            if (!boostTemplate || boostTemplate.boostType !== 'offensive') return null
+                            const selected = selectedBoostInstanceId === instance.instance_id
+                            return (
+                              <button
+                                key={instance.instance_id}
+                                type="button"
+                                data-testid={`declare-attack-boost-select-${instance.instance_id}`}
+                                onClick={() =>
+                                  setSelectedBoostInstanceId((current) =>
+                                    current === instance.instance_id ? null : instance.instance_id
+                                  )
+                                }
+                                className={`rounded-xl text-left ${selected ? 'ring-2 ring-red-500' : ''}`}
+                              >
+                                <VisibleBoostCardTile template={boostTemplate} compact />
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
                 </div>
               )
             })}

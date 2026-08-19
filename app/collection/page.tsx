@@ -6,9 +6,11 @@ import { useRouter } from 'next/navigation'
 import { useSession } from '@/lib/supabase/useSession'
 import { getMyCardInstances, MyCardInstance } from '@/lib/territories/api'
 import { applyRank } from '@/lib/cards/combat'
-import { RANKS, Rank, UNIT_TYPES, UnitType } from '@/lib/cards/types'
+import { BoostCardTemplate, RANKS, Rank, UNIT_TYPES, UnitType } from '@/lib/cards/types'
 import { TradingCard } from '@/components/cards/TradingCard'
 import { CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
+import { VisibleBoostCardTile } from '@/components/cards/BoostCardTile'
+import { boostEffectSummary } from '@/lib/cards/boosts'
 
 const UNIT_TYPE_LABELS: Record<UnitType, string> = {
   archers: 'Lučištníci',
@@ -32,6 +34,7 @@ const RANK_LABELS: Record<Rank, string> = {
 
 type UnitTypeFilter = UnitType | 'all'
 type RankFilter = Rank | 'all'
+type CategoryFilter = 'all' | 'unit' | 'boost'
 const IN_TRANSIT = 'in_transit'
 type LocationFilter = typeof IN_TRANSIT | 'all' | number
 
@@ -58,6 +61,7 @@ export default function MyCollectionPage() {
 
   const [unitTypeFilter, setUnitTypeFilter] = useState<UnitTypeFilter>('all')
   const [rankFilter, setRankFilter] = useState<RankFilter>('all')
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all')
   const [locationFilter, setLocationFilter] = useState<LocationFilter>('all')
   const [search, setSearch] = useState('')
 
@@ -99,8 +103,15 @@ export default function MyCollectionPage() {
     const query = search.trim().toLowerCase()
     return instances.filter((card) => {
       const template = card.card_templates
-      if (!template || template.category !== 'unit' || !template.base_stats || !template.unit_type) return false
-      if (unitTypeFilter !== 'all' && template.unit_type !== unitTypeFilter) return false
+      if (!template) return false
+      if (categoryFilter !== 'all' && template.category !== categoryFilter) return false
+      if (
+        template.category === 'unit' &&
+        (unitTypeFilter !== 'all' && template.unit_type !== unitTypeFilter)
+      ) {
+        return false
+      }
+      if (template.category === 'boost' && unitTypeFilter !== 'all') return false
       if (rankFilter !== 'all' && template.rank !== rankFilter) return false
       if (locationFilter !== 'all') {
         if (locationFilter === IN_TRANSIT) {
@@ -109,10 +120,10 @@ export default function MyCollectionPage() {
           return false
         }
       }
-      if (query && !template.name.toLowerCase().includes(query)) return false
+      if (query && !(template.name ?? '').toLowerCase().includes(query)) return false
       return true
     })
-  }, [instances, unitTypeFilter, rankFilter, locationFilter, search])
+  }, [instances, categoryFilter, unitTypeFilter, rankFilter, locationFilter, search])
 
   if (loading || !user) {
     return (
@@ -151,12 +162,27 @@ export default function MyCollectionPage() {
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
+          Kategorie
+          <select
+            aria-label="Kategorie"
+            className="bg-zinc-800 text-zinc-100 rounded px-3 py-2 min-w-[10rem]"
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value as CategoryFilter)}
+          >
+            <option value="all">Vše</option>
+            <option value="unit">Vojska</option>
+            <option value="boost">Boost karty</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm">
           Typ vojska
           <select
             aria-label="Typ vojska"
             className="bg-zinc-800 text-zinc-100 rounded px-3 py-2 min-w-[10rem]"
             value={unitTypeFilter}
             onChange={(e) => setUnitTypeFilter(e.target.value as UnitTypeFilter)}
+            disabled={categoryFilter === 'boost'}
           >
             <option value="all">Vše</option>
             {UNIT_TYPES.map((ut) => (
@@ -212,6 +238,41 @@ export default function MyCollectionPage() {
       <ul className="grid grid-cols-3 gap-2 sm:gap-4 sm:grid-cols-[repeat(auto-fill,minmax(170px,1fr))]">
         {filtered.map((card) => {
           const template = card.card_templates!
+          if (template.category === 'boost') {
+            const boostTemplate: BoostCardTemplate = {
+              id: template.id,
+              category: 'boost',
+              rank: template.rank as Rank,
+              name: template.name ?? card.template_id,
+              flavorText: template.flavor_text ?? '',
+              boostType: template.boost_type!,
+              effectKind: template.effect_kind!,
+              instantEffectKind: template.instant_effect_kind ?? null,
+              pctStr: template.pct_str ?? null,
+              pctLng: template.pct_lng ?? null,
+              pctDef: template.pct_def ?? null,
+              pctHp: template.pct_hp ?? null,
+              totalSupply: template.total_supply,
+            }
+            return (
+              <li key={card.instance_id} className="flex flex-col gap-1">
+                <VisibleBoostCardTile template={boostTemplate} />
+                <p className="text-center text-[11px] text-zinc-400">{boostEffectSummary(boostTemplate)}</p>
+                <p data-testid="card-location" className="text-center text-[11px] text-zinc-500">
+                  {locationLabel(card)}
+                </p>
+              </li>
+            )
+          }
+
+          if (
+            !template.base_stats ||
+            !template.unit_type ||
+            !template.name ||
+            template.flavor_text == null
+          ) {
+            return null
+          }
           const zoomTemplate = {
             id: template.id,
             category: 'unit' as const,
@@ -219,10 +280,10 @@ export default function MyCollectionPage() {
             rank: template.rank as Rank,
             name: template.name,
             flavorText: template.flavor_text,
-            baseStats: template.base_stats!,
+            baseStats: template.base_stats,
             totalSupply: template.total_supply,
           }
-          const stats = applyRank(template.base_stats!, template.rank as Rank)
+          const stats = applyRank(template.base_stats, template.rank as Rank)
           return (
             <li key={card.instance_id} className="flex flex-col gap-1">
               <button

@@ -50,10 +50,17 @@ const myCard = {
     rank: 'rare',
     category: 'unit' as const,
     unit_type: 'knights',
-    base_stats: { str: 20, lng: 5, def: 15, hp: 30 },
+    base_stats: { str: 20, lng: 5, def: 15, hp: 30, speed: 6 },
     total_supply: null,
     defense_bonus_pct: null,
     attack_bonus_pct: null,
+    boost_type: null,
+    effect_kind: null,
+    instant_effect_kind: null,
+    pct_str: null,
+    pct_lng: null,
+    pct_def: null,
+    pct_hp: null,
   },
 }
 
@@ -66,6 +73,53 @@ const mySecondCard = {
     id: 'tmpl-2',
     name: 'Hraničáři z druhé državy',
     base_stats: { str: 12, lng: 11, def: 8, hp: 14, speed: 3 },
+  },
+}
+
+const offensiveBoost = {
+  instance_id: 'boost-1',
+  template_id: 'boost-offensive-1',
+  owner_id: 'me',
+  stationed_territory_id: 1,
+  status: 'stationed' as const,
+  card_templates: {
+    id: 'boost-offensive-1',
+    name: 'Praporec dravců',
+    flavor_text: 'Útočící vojsko žene vpřed.',
+    rank: 'rare',
+    category: 'boost' as const,
+    unit_type: null,
+    base_stats: null,
+    total_supply: 12,
+    defense_bonus_pct: null,
+    attack_bonus_pct: null,
+    boost_type: 'offensive',
+    effect_kind: 'stat_multiplier',
+    instant_effect_kind: null,
+    pct_str: 12,
+    pct_lng: null,
+    pct_def: null,
+    pct_hp: 6,
+  },
+}
+
+const maskedDefenderBoost = {
+  ...offensiveBoost,
+  instance_id: 'boost-foreign-1',
+  owner_id: 'other-player',
+  stationed_territory_id: territory.id,
+  card_templates: {
+    ...offensiveBoost.card_templates,
+    name: null,
+    flavor_text: null,
+    rank: 'epic',
+    boost_type: null,
+    effect_kind: null,
+    instant_effect_kind: null,
+    pct_str: null,
+    pct_lng: null,
+    pct_def: null,
+    pct_hp: null,
   },
 }
 
@@ -102,7 +156,10 @@ describe('DeclareAttackModal', () => {
       error: null,
     })
     getCardInstancesAtTerritory.mockImplementation((id: number) =>
-      Promise.resolve({ data: id === 1 ? [myCard] : id === 2 ? [mySecondCard] : [], error: null })
+      Promise.resolve({
+        data: id === 1 ? [myCard, offensiveBoost] : id === 2 ? [mySecondCard] : [],
+        error: null,
+      })
     )
     declareAttack.mockResolvedValue({ data: 'movement-1', error: null })
 
@@ -116,17 +173,23 @@ describe('DeclareAttackModal', () => {
     await waitFor(() => expect(getCardInstancesAtTerritory).toHaveBeenCalledWith(2))
     expect(await screen.findByText('Elitní rytíři')).toBeInTheDocument()
     expect(await screen.findByText('Hraničáři z druhé državy')).toBeInTheDocument()
+    expect(await screen.findByText('Praporec dravců')).toBeInTheDocument()
 
     fireEvent.click(screen.getByTestId('declare-attack-card-select-inst-1'))
     fireEvent.click(screen.getByTestId('declare-attack-card-select-inst-2'))
+    fireEvent.click(screen.getByTestId('declare-attack-boost-select-boost-1'))
     const submit = screen.getByRole('button', { name: /Zaútočit/ })
     fireEvent.click(submit)
 
     await waitFor(() =>
-      expect(declareAttack).toHaveBeenCalledWith(99, [
-        { originTerritoryId: 1, cardInstanceIds: ['inst-1'] },
-        { originTerritoryId: 2, cardInstanceIds: ['inst-2'] },
-      ])
+      expect(declareAttack).toHaveBeenCalledWith(
+        99,
+        [
+          { originTerritoryId: 1, cardInstanceIds: ['inst-1'] },
+          { originTerritoryId: 2, cardInstanceIds: ['inst-2'] },
+        ],
+        'boost-1'
+      )
     )
     expect(await screen.findByText(/Útok vyslán/)).toBeInTheDocument()
   })
@@ -341,5 +404,20 @@ describe('DeclareAttackModal', () => {
     fireEvent.click(screen.getByTestId('declare-attack-card-select-inst-1'))
 
     expect(screen.queryByTestId('declare-attack-occupation-eta')).not.toBeInTheDocument()
+  })
+
+  it('shows only the defender boost rarity/count before activation', async () => {
+    getCardInstancesAtTerritory.mockImplementation((id: number) =>
+      Promise.resolve({
+        data: id === territory.id ? [maskedDefenderBoost] : [myCard],
+        error: null,
+      })
+    )
+
+    render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
+
+    expect(await screen.findByTestId('declare-attack-defender-boost-summary')).toHaveTextContent('Epic ×1')
+    expect(screen.queryByText('Praporec dravců')).not.toBeInTheDocument()
+    expect(screen.queryByText(/stat_multiplier/i)).not.toBeInTheDocument()
   })
 })

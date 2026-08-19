@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import GarrisonModal from './GarrisonModal'
-import { Territory } from '@/lib/territories/api'
+import type { CardInstanceWithTemplate, Territory } from '@/lib/territories/api'
 
 const baseTerritory: Territory = {
   id: 81,
@@ -19,7 +19,7 @@ const baseTerritory: Territory = {
   name: null,
 }
 
-const stationedUnit = {
+const stationedUnit: CardInstanceWithTemplate = {
   instance_id: 'unit-1',
   template_id: 'tmpl-archers',
   owner_id: 'other-player',
@@ -36,6 +36,59 @@ const stationedUnit = {
     total_supply: null,
     defense_bonus_pct: null,
     attack_bonus_pct: null,
+    boost_type: null,
+    effect_kind: null,
+    instant_effect_kind: null,
+    pct_str: null,
+    pct_lng: null,
+    pct_def: null,
+    pct_hp: null,
+  },
+}
+
+const ownedBoost: CardInstanceWithTemplate = {
+  instance_id: 'boost-owned-1',
+  template_id: 'boost-owned-template',
+  owner_id: 'me',
+  stationed_territory_id: 81,
+  status: 'stationed' as const,
+  card_templates: {
+    id: 'boost-owned-template',
+    name: 'Pevná hradba',
+    flavor_text: 'Štíty se semknou.',
+    rank: 'uncommon',
+    category: 'boost' as const,
+    unit_type: null,
+    base_stats: null,
+    total_supply: null,
+    defense_bonus_pct: null,
+    attack_bonus_pct: null,
+    boost_type: 'territorial',
+    effect_kind: 'stat_multiplier',
+    instant_effect_kind: null,
+    pct_str: null,
+    pct_lng: null,
+    pct_def: 12,
+    pct_hp: 8,
+  },
+}
+
+const maskedForeignBoost: CardInstanceWithTemplate = {
+  ...ownedBoost,
+  instance_id: 'boost-foreign-1',
+  owner_id: 'other-player',
+  card_templates: {
+    ...ownedBoost.card_templates!,
+    rank: 'epic',
+    name: null,
+    flavor_text: null,
+    boost_type: null,
+    effect_kind: null,
+    instant_effect_kind: null,
+    pct_str: null,
+    pct_lng: null,
+    pct_def: null,
+    pct_hp: null,
   },
 }
 
@@ -247,6 +300,39 @@ describe('GarrisonModal', () => {
     await waitFor(() => expect(onRename).toHaveBeenCalledWith(42, 'Hrad Blaník'))
     // form collapses after save
     await waitFor(() => expect(screen.queryByTestId('rename-form')).not.toBeInTheDocument())
+  })
+
+  it('shows owned boost cards with their full details', () => {
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'me' }}
+        instances={[ownedBoost]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+      />
+    )
+
+    expect(screen.getByText('Pevná hradba')).toBeInTheDocument()
+    expect(screen.getByText(/Obrana \+12 % · HP \+8 %/)).toBeInTheDocument()
+  })
+
+  it('masks foreign boost cards down to rarity and count only', () => {
+    render(
+      <GarrisonModal
+        territory={baseTerritory}
+        instances={[maskedForeignBoost, { ...maskedForeignBoost, instance_id: 'boost-foreign-2' }]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+      />
+    )
+
+    expect(screen.getByTestId('foreign-boost-summary')).toHaveTextContent('Epic ×2')
+    expect(screen.queryByText('Pevná hradba')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Štíty se semknou/)).not.toBeInTheDocument()
   })
 
   it('hides the rename form when cancel is clicked', () => {

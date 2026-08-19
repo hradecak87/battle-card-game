@@ -1,4 +1,12 @@
-import { declareAttack, getPlayerPublicInfo, getMyStructureCardInstances, getMyTerritories, relocateHome, renameTerritory } from './api'
+import {
+  declareAttack,
+  getCardInstancesAtTerritory,
+  getPlayerPublicInfo,
+  getMyStructureCardInstances,
+  getMyTerritories,
+  relocateHome,
+  renameTerritory,
+} from './api'
 
 const single = jest.fn()
 const inFn = jest.fn()
@@ -85,7 +93,7 @@ describe('declareAttack', () => {
     await declareAttack(99, [
       { originTerritoryId: 1, cardInstanceIds: ['inst-1'] },
       { originTerritoryId: 2, cardInstanceIds: ['inst-2', 'inst-3'] },
-    ])
+    ], 'boost-1')
 
     expect(rpc).toHaveBeenCalledWith('declare_attack', {
       target_territory_id: 99,
@@ -93,7 +101,20 @@ describe('declareAttack', () => {
         { origin_territory_id: 1, card_instance_ids: ['inst-1'] },
         { origin_territory_id: 2, card_instance_ids: ['inst-2', 'inst-3'] },
       ],
+      p_boost_card_instance_id: 'boost-1',
     })
+  })
+})
+
+describe('getCardInstancesAtTerritory', () => {
+  beforeEach(() => {
+    rpc.mockReset()
+  })
+
+  it('uses the visibility-aware territory card RPC', async () => {
+    rpc.mockResolvedValue({ data: [], error: null })
+    await getCardInstancesAtTerritory(55)
+    expect(rpc).toHaveBeenCalledWith('get_visible_territory_cards', { p_territory_id: 55 })
   })
 })
 

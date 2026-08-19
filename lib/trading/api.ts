@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
-import type { Rank, RawStats, UnitType } from '@/lib/cards/types'
+import type { BoostEffectKind, BoostType, InstantEffectKind, Rank, RawStats, UnitType } from '@/lib/cards/types'
 
 export type TradeOfferType = 'direct' | 'public'
 export type TradeOfferStatus = 'pending' | 'countered' | 'accepted' | 'rejected' | 'cancelled' | 'expired'
@@ -16,12 +16,20 @@ export interface TradeSelectableCard {
   owner_id: string | null
   stationed_territory_id: number | null
   status: 'stationed' | 'in_transit'
+  template_category: 'unit' | 'boost'
   template_name: string
   template_rank: Rank
   template_unit_type: UnitType | null
   template_flavor_text: string
   template_base_stats: RawStats | null
   template_total_supply: number | null
+  template_boost_type: BoostType | null
+  template_effect_kind: BoostEffectKind | null
+  template_instant_effect_kind: InstantEffectKind | null
+  template_pct_str: number | null
+  template_pct_lng: number | null
+  template_pct_def: number | null
+  template_pct_hp: number | null
 }
 
 export interface TradePlayerOption {

@@ -4,8 +4,9 @@ import type { KeyboardEvent, MouseEvent } from 'react'
 import { CardZoomIconButton, CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
 import { TradingCard } from '@/components/cards/TradingCard'
 import { applyRank } from '@/lib/cards/combat'
-import type { Rank, UnitCardTemplate, UnitType } from '@/lib/cards/types'
+import type { BoostCardTemplate, Rank, UnitCardTemplate, UnitType } from '@/lib/cards/types'
 import type { TradeOffer } from '@/lib/trading/api'
+import { VisibleBoostCardTile } from '@/components/cards/BoostCardTile'
 
 interface TradeOfferListProps {
   offers: TradeOffer[]
@@ -28,6 +29,27 @@ function toUnitTemplate(card: TradeOffer['offered_cards'][number]): UnitCardTemp
   }
 }
 
+function toBoostTemplate(card: TradeOffer['offered_cards'][number]): BoostCardTemplate | null {
+  if (card.template_category !== 'boost' || !card.template_boost_type || !card.template_effect_kind) {
+    return null
+  }
+  return {
+    id: card.template_id,
+    category: 'boost',
+    rank: card.template_rank as Rank,
+    name: card.template_name,
+    flavorText: card.template_flavor_text,
+    boostType: card.template_boost_type,
+    effectKind: card.template_effect_kind,
+    instantEffectKind: card.template_instant_effect_kind,
+    pctStr: card.template_pct_str,
+    pctLng: card.template_pct_lng,
+    pctDef: card.template_pct_def,
+    pctHp: card.template_pct_hp,
+    totalSupply: card.template_total_supply,
+  }
+}
+
 function OfferCardThumbnail({
   card,
   onZoom,
@@ -36,7 +58,8 @@ function OfferCardThumbnail({
   onZoom: (event: MouseEvent<HTMLButtonElement>, card: UnitCardTemplate) => void
 }) {
   const template = toUnitTemplate(card)
-  if (!template) {
+  const boostTemplate = toBoostTemplate(card)
+  if (!template && !boostTemplate) {
     return (
       <span className="rounded-full bg-zinc-800 px-2 py-1 text-xs text-zinc-200">
         {card.template_name}
@@ -44,16 +67,20 @@ function OfferCardThumbnail({
     )
   }
 
-  const stats = applyRank(template.baseStats, template.rank)
-
   return (
     <div className="relative w-24 shrink-0">
-      <TradingCard template={template} stats={stats} compact />
-      <CardZoomIconButton
-        cardName={template.name}
-        className="absolute right-1 top-1"
-        onClick={(event) => onZoom(event, template)}
-      />
+      {template ? (
+        <>
+          <TradingCard template={template} stats={applyRank(template.baseStats, template.rank)} compact />
+          <CardZoomIconButton
+            cardName={template.name}
+            className="absolute right-1 top-1"
+            onClick={(event) => onZoom(event, template)}
+          />
+        </>
+      ) : boostTemplate ? (
+        <VisibleBoostCardTile template={boostTemplate} compact />
+      ) : null}
     </div>
   )
 }

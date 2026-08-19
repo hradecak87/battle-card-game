@@ -25,6 +25,7 @@ const CATEGORY_LABELS: Record<AdminCardTemplateOption['category'], string> = {
   unit: 'Jednotky',
   castle: 'Hrady',
   village: 'Vesnice',
+  boost: 'Boost karty',
 }
 
 const ACTIVITY_LABELS = {
@@ -81,7 +82,7 @@ export default function AdminPage() {
 
   const templatesByCategory = useMemo(() => {
     const grouped = new Map<AdminCardTemplateOption['category'], AdminCardTemplateOption[]>()
-    for (const category of ['unit', 'castle', 'village'] as const) {
+    for (const category of ['unit', 'castle', 'village', 'boost'] as const) {
       grouped.set(category, [])
     }
     for (const template of templates ?? []) {
@@ -415,7 +416,7 @@ export default function AdminPage() {
                   value={templateId}
                   onChange={(event) => setTemplateId(event.target.value)}
                 >
-                  {(['unit', 'castle', 'village'] as const).map((category) => {
+                  {(['unit', 'castle', 'village', 'boost'] as const).map((category) => {
                     const options = templatesByCategory.get(category) ?? []
                     if (options.length === 0) return null
                     return (
@@ -551,4 +552,3 @@ export default function AdminPage() {
     </main>
   )
 }
-

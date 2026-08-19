@@ -1,17 +1,19 @@
 import { render, screen, waitFor, fireEvent, within, act } from '@testing-library/react'
 import BattleScreen from './BattleScreen'
-import { GetBattleResult } from '@/lib/battles/api'
+import type { BattleBoostCard, GetBattleResult } from '@/lib/battles/api'
 
 const getBattle = jest.fn()
 const markReady = jest.fn().mockResolvedValue({ error: null })
 const pickDefenderCard = jest.fn().mockResolvedValue({ error: null })
 const surrenderBattle = jest.fn().mockResolvedValue({ error: null })
+const activateBoostCard = jest.fn().mockResolvedValue({ error: null })
 
 jest.mock('@/lib/battles/api', () => ({
   getBattle: (...args: unknown[]) => getBattle(...args),
   markReady: (...args: unknown[]) => markReady(...args),
   pickDefenderCard: (...args: unknown[]) => pickDefenderCard(...args),
   surrenderBattle: (...args: unknown[]) => surrenderBattle(...args),
+  activateBoostCard: (...args: unknown[]) => activateBoostCard(...args),
 }))
 
 jest.mock('@/lib/battles/useBattleChannel', () => ({
@@ -51,6 +53,54 @@ const defenderCard = {
   template: makeTemplate({ id: 'spearmen-common-01', name: 'Oštěpníci', unit_type: 'spearmen' }),
   is_resting: false,
   times_used: 0,
+}
+
+const attackerBoost: BattleBoostCard = {
+  instance_id: 'boost-atk-1',
+  owner_id: 'attacker-1',
+  status: 'stationed' as const,
+  template: {
+    id: 'boost-atk-template',
+    category: 'boost' as const,
+    unit_type: null,
+    rank: 'rare',
+    name: 'Útočný praporec',
+    flavor_text: 'Útočník zrychlí úder.',
+    base_stats: null,
+    defense_bonus_pct: null,
+    attack_bonus_pct: null,
+    total_supply: 9,
+    minted_count: 1,
+    boost_type: 'offensive',
+    effect_kind: 'stat_multiplier',
+    instant_effect_kind: null,
+    pct_str: 12,
+    pct_lng: null,
+    pct_def: null,
+    pct_hp: 6,
+    is_masked: false,
+  },
+}
+
+const maskedDefenderBoost: BattleBoostCard = {
+  instance_id: 'boost-def-1',
+  owner_id: 'defender-1',
+  status: 'stationed' as const,
+  template: {
+    ...attackerBoost.template,
+    id: 'boost-def-template',
+    rank: 'epic',
+    name: null,
+    flavor_text: null,
+    boost_type: null,
+    effect_kind: null,
+    instant_effect_kind: null,
+    pct_str: null,
+    pct_lng: null,
+    pct_def: null,
+    pct_hp: null,
+    is_masked: true,
+  },
 }
 
 function awaitingReadyFixture(): GetBattleResult {
@@ -110,6 +160,8 @@ function activeFixture(): GetBattleResult {
   fixture.battle.defender_ready_at = new Date().toISOString()
   fixture.battle.round_deadline = new Date(Date.now() + 120_000).toISOString()
   fixture.rounds = [makeRound()]
+  ;(fixture.battle as GetBattleResult['battle'] & Record<string, unknown>).attacker_boost_cards = [attackerBoost]
+  ;(fixture.battle as GetBattleResult['battle'] & Record<string, unknown>).defender_boost_cards = [maskedDefenderBoost]
   return fixture
 }
 
@@ -119,6 +171,7 @@ describe('BattleScreen', () => {
     markReady.mockClear()
     pickDefenderCard.mockClear()
     surrenderBattle.mockClear()
+    activateBoostCard.mockClear()
     window.localStorage.clear()
   })
 
@@ -366,5 +419,14 @@ describe('BattleScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Ano, vzdát se' }))
 
     expect(await screen.findByText('boom')).toBeInTheDocument()
+  })
+
+  it('shows an activate-boost action for the player and masked opponent boost info before activation', async () => {
+    getBattle.mockResolvedValue({ data: activeFixture(), error: null })
+    render(<BattleScreen battleId="battle-1" currentUserId="attacker-1" />)
+
+    expect(await screen.findByRole('button', { name: /Aktivovat boost kartu/ })).toBeInTheDocument()
+    expect(screen.getByTestId('battle-opponent-boost-summary')).toHaveTextContent('Epic ×1')
+    expect(screen.queryByText('Skrytá boost karta soupeře')).toBeInTheDocument()
   })
 })
