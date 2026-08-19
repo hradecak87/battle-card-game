@@ -321,6 +321,7 @@ export function CreateTradeOfferModal({
                 <option value="knights">Rytíři</option>
                 <option value="lightCavalry">Lehká jízda</option>
                 <option value="siegeEngines">Obléhací stroje</option>
+                <option value="settlers">Osadníci</option>
               </select>
             </label>
           </div>

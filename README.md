@@ -9,10 +9,10 @@ decisions, and roadmap).
 
 **Subsystem #1 — Card Collection & Combat Core** (fully done):
 
-- A catalog of 248 unique card templates: 8 medieval unit types (archers,
+- A catalog of 279 unique card templates: 9 medieval unit types (archers,
   crossbowmen, spearmen, swordsmen, halberdiers, knights, light cavalry,
-  siege engines) × 5 ranks (common/uncommon/rare/epic/legend), each with its
-  own honorific Czech name, flavor text, and stats.
+  siege engines, settlers) × 5 ranks (common/uncommon/rare/epic/legend), each
+  with its own honorific Czech name, flavor text, and stats.
 - A deterministic 1v1 duel resolution algorithm (`lib/cards/combat.ts`)
   based on a time-to-kill "damage race" formula.
 - `/collection` — browse and filter the full card catalog.

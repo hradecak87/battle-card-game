@@ -86,7 +86,7 @@ export default function Home() {
         </div>
       )}
 
-      <p className="text-xs text-zinc-600">248 karet · 8 typů vojsk · 5 ranků</p>
+      <p className="text-xs text-zinc-600">279 karet · 9 typů vojsk · 5 ranků</p>
     </main>
   )
 }

@@ -3718,5 +3718,470 @@
       "speed": 2
     },
     "totalSupply": 5
+  },
+  {
+    "id": "settlers-common-01",
+    "unitType": "settlers",
+    "rank": "common",
+    "name": "Kočovní osadníci",
+    "flavorText": "Kočovní osadníci: řadoví osadníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 1.1,
+      "lng": 1,
+      "def": 1,
+      "hp": 2.1,
+      "speed": 9.4
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "settlers-common-02",
+    "unitType": "settlers",
+    "rank": "common",
+    "name": "Rodiny s vozy",
+    "flavorText": "Rodiny s vozy: řadoví osadníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 1,
+      "lng": 1,
+      "def": 1,
+      "hp": 2.1,
+      "speed": 9.8
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "settlers-common-03",
+    "unitType": "settlers",
+    "rank": "common",
+    "name": "Pastevci na okraji",
+    "flavorText": "Pastevci na okraji: řadoví osadníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 1,
+      "lng": 0.9,
+      "def": 0.9,
+      "hp": 2,
+      "speed": 10
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "settlers-common-04",
+    "unitType": "settlers",
+    "rank": "common",
+    "name": "Ranní přistěhovalci",
+    "flavorText": "Ranní přistěhovalci: řadoví osadníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 1,
+      "lng": 1.1,
+      "def": 1.1,
+      "hp": 2,
+      "speed": 9.6
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "settlers-common-05",
+    "unitType": "settlers",
+    "rank": "common",
+    "name": "Nosiči stanů",
+    "flavorText": "Nosiči stanů: řadoví osadníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 0.9,
+      "lng": 1,
+      "def": 1,
+      "hp": 2,
+      "speed": 10
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "settlers-common-06",
+    "unitType": "settlers",
+    "rank": "common",
+    "name": "Karavana chudiny",
+    "flavorText": "Karavana chudiny: řadoví osadníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 1.1,
+      "lng": 1,
+      "def": 1,
+      "hp": 1.9,
+      "speed": 9.9
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "settlers-common-07",
+    "unitType": "settlers",
+    "rank": "common",
+    "name": "Bezzemci na cestě",
+    "flavorText": "Bezzemci na cestě: řadoví osadníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 1,
+      "lng": 0.9,
+      "def": 0.9,
+      "hp": 1.9,
+      "speed": 10
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "settlers-common-08",
+    "unitType": "settlers",
+    "rank": "common",
+    "name": "Sběrači nového území",
+    "flavorText": "Sběrači nového území: řadoví osadníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 1,
+      "lng": 1.1,
+      "def": 1.1,
+      "hp": 1.8,
+      "speed": 9.8
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "settlers-common-09",
+    "unitType": "settlers",
+    "rank": "common",
+    "name": "Vozkové s dobytkem",
+    "flavorText": "Vozkové s dobytkem: řadoví osadníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 0.9,
+      "lng": 1,
+      "def": 1,
+      "hp": 2.2,
+      "speed": 9.7
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "settlers-common-10",
+    "unitType": "settlers",
+    "rank": "common",
+    "name": "Nováčci na hranici",
+    "flavorText": "Nováčci na hranici: řadoví osadníci, snadno dostupní, ale o to početnější.",
+    "baseStats": {
+      "str": 1.1,
+      "lng": 1,
+      "def": 1,
+      "hp": 2.1,
+      "speed": 9.7
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "settlers-uncommon-01",
+    "unitType": "settlers",
+    "rank": "uncommon",
+    "name": "Cechovní osadníci",
+    "flavorText": "Cechovní osadníci: zkušení osadníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 1,
+      "lng": 0.9,
+      "def": 1,
+      "hp": 2.1,
+      "speed": 9.8
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "settlers-uncommon-02",
+    "unitType": "settlers",
+    "rank": "uncommon",
+    "name": "Bratrstvo volné země",
+    "flavorText": "Bratrstvo volné země: zkušení osadníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 1,
+      "lng": 0.9,
+      "def": 0.9,
+      "hp": 2.1,
+      "speed": 10
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "settlers-uncommon-03",
+    "unitType": "settlers",
+    "rank": "uncommon",
+    "name": "Osadníci Severní marky",
+    "flavorText": "Osadníci Severní marky: zkušení osadníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 0.9,
+      "lng": 1.1,
+      "def": 1.1,
+      "hp": 2,
+      "speed": 9.6
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "settlers-uncommon-04",
+    "unitType": "settlers",
+    "rank": "uncommon",
+    "name": "Královští kolonisté",
+    "flavorText": "Královští kolonisté: zkušení osadníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 1.1,
+      "lng": 1,
+      "def": 1,
+      "hp": 2,
+      "speed": 9.5
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "settlers-uncommon-05",
+    "unitType": "settlers",
+    "rank": "uncommon",
+    "name": "Rychlá karavana",
+    "flavorText": "Rychlá karavana: zkušení osadníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 1,
+      "lng": 1,
+      "def": 1,
+      "hp": 1.9,
+      "speed": 9.9
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "settlers-uncommon-06",
+    "unitType": "settlers",
+    "rank": "uncommon",
+    "name": "Zvědové nové půdy",
+    "flavorText": "Zvědové nové půdy: zkušení osadníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 1,
+      "lng": 0.9,
+      "def": 0.9,
+      "hp": 1.9,
+      "speed": 10
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "settlers-uncommon-07",
+    "unitType": "settlers",
+    "rank": "uncommon",
+    "name": "Strážci vozové hradby",
+    "flavorText": "Strážci vozové hradby: zkušení osadníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 1,
+      "lng": 1.1,
+      "def": 1.1,
+      "hp": 1.9,
+      "speed": 9.8
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "settlers-uncommon-08",
+    "unitType": "settlers",
+    "rank": "uncommon",
+    "name": "Jezdci volné stepi",
+    "flavorText": "Jezdci volné stepi: zkušení osadníci, prošli výcvikem cechovních mistrů.",
+    "baseStats": {
+      "str": 0.9,
+      "lng": 1,
+      "def": 1,
+      "hp": 1.8,
+      "speed": 10
+    },
+    "totalSupply": null
+  },
+  {
+    "id": "settlers-rare-01",
+    "unitType": "settlers",
+    "rank": "rare",
+    "name": "Vítr nové země",
+    "flavorText": "Vítr nové země: elitní osadníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 1.1,
+      "lng": 1,
+      "def": 1,
+      "hp": 2.1,
+      "speed": 9.5
+    },
+    "totalSupply": 20
+  },
+  {
+    "id": "settlers-rare-02",
+    "unitType": "settlers",
+    "rank": "rare",
+    "name": "Bratrstvo prvního kolíku",
+    "flavorText": "Bratrstvo prvního kolíku: elitní osadníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 1,
+      "lng": 0.9,
+      "def": 0.9,
+      "hp": 2.1,
+      "speed": 10
+    },
+    "totalSupply": 26
+  },
+  {
+    "id": "settlers-rare-03",
+    "unitType": "settlers",
+    "rank": "rare",
+    "name": "Setníci osídlení",
+    "flavorText": "Setníci osídlení: elitní osadníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 1,
+      "lng": 1.1,
+      "def": 1.1,
+      "hp": 2,
+      "speed": 9.4
+    },
+    "totalSupply": 32
+  },
+  {
+    "id": "settlers-rare-04",
+    "unitType": "settlers",
+    "rank": "rare",
+    "name": "Poslední karavana",
+    "flavorText": "Poslední karavana: elitní osadníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 0.9,
+      "lng": 1,
+      "def": 1,
+      "hp": 2,
+      "speed": 9.8
+    },
+    "totalSupply": 38
+  },
+  {
+    "id": "settlers-rare-05",
+    "unitType": "settlers",
+    "rank": "rare",
+    "name": "Rychlonozí kolonisté",
+    "flavorText": "Rychlonozí kolonisté: elitní osadníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 1.1,
+      "lng": 1,
+      "def": 1,
+      "hp": 2,
+      "speed": 9.7
+    },
+    "totalSupply": 44
+  },
+  {
+    "id": "settlers-rare-06",
+    "unitType": "settlers",
+    "rank": "rare",
+    "name": "Jezdec bez domova",
+    "flavorText": "Jezdec bez domova: elitní osadníci, o kterých se vypráví u ohňů.",
+    "baseStats": {
+      "str": 1,
+      "lng": 0.9,
+      "def": 0.9,
+      "hp": 1.9,
+      "speed": 10
+    },
+    "totalSupply": 50
+  },
+  {
+    "id": "settlers-epic-01",
+    "unitType": "settlers",
+    "rank": "epic",
+    "name": "Vůdce Velké karavany",
+    "flavorText": "Vůdce Velké karavany: legendami opředení osadníci, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 1,
+      "lng": 0.9,
+      "def": 0.9,
+      "hp": 2.1,
+      "speed": 9.9
+    },
+    "totalSupply": 5
+  },
+  {
+    "id": "settlers-epic-02",
+    "unitType": "settlers",
+    "rank": "epic",
+    "name": "Zakladatel nové marky",
+    "flavorText": "Zakladatel nové marky: legendami opředení osadníci, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 1,
+      "lng": 1.1,
+      "def": 1.1,
+      "hp": 2.1,
+      "speed": 9.3
+    },
+    "totalSupply": 8
+  },
+  {
+    "id": "settlers-epic-03",
+    "unitType": "settlers",
+    "rank": "epic",
+    "name": "Poslední kočovník",
+    "flavorText": "Poslední kočovník: legendami opředení osadníci, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 0.9,
+      "lng": 1,
+      "def": 1,
+      "hp": 2,
+      "speed": 9.8
+    },
+    "totalSupply": 12
+  },
+  {
+    "id": "settlers-epic-04",
+    "unitType": "settlers",
+    "rank": "epic",
+    "name": "Vítr nekonečné stepi",
+    "flavorText": "Vítr nekonečné stepi: legendami opředení osadníci, jejichž činy zná celé království.",
+    "baseStats": {
+      "str": 1.1,
+      "lng": 1,
+      "def": 1,
+      "hp": 2,
+      "speed": 9.7
+    },
+    "totalSupply": 15
+  },
+  {
+    "id": "settlers-legend-01",
+    "unitType": "settlers",
+    "rank": "legend",
+    "name": "Praotec osadníků",
+    "flavorText": "Praotec osadníků: jediní svého druhu — osadníci, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 1.1,
+      "lng": 1,
+      "def": 1,
+      "hp": 2.1,
+      "speed": 9.7
+    },
+    "totalSupply": 1
+  },
+  {
+    "id": "settlers-legend-02",
+    "unitType": "settlers",
+    "rank": "legend",
+    "name": "Král volné země",
+    "flavorText": "Král volné země: jediní svého druhu — osadníci, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 1,
+      "lng": 0.9,
+      "def": 0.9,
+      "hp": 2.1,
+      "speed": 10
+    },
+    "totalSupply": 3
+  },
+  {
+    "id": "settlers-legend-03",
+    "unitType": "settlers",
+    "rank": "legend",
+    "name": "Poslední kočovník světa",
+    "flavorText": "Poslední kočovník světa: jediní svého druhu — osadníci, kteří se zapsali do dějin navždy.",
+    "baseStats": {
+      "str": 1,
+      "lng": 1.1,
+      "def": 1.1,
+      "hp": 2,
+      "speed": 9.5
+    },
+    "totalSupply": 5
   }
 ]

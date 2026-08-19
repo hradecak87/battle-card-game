@@ -158,6 +158,20 @@ function Emblem({ unitType, accent }: { unitType: UnitType; accent: string }) {
           <circle cx="86" cy="10" r="5" fill={accent} stroke="none" />
         </>
       )
+    case 'settlers':
+      return (
+        <>
+          {/* covered wagon body */}
+          <path d="M20,62 L20,78 L80,78 L80,62 Q80,50 50,50 Q20,50 20,62 Z" />
+          {/* wheels */}
+          <circle cx="32" cy="80" r="8" />
+          <circle cx="68" cy="80" r="8" />
+          {/* canopy hoop */}
+          <path d="M28,52 Q50,30 72,52" />
+          {/* pulling pole */}
+          <line x1="20" y1="66" x2="6" y2="72" />
+        </>
+      )
     default:
       return null
   }

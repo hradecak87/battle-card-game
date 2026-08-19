@@ -1,4 +1,5 @@
 import {
+  armyPower,
   chebyshevDistance,
   DIFFICULTY_MULTIPLIER,
   Difficulty,
@@ -82,6 +83,21 @@ describe('transferHours', () => {
 describe('DIFFICULTY_MULTIPLIER', () => {
   it('matches the 5-level scale from spec §9.1', () => {
     expect(DIFFICULTY_MULTIPLIER).toEqual({ 1: 1.0, 2: 1.5, 3: 2.25, 4: 3.4, 5: 5.0 })
+  })
+})
+
+describe('armyPower', () => {
+  it('sums str+lng+def+hp across all given (already rank-scaled) cards', () => {
+    expect(
+      armyPower([
+        { str: 1, lng: 2, def: 3, hp: 4 },
+        { str: 5, lng: 6, def: 7, hp: 8 },
+      ])
+    ).toBe(36)
+  })
+
+  it('returns 0 for an empty selection', () => {
+    expect(armyPower([])).toBe(0)
   })
 })
 

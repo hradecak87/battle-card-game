@@ -24,6 +24,67 @@
   Usage documented in the script's own docstring. Use this for any future
   card-art sheet instead of writing a new crop script from scratch.
 
+## Latest update — 2026-08-19b (occupation-ETA preview + Osadníci/Settlers unit type)
+
+Two related additions (both from a live conversation, brainstormed and
+implemented in one pass per the user's request to skip lengthy spec-review
+cycles):
+
+**1. Occupation-time preview when the target is a genuinely empty tile.**
+`declare_attack` is the single unified client entry point for both battle
+AND peaceful claim — the server only decides which one happens once troops
+physically arrive (`resolve_due_movements()`). Previously
+`DeclareAttackModal` only showed the arrival ETA, never the subsequent
+occupation duration, even though occupation time shrinks with the sent
+army's power and is often the dominant part of the total wait. Now, when
+the target has no `owner_id` and no `claim_locked_by` (i.e. it truly is
+empty — as opposed to owned/NPC-garrisoned, where a battle happens
+instead), the modal also shows `occupationHours(armyPower, difficulty,
+nation)` computed live from the selected cards (rank-scaled via
+`applyRank`, summed via the new `armyPower()` helper). No DB/RPC changes
+needed — purely a client preview using existing exported formulas.
+- New `lib/territories/formulas.ts` export: `armyPower(cards: EffectiveCard[])`
+  — mirrors the SQL `_army_power()` helper (0002_territories.sql §8) exactly.
+- `components/territories/DeclareAttackModal.tsx`: new `isEmptyTarget` /
+  `occupationEtaText` derivation + a `declare-attack-occupation-eta` block,
+  shown only when `isEmptyTarget` and at least one card selected.
+- Tests added in `formulas.test.ts` (armyPower) and
+  `DeclareAttackModal.test.tsx` (shows for empty target, hidden for
+  defended target).
+
+**2. New "Osadníci" (Settlers) unit type — 9th unit type, catalog grew
+248 → 279 templates.** Extremely fast (speed 9.8, the fastest of any type)
+but very weak in every combat stat (str 1, lng 1, def 1, hp 2 baseline) —
+built to travel to an empty tile fast, not to fight. Deliberately gets
+**no** special occupation-time bonus: their whole benefit is the
+transfer-time reduction from `speed` (backlog #12's `groupSpeed` mechanic);
+`occupationHours()` still only reads combat power, keeping "speed = movement
+only" intact as a hard invariant. Sending more Settlers (or higher-rank
+ones) still occupies faster the normal way, via summed power.
+- `lib/cards/types.ts`: added `'settlers'` to `UnitType`/`UNIT_TYPES`.
+- `lib/cards/unit-types.ts`: baseline stats + role text.
+- `scripts/generate-catalog-data.js`: `UNIT_TYPE_BASELINES.settlers`,
+  `SPEED_BASELINES.settlers` (9.8), `TYPE_LABEL.settlers` ('osadníci'), and
+  31 hand-authored Czech nomad/settler names (10/8/6/4/3 across the 5
+  ranks, matching the existing per-type variant counts) — regenerated
+  `lib/cards/catalog-data.json` (279 entries total).
+- `lib/cards/unit-art-theme.ts` + `components/cards/unit-art.tsx`: new
+  theme (warm wagon-brown palette) + a hand-drawn covered-wagon SVG emblem.
+- Updated every `Record<UnitType, string>` label map
+  (`app/arena/page.tsx`, `app/catalog/page.tsx`, `app/collection/page.tsx`,
+  `components/cards/TradingCard.tsx`) and the two hardcoded unit-type
+  `<option>` filter dropdowns (`app/exchange/page.tsx`,
+  `components/exchange/CreateTradeOfferModal.tsx`) with a Settlers entry.
+- Updated card-count references: `app/page.tsx`, `README.md`,
+  `lib/cards/catalog.test.ts`, `app/catalog/page.test.tsx` (248→279,
+  8→9 types, legend count 24→27).
+- **Live DB**: ran a one-off scratch insert script (deleted after use,
+  following the established pattern) to add the 31 new `card_templates`
+  rows for `unit_type='settlers'` — did NOT touch the other 248 existing
+  rows. Verified post-insert: 289 total `card_templates` rows (279 unit +
+  10 structure), 31 of them `unit_type='settlers'`.
+- Full Jest suite: **385/385 passing**. `npx tsc --noEmit`: clean.
+
 ## Latest update — 2026-08-19 (ready_deadline shortened to 24 hours in repo)
 
 - Backlog #24 implemented in the repository by adding

@@ -7,8 +7,8 @@ import {
 import { RANKS, UNIT_TYPES, VARIANTS_PER_RANK, SUPPLY_RANGE } from './types'
 
 describe('catalog (real data.json)', () => {
-  it('loads exactly 248 templates', () => {
-    expect(getAllTemplates()).toHaveLength(248)
+  it('loads exactly 279 templates', () => {
+    expect(getAllTemplates()).toHaveLength(279)
   })
 
   it('has the correct count of variants per unit type per rank', () => {
@@ -58,7 +58,7 @@ describe('catalog (real data.json)', () => {
 
   it('getTemplatesByRank returns only templates of that rank', () => {
     const legends = getTemplatesByRank('legend')
-    expect(legends.length).toBe(24) // 3 per type x 8 types
+    expect(legends.length).toBe(27) // 3 per type x 9 types
     expect(legends.every((t) => t.rank === 'legend')).toBe(true)
   })
 
@@ -87,7 +87,7 @@ describe('catalog validation (malformed fixtures)', () => {
       },
     ])
     // eslint-disable-next-line @typescript-eslint/no-require-imports -- fresh re-import needed after jest.resetModules()
-    expect(() => require('./catalog')).toThrow(/expected 248 templates/)
+    expect(() => require('./catalog')).toThrow(/expected 279 templates/)
     jest.dontMock('./catalog-data.json')
   })
 

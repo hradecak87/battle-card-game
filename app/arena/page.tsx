@@ -15,6 +15,7 @@ const UNIT_TYPE_LABELS: Record<UnitType, string> = {
   knights: 'Rytíři',
   lightCavalry: 'Lehká jízda',
   siegeEngines: 'Obléhací stroje',
+  settlers: 'Osadníci',
 }
 
 const RANK_LABELS: Record<Rank, string> = {

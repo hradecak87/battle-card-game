@@ -20,4 +20,5 @@ export const UNIT_ART_THEME: Record<UnitType, UnitArtTheme> = {
   knights: { gradientFrom: '#37474f', gradientTo: '#1c2529', accent: '#dfe6e9' },
   lightCavalry: { gradientFrom: '#6b4f2a', gradientTo: '#3a2a13', accent: '#e8d5a3' },
   siegeEngines: { gradientFrom: '#4b4b4b', gradientTo: '#262626', accent: '#c9c9c9' },
+  settlers: { gradientFrom: '#5a4a2f', gradientTo: '#2e2417', accent: '#d9c48a' },
 }

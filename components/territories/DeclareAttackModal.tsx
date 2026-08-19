@@ -17,7 +17,7 @@ import { CardZoomIconButton, CardZoomOverlay, useCardZoom } from '@/components/c
 import { applyRank } from '@/lib/cards/combat'
 import { Rank, UnitType, UnitCardTemplate } from '@/lib/cards/types'
 import { castleAttackBonusPct, combinedDefenseBonusPct } from '@/lib/territories/structureBonus'
-import { chebyshevDistance, transferHours } from '@/lib/territories/formulas'
+import { chebyshevDistance, transferHours, occupationHours, armyPower, Difficulty } from '@/lib/territories/formulas'
 import { formatEta } from '@/lib/time/formatEta'
 import { compareArmyStrength, ArmyStrengthLabel } from '@/lib/battles/armyStrength'
 import { NationId } from '@/lib/players/nations'
@@ -205,6 +205,27 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
     return formatEta(new Date(Date.now() + hours * 3600000).toISOString())
   }, [originTerritory, territory, attackerNation, groupSpeed])
 
+  // Occupation-time preview (occupation ETA backlog item): declare_attack is
+  // the single client entry point for both battle AND peaceful claim — the
+  // server only decides which one happens once troops physically arrive
+  // (resolve_due_movements()). So for a genuinely empty target (no owner,
+  // no claim lock) the "attack" the player is about to send is really a
+  // claim, and occupation only starts *after* the arrival ETA above — shown
+  // separately since it depends on the selected army's rank-scaled combat
+  // power, not on speed (speed is movement-only, backlog #12).
+  const isEmptyTarget = !territory.owner_id && !territory.claim_locked_by
+  const occupationEtaText = useMemo(() => {
+    if (!isEmptyTarget || !originInstances || selectedInstanceIds.length === 0) return null
+    const selectedCards = originInstances
+      .filter((ci) => selectedInstanceIds.includes(ci.instance_id))
+      .map((ci) => (ci.card_templates ? toUnitTemplate(ci.card_templates) : null))
+      .filter((t): t is UnitCardTemplate => t !== null)
+    if (selectedCards.length === 0) return null
+    const power = armyPower(selectedCards.map((t) => applyRank(t.baseStats, t.rank)))
+    const hours = occupationHours(power, territory.difficulty as Difficulty, attackerNation ?? undefined)
+    return `${Math.round(hours)} hodin`
+  }, [isEmptyTarget, originInstances, selectedInstanceIds, territory.difficulty, attackerNation])
+
   // Simple, deterministic army-strength comparison (not a battle-outcome
   // simulation): tells the attacker whether their selected cards roughly
   // match the defender's garrison in strength and number. A prior Monte
@@ -329,6 +350,13 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
             {etaText && (
               <p data-testid="declare-attack-eta" className="text-sm text-zinc-300">
                 Vojska dorazí na cíl: <span className="font-semibold">{etaText}</span>
+              </p>
+            )}
+
+            {occupationEtaText && (
+              <p data-testid="declare-attack-occupation-eta" className="text-sm text-zinc-300">
+                Toto území je prázdné — po příjezdu bude obsazování trvat:{' '}
+                <span className="font-semibold">{occupationEtaText}</span>
               </p>
             )}
 

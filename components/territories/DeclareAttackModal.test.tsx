@@ -275,4 +275,33 @@ describe('DeclareAttackModal', () => {
     // Empty defender garrison means a guaranteed strong advantage.
     expect(await screen.findByTestId('declare-attack-army-strength')).toHaveTextContent('Silná výhoda')
   })
+
+  it('shows an occupation-time preview once cards are selected for a genuinely empty target', async () => {
+    const emptyTerritory: Territory = { ...territory, owner_id: null, claim_locked_by: null }
+    getCardInstancesAtTerritory.mockImplementation((id: number) =>
+      Promise.resolve({ data: id === emptyTerritory.id ? [] : [myCard], error: null })
+    )
+
+    render(<DeclareAttackModal territory={emptyTerritory} myPlayerId="me" onClose={jest.fn()} />)
+
+    fireEvent.change(await screen.findByLabelText('Odkud útočíš'), { target: { value: '1' } })
+    await screen.findByText('Elitní rytíři')
+    fireEvent.click(screen.getByTestId('declare-attack-card-select-inst-1'))
+
+    expect(await screen.findByTestId('declare-attack-occupation-eta')).toHaveTextContent('hodin')
+  })
+
+  it('does not show an occupation-time preview for a defended (non-empty) target', async () => {
+    getCardInstancesAtTerritory.mockImplementation((id: number) =>
+      Promise.resolve({ data: id === territory.id ? [] : [myCard], error: null })
+    )
+
+    render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
+
+    fireEvent.change(await screen.findByLabelText('Odkud útočíš'), { target: { value: '1' } })
+    await screen.findByText('Elitní rytíři')
+    fireEvent.click(screen.getByTestId('declare-attack-card-select-inst-1'))
+
+    expect(screen.queryByTestId('declare-attack-occupation-eta')).not.toBeInTheDocument()
+  })
 })

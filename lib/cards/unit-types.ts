@@ -42,4 +42,8 @@ export const UNIT_TYPE_BASELINES: Record<
     stats: { str: 0, lng: 10, def: 1, hp: 3, speed: 2 },
     role: 'Extreme ranged, dies to anything in melee',
   },
+  settlers: {
+    stats: { str: 1, lng: 1, def: 1, hp: 2, speed: 9.5 },
+    role: 'Extremely fast nomads for claiming empty land, near-useless in combat',
+  },
 }

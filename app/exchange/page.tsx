@@ -439,6 +439,7 @@ export default function ExchangePage() {
                     <option value="knights">Rytíři</option>
                     <option value="lightCavalry">Lehká jízda</option>
                     <option value="siegeEngines">Obléhací stroje</option>
+                    <option value="settlers">Osadníci</option>
                   </select>
                 </label>
                 <label className="flex flex-col gap-1 text-sm text-zinc-300">

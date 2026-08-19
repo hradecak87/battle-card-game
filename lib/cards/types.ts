@@ -12,6 +12,7 @@ export type UnitType =
   | 'knights'
   | 'lightCavalry'
   | 'siegeEngines'
+  | 'settlers'
 
 export const UNIT_TYPES: UnitType[] = [
   'archers',
@@ -22,6 +23,7 @@ export const UNIT_TYPES: UnitType[] = [
   'knights',
   'lightCavalry',
   'siegeEngines',
+  'settlers',
 ]
 
 export type Rank = 'common' | 'uncommon' | 'rare' | 'epic' | 'legend'

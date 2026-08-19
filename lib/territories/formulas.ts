@@ -4,6 +4,7 @@
  */
 
 import { NationId } from '@/lib/players/nations'
+import { EffectiveCard } from '@/lib/cards/types'
 
 export interface GridPoint {
   x: number
@@ -58,6 +59,17 @@ export function transferHours(distance: number, nation?: NationId, groupSpeed?: 
       : Math.min(SPEED_MULTIPLIER_MAX, Math.max(SPEED_MULTIPLIER_MIN, BASELINE_SPEED / groupSpeed))
   const base = Math.max(TRANSFER_FLOOR_HOURS, distance * TRANSFER_RATE_HOURS_PER_TILE * speedMultiplier)
   return nation === 'mongol_horde' ? base * MONGOL_TRANSFER_MULTIPLIER : base
+}
+
+/**
+ * Sums rank-scaled str+lng+def+hp across a set of already rank-scaled
+ * (`applyRank`-processed) cards — the client-side mirror of the
+ * `_army_power()` SQL helper (0002_territories.sql §8), used to preview
+ * `occupationHours()` before a claim is submitted (backlog: occupation
+ * ETA preview). Must stay in sync with that SQL helper's definition.
+ */
+export function armyPower(cards: EffectiveCard[]): number {
+  return cards.reduce((sum, c) => sum + c.str + c.lng + c.def + c.hp, 0)
 }
 
 /**

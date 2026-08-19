@@ -24,6 +24,11 @@ const UNIT_TYPE_BASELINES = {
   knights: { str: 8, lng: 1, def: 5, hp: 7 },
   lightCavalry: { str: 5, lng: 4, def: 2, hp: 4 },
   siegeEngines: { str: 0, lng: 10, def: 1, hp: 3 },
+  // Settlers (backlog: occupation-ETA + settlers unit): extremely weak in
+  // every combat stat (especially hp) — they are not meant to fight, only
+  // to travel fast and eventually occupy empty land. See SPEED_BASELINES
+  // below for the actual reason to send them.
+  settlers: { str: 1, lng: 1, def: 1, hp: 2 },
 }
 
 // Speed baseline per unit type (backlog #12), 0-10 scale, movement-only —
@@ -39,6 +44,11 @@ const SPEED_BASELINES = {
   knights: 7.5,
   lightCavalry: 9,
   siegeEngines: 2,
+  // Fastest unit type by far — their entire purpose is getting to an
+  // empty tile before anyone else, then occupying it (occupation itself
+  // is NOT sped up by this — occupationHours() only reads combat power,
+  // by design, to keep "speed = movement-only" consistent).
+  settlers: 9.8,
 }
 
 const SPEED_MIN = 0.5
@@ -54,6 +64,7 @@ const TYPE_LABEL = {
   knights: 'rytíři',
   lightCavalry: 'jízdní harcovníci',
   siegeEngines: 'obléhací stroje',
+  settlers: 'osadníci',
 }
 
 // Hand-curated honorific names, "common folk -> legendary named individuals"
@@ -171,6 +182,20 @@ const NAMES = {
     rare: ['Zkáza hradeb', 'Bratrstvo ohnivého kamene', 'Setníci obléhání', 'Drtič bran', 'Ocelový hrom', 'Poslední salva kamenů'],
     epic: ['Zkáza království', 'Ohnivý déšť', 'Drtič impérií', 'Poslední bašta obležení'],
     legend: ['Zkáza všech hradeb', 'Poslední soud kamenů', 'Trebuchet bohů'],
+  },
+  settlers: {
+    common: [
+      'Kočovní osadníci', 'Rodiny s vozy', 'Pastevci na okraji', 'Ranní přistěhovalci',
+      'Nosiči stanů', 'Karavana chudiny', 'Bezzemci na cestě', 'Sběrači nového území',
+      'Vozkové s dobytkem', 'Nováčci na hranici',
+    ],
+    uncommon: [
+      'Cechovní osadníci', 'Bratrstvo volné země', 'Osadníci Severní marky',
+      'Královští kolonisté', 'Rychlá karavana', 'Zvědové nové půdy', 'Strážci vozové hradby', 'Jezdci volné stepi',
+    ],
+    rare: ['Vítr nové země', 'Bratrstvo prvního kolíku', 'Setníci osídlení', 'Poslední karavana', 'Rychlonozí kolonisté', 'Jezdec bez domova'],
+    epic: ['Vůdce Velké karavany', 'Zakladatel nové marky', 'Poslední kočovník', 'Vítr nekonečné stepi'],
+    legend: ['Praotec osadníků', 'Král volné země', 'Poslední kočovník světa'],
   },
 }
 
