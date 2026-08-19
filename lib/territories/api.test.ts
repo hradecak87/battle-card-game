@@ -1,4 +1,4 @@
-import { getPlayerPublicInfo, getMyStructureCardInstances, renameTerritory } from './api'
+import { getPlayerPublicInfo, getMyStructureCardInstances, relocateHome, renameTerritory } from './api'
 
 const single = jest.fn()
 const inFn = jest.fn()
@@ -46,6 +46,18 @@ describe('getPlayerPublicInfo', () => {
 describe('renameTerritory', () => {
   beforeEach(() => {
     rpc.mockReset()
+  })
+
+  describe('relocateHome', () => {
+    beforeEach(() => {
+      rpc.mockReset()
+    })
+
+    it('calls the relocate_home RPC with the correct arguments', async () => {
+      rpc.mockResolvedValue({ data: null, error: null })
+      await relocateHome(42)
+      expect(rpc).toHaveBeenCalledWith('relocate_home', { p_new_territory_id: 42 })
+    })
   })
 
   it('calls the rename_territory RPC with the correct arguments', async () => {

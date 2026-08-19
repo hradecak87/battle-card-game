@@ -490,6 +490,86 @@ describe('GarrisonModal', () => {
     expect(screen.queryByRole('button', { name: 'Vzdát se území' })).not.toBeInTheDocument()
   })
 
+  it('shows the king relocation button only for an eligible owner on a non-home territory', () => {
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'me', is_home: false }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+        kingRelocationAvailable
+        onRelocateHome={jest.fn()}
+      />
+    )
+
+    expect(screen.getByRole('button', { name: 'Přesunout sem domovské území' })).toBeInTheDocument()
+  })
+
+  it('does not show the king relocation button when the ability is unavailable', () => {
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'me', is_home: false }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+        kingRelocationAvailable={false}
+        onRelocateHome={jest.fn()}
+      />
+    )
+
+    expect(screen.queryByRole('button', { name: 'Přesunout sem domovské území' })).not.toBeInTheDocument()
+  })
+
+  it('shows a confirm step and calls onRelocateHome with the territory id', async () => {
+    const onRelocateHome = jest.fn().mockResolvedValue(undefined)
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'me', is_home: false, id: 456 }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+        kingRelocationAvailable
+        onRelocateHome={onRelocateHome}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Přesunout sem domovské území' }))
+    expect(screen.getByTestId('relocate-home-confirm')).toBeInTheDocument()
+    expect(screen.getByText(/použít jen jednou za celou hru/i)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ano, přesunout domovské území' }))
+    await waitFor(() => expect(onRelocateHome).toHaveBeenCalledWith(456))
+  })
+
+  it('shows an error message when onRelocateHome rejects', async () => {
+    const onRelocateHome = jest.fn().mockRejectedValue(new Error('king ability has already been used'))
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'me', is_home: false }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+        kingRelocationAvailable
+        onRelocateHome={onRelocateHome}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Přesunout sem domovské území' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Ano, přesunout domovské území' }))
+
+    await waitFor(() =>
+      expect(screen.getByText('king ability has already been used')).toBeInTheDocument()
+    )
+  })
+
   it('shows a warning confirm step and calls onAbandon with the territory id when confirmed', async () => {
     const onAbandon = jest.fn().mockResolvedValue(undefined)
     render(

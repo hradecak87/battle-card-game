@@ -430,6 +430,13 @@ export async function abandonTerritory(territoryId: number) {
   }>
 }
 
+export async function relocateHome(territoryId: number) {
+  return supabase.rpc('relocate_home', { p_new_territory_id: territoryId }) as unknown as Promise<{
+    data: null
+    error: { message: string } | null
+  }>
+}
+
 /**
  * TEST-ONLY convenience (see 0006_debug_speed_up_movement.sql): shrinks
  * the caller's own in-flight movement/claim to ~10-20s instead of the

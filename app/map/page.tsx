@@ -15,6 +15,7 @@ import {
   buildStructure,
   getMyStructureCardInstances,
   abandonTerritory,
+  relocateHome,
   CardInstanceWithTemplate,
   PlayerPublicInfo,
   MyTerritory,
@@ -30,6 +31,7 @@ import {
   IncomingOwnedTerritoryBattle,
   useMyTerritoriesBattleChannel,
 } from '@/lib/battles/useMyTerritoriesBattleChannel'
+import { canUseKingRelocation } from '@/lib/players/king'
 import { levelForXp } from '@/lib/players/leveling'
 import { useSession } from '@/lib/supabase/useSession'
 
@@ -57,7 +59,7 @@ function clamp(value: number) {
 
 export default function MapPage() {
   const router = useRouter()
-  const { user } = useSession()
+  const { user, player } = useSession()
   const [centerX, setCenterX] = useState(128)
   const [centerY, setCenterY] = useState(128)
   const [zoomIndex, setZoomIndex] = useState(DEFAULT_ZOOM_INDEX)
@@ -77,10 +79,18 @@ export default function MapPage() {
   const [showTransferModal, setShowTransferModal] = useState(false)
   const [movementsRefreshKey, setMovementsRefreshKey] = useState(0)
   const [incomingBattleAlerts, setIncomingBattleAlerts] = useState<IncomingBattleAlert[]>([])
+  const [kingRelocationUsedAt, setKingRelocationUsedAt] = useState<string | null>(null)
   const selectionRequestIdRef = useRef(0)
   const autoCenteredUserId = useRef<string | null>(null)
 
   const viewSize = ZOOM_LEVELS[zoomIndex]
+  const kingRelocationAvailable = Boolean(
+    player && canUseKingRelocation(player.xp, kingRelocationUsedAt)
+  )
+
+  useEffect(() => {
+    setKingRelocationUsedAt(player?.king_relocation_used_at ?? null)
+  }, [player?.king_relocation_used_at])
 
   const loadViewport = useCallback((x: number, y: number, size: number) => {
     const tileHalf = Math.floor(size / 2)
@@ -460,6 +470,15 @@ export default function MapPage() {
             onAbandon={async (territoryId) => {
               const { error: abandonErr } = await abandonTerritory(territoryId)
               if (abandonErr) throw new Error(abandonErr.message)
+              setSelectedTile(null)
+              loadViewport(centerX, centerY, viewSize)
+              refreshOwnedTerritories()
+            }}
+            kingRelocationAvailable={kingRelocationAvailable}
+            onRelocateHome={async (territoryId) => {
+              const { error: relocateErr } = await relocateHome(territoryId)
+              if (relocateErr) throw new Error(relocateErr.message)
+              setKingRelocationUsedAt(new Date().toISOString())
               setSelectedTile(null)
               loadViewport(centerX, centerY, viewSize)
               refreshOwnedTerritories()

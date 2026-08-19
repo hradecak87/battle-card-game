@@ -13,6 +13,7 @@ export interface PlayerRow {
   coat_of_arms_id: string | null
   onboarding_completed: boolean
   xp: number
+  king_relocation_used_at: string | null
   daily_reward_streak: number
   last_daily_reward_at: string | null
   created_at: string

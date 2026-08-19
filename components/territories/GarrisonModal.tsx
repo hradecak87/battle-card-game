@@ -56,6 +56,10 @@ export interface GarrisonModalProps {
    * cards elsewhere first via "Přesunout vojska" if they'd rather not.
    */
   onAbandon?: (territoryId: number) => Promise<void>
+  /** True when the viewer unlocked and has not yet spent the King ability. */
+  kingRelocationAvailable?: boolean
+  /** Called when the owner confirms moving their home territory here. */
+  onRelocateHome?: (territoryId: number) => Promise<void>
 }
 
 /** Rebuilds the `UnitCardTemplate` shape `TradingCard` expects from the flat DB row. */
@@ -98,6 +102,8 @@ export default function GarrisonModal({
   structureCardOptions,
   onBuildStructure,
   onAbandon,
+  kingRelocationAvailable,
+  onRelocateHome,
 }: GarrisonModalProps) {
   const { zoomedCard, openZoom, closeZoom } = useCardZoom()
   const [renaming, setRenaming] = useState(false)
@@ -109,6 +115,9 @@ export default function GarrisonModal({
   const [confirmingAbandon, setConfirmingAbandon] = useState(false)
   const [abandonLoading, setAbandonLoading] = useState(false)
   const [abandonError, setAbandonError] = useState<string | null>(null)
+  const [confirmingRelocateHome, setConfirmingRelocateHome] = useState(false)
+  const [relocateHomeLoading, setRelocateHomeLoading] = useState(false)
+  const [relocateHomeError, setRelocateHomeError] = useState<string | null>(null)
 
   const canAttack =
     Boolean(myPlayerId) &&
@@ -117,6 +126,8 @@ export default function GarrisonModal({
     !territory.battle_locked_by
   const canTransfer = Boolean(myPlayerId) && territory.owner_id === myPlayerId
   const canAbandon = canTransfer && !territory.is_home && Boolean(onAbandon)
+  const canRelocateHome =
+    canTransfer && !territory.is_home && Boolean(onRelocateHome) && Boolean(kingRelocationAvailable)
   const showsOtherOwnerInfo = Boolean(territory.owner_id && territory.owner_id !== myPlayerId)
 
   async function handleRenameSave() {
@@ -144,6 +155,18 @@ export default function GarrisonModal({
     } catch (e) {
       setAbandonError(e instanceof Error ? e.message : 'Vzdání se území se nezdařilo.')
       setAbandonLoading(false)
+    }
+  }
+
+  async function handleRelocateHome() {
+    if (!onRelocateHome) return
+    setRelocateHomeLoading(true)
+    setRelocateHomeError(null)
+    try {
+      await onRelocateHome(territory.id)
+    } catch (e) {
+      setRelocateHomeError(e instanceof Error ? e.message : 'Přesun domovského území se nezdařil.')
+      setRelocateHomeLoading(false)
     }
   }
 
@@ -206,6 +229,15 @@ export default function GarrisonModal({
                 className="rounded border border-red-700 px-3 py-1 text-sm text-red-300 hover:bg-red-900/40"
               >
                 Vzdát se území
+              </button>
+            )}
+            {canRelocateHome && !confirmingRelocateHome && (
+              <button
+                type="button"
+                onClick={() => { setRelocateHomeError(null); setConfirmingRelocateHome(true) }}
+                className="rounded border border-amber-600 px-3 py-1 text-sm text-amber-200 hover:bg-amber-900/30"
+              >
+                Přesunout sem domovské území
               </button>
             )}
             {territory.battle_locked_by && (
@@ -281,6 +313,37 @@ export default function GarrisonModal({
                 type="button"
                 onClick={() => setConfirmingAbandon(false)}
                 disabled={abandonLoading}
+                className="rounded border border-zinc-600 px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
+              >
+                Zrušit
+              </button>
+            </div>
+          </div>
+        )}
+
+        {canRelocateHome && confirmingRelocateHome && (
+          <div
+            data-testid="relocate-home-confirm"
+            className="mb-4 flex flex-col gap-2 rounded border border-amber-700 bg-amber-950/30 px-4 py-3"
+          >
+            <p className="text-sm text-amber-100">
+              Opravdu chceš přesunout své domovské území sem? Schopnost karty Král lze použít jen jednou za celou hru.
+              Původní domovské území tím okamžitě přestane být domovské.
+            </p>
+            {relocateHomeError && <p className="text-sm text-red-300">{relocateHomeError}</p>}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleRelocateHome}
+                disabled={relocateHomeLoading}
+                className="rounded bg-amber-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50"
+              >
+                {relocateHomeLoading ? 'Přesouvám…' : 'Ano, přesunout domovské území'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmingRelocateHome(false)}
+                disabled={relocateHomeLoading}
                 className="rounded border border-zinc-600 px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
               >
                 Zrušit

@@ -43,6 +43,7 @@ const getActiveBattleForTerritory = jest.fn().mockResolvedValue({ data: null, er
 const renameTerritory = jest.fn().mockResolvedValue({ data: null, error: null })
 const getMyStructureCardInstances = jest.fn().mockResolvedValue({ data: [], error: null })
 const buildStructure = jest.fn().mockResolvedValue({ data: null, error: null })
+const relocateHome = jest.fn().mockResolvedValue({ data: null, error: null })
 
 jest.mock('@/lib/territories/api', () => ({
   getViewport: (...args: unknown[]) => getViewport(...args),
@@ -61,11 +62,13 @@ jest.mock('@/lib/territories/api', () => ({
   renameTerritory: (...args: unknown[]) => renameTerritory(...args),
   getMyStructureCardInstances: (...args: unknown[]) => getMyStructureCardInstances(...args),
   buildStructure: (...args: unknown[]) => buildStructure(...args),
+  relocateHome: (...args: unknown[]) => relocateHome(...args),
 }))
 
 let sessionUser: { id: string } | null = null
+let sessionPlayer: { xp: number; king_relocation_used_at: string | null } | null = null
 jest.mock('@/lib/supabase/useSession', () => ({
-  useSession: () => ({ user: sessionUser, player: null, loading: false }),
+  useSession: () => ({ user: sessionUser, player: sessionPlayer, loading: false }),
 }))
 
 jest.mock('@/lib/battles/api', () => ({
@@ -116,7 +119,10 @@ describe('MapPage', () => {
     getMyRecentlyResolvedBattles.mockResolvedValue({ data: [], error: null })
     getActiveBattleForTerritory.mockReset()
     getActiveBattleForTerritory.mockResolvedValue({ data: null, error: null })
+    relocateHome.mockReset()
+    relocateHome.mockResolvedValue({ data: null, error: null })
     sessionUser = null
+    sessionPlayer = null
   })
 
   it('renders the back-link and loads a viewport centered on (128,128)', async () => {
@@ -288,6 +294,35 @@ describe('MapPage', () => {
 
     await waitFor(() => expect(getPlayerPublicInfo).toHaveBeenCalledWith('other-player'))
     expect(await screen.findByText(/Jméno:\s*Sir Testalot/)).toBeInTheDocument()
+  })
+
+  it('shows the king relocation action for an eligible owned non-home territory and executes it', async () => {
+    sessionUser = { id: 'me' }
+    sessionPlayer = { xp: 10500, king_relocation_used_at: null }
+    getViewport.mockResolvedValueOnce({
+      data: [mockTerritory(128, 128, { owner_id: 'me', is_home: false })],
+      error: null,
+    })
+    getMyTerritories.mockResolvedValueOnce({
+      data: [{ id: 1, x: 128, y: 128, is_home: false, castle_rank: null, village_rank: null, name: null, battle_locked_by: null }],
+      error: null,
+    })
+    getCardInstancesAtTerritory.mockResolvedValueOnce({ data: [], error: null })
+
+    render(<MapPage />)
+    await waitFor(() => expect(screen.getByTestId('map-viewport')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: 'Území 128,128' }))
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Přesunout sem domovské území' })).toBeInTheDocument()
+    )
+
+    getViewport.mockClear()
+    fireEvent.click(screen.getByRole('button', { name: 'Přesunout sem domovské území' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Ano, přesunout domovské území' }))
+
+    await waitFor(() => expect(relocateHome).toHaveBeenCalledWith(mockTerritory(128, 128).id))
+    await waitFor(() => expect(getViewport).toHaveBeenCalledWith(121, 121, 135, 135))
   })
 
   it('opens the transfer modal for an owned territory and refreshes after a successful transfer', async () => {
