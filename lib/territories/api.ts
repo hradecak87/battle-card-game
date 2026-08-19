@@ -418,6 +418,19 @@ export async function cancelClaim(territoryId: number) {
 }
 
 /**
+ * Backlog #19: relinquishes ownership of a non-home territory. Garrisoned
+ * cards automatically start a transfer back to the caller's home
+ * territory — callers should warn the player and let them redirect cards
+ * elsewhere first, since this always sends survivors home.
+ */
+export async function abandonTerritory(territoryId: number) {
+  return supabase.rpc('abandon_territory', { p_territory_id: territoryId }) as unknown as Promise<{
+    data: null
+    error: { message: string } | null
+  }>
+}
+
+/**
  * TEST-ONLY convenience (see 0006_debug_speed_up_movement.sql): shrinks
  * the caller's own in-flight movement/claim to ~10-20s instead of the
  * real duration, so playtesting doesn't require waiting hours/days.

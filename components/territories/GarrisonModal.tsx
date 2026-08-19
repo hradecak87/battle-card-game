@@ -49,6 +49,13 @@ export interface GarrisonModalProps {
   structureCardOptions?: CardInstanceWithTemplate[]
   /** Called when the owner confirms building a structure on this territory. */
   onBuildStructure?: (territoryId: number, cardInstanceId: string) => Promise<void>
+  /**
+   * Called when the owner confirms abandoning this (non-home) territory.
+   * Any stationed cards automatically start a transfer back home — the
+   * confirm step below warns the player about this so they can redirect
+   * cards elsewhere first via "Přesunout vojska" if they'd rather not.
+   */
+  onAbandon?: (territoryId: number) => Promise<void>
 }
 
 /** Rebuilds the `UnitCardTemplate` shape `TradingCard` expects from the flat DB row. */
@@ -90,6 +97,7 @@ export default function GarrisonModal({
   onRename,
   structureCardOptions,
   onBuildStructure,
+  onAbandon,
 }: GarrisonModalProps) {
   const { zoomedCard, openZoom, closeZoom } = useCardZoom()
   const [renaming, setRenaming] = useState(false)
@@ -98,6 +106,9 @@ export default function GarrisonModal({
   const [buildCastleInstanceId, setBuildCastleInstanceId] = useState('')
   const [buildVillageInstanceId, setBuildVillageInstanceId] = useState('')
   const [buildLoading, setBuildLoading] = useState(false)
+  const [confirmingAbandon, setConfirmingAbandon] = useState(false)
+  const [abandonLoading, setAbandonLoading] = useState(false)
+  const [abandonError, setAbandonError] = useState<string | null>(null)
 
   const canAttack =
     Boolean(myPlayerId) &&
@@ -105,6 +116,7 @@ export default function GarrisonModal({
     territory.claim_locked_by !== myPlayerId &&
     !territory.battle_locked_by
   const canTransfer = Boolean(myPlayerId) && territory.owner_id === myPlayerId
+  const canAbandon = canTransfer && !territory.is_home && Boolean(onAbandon)
   const showsOtherOwnerInfo = Boolean(territory.owner_id && territory.owner_id !== myPlayerId)
 
   async function handleRenameSave() {
@@ -121,6 +133,18 @@ export default function GarrisonModal({
     setBuildLoading(true)
     await onBuildStructure(territory.id, instanceId)
     setBuildLoading(false)
+  }
+
+  async function handleAbandon() {
+    if (!onAbandon) return
+    setAbandonLoading(true)
+    setAbandonError(null)
+    try {
+      await onAbandon(territory.id)
+    } catch (e) {
+      setAbandonError(e instanceof Error ? e.message : 'Vzdání se území se nezdařilo.')
+      setAbandonLoading(false)
+    }
   }
 
   const buildLabelIconStyle = { width: '28px', height: '28px' }
@@ -175,6 +199,15 @@ export default function GarrisonModal({
                 ⚔️ Zaútočit
               </button>
             )}
+            {canAbandon && !confirmingAbandon && (
+              <button
+                type="button"
+                onClick={() => { setAbandonError(null); setConfirmingAbandon(true) }}
+                className="rounded border border-red-700 px-3 py-1 text-sm text-red-300 hover:bg-red-900/40"
+              >
+                Vzdát se území
+              </button>
+            )}
             {territory.battle_locked_by && (
               <span className="text-xs text-red-400">
                 {incomingAttackArrivesAt
@@ -221,6 +254,38 @@ export default function GarrisonModal({
             >
               Zrušit
             </button>
+          </div>
+        )}
+
+        {canAbandon && confirmingAbandon && (
+          <div
+            data-testid="abandon-confirm"
+            className="mb-4 flex flex-col gap-2 rounded border border-red-700 bg-red-950/40 px-4 py-3"
+          >
+            <p className="text-sm text-red-200">
+              Opravdu se chceš vzdát tohoto území? Vlastnictví okamžitě zanikne a všechna vojska zde umístěná
+              se automaticky vydají na cestu zpět do tvého domovského území (stejně dlouho jako běžný přesun).
+              Pokud je chceš poslat jinam, zruš toto okno a nejdřív je přesuň přes „Přesunout vojska&rdquo;.
+            </p>
+            {abandonError && <p className="text-sm text-red-300">{abandonError}</p>}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleAbandon}
+                disabled={abandonLoading}
+                className="rounded bg-red-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-50"
+              >
+                {abandonLoading ? 'Vzdávám se…' : 'Ano, vzdát se území'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmingAbandon(false)}
+                disabled={abandonLoading}
+                className="rounded border border-zinc-600 px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
+              >
+                Zrušit
+              </button>
+            </div>
           </div>
         )}
 

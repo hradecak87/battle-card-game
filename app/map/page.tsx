@@ -14,6 +14,7 @@ import {
   renameTerritory,
   buildStructure,
   getMyStructureCardInstances,
+  abandonTerritory,
   CardInstanceWithTemplate,
   PlayerPublicInfo,
   MyTerritory,
@@ -455,6 +456,13 @@ export default function MapPage() {
                   setStructureCardInstances(data ?? [])
                 })
               }
+            }}
+            onAbandon={async (territoryId) => {
+              const { error: abandonErr } = await abandonTerritory(territoryId)
+              if (abandonErr) throw new Error(abandonErr.message)
+              setSelectedTile(null)
+              loadViewport(centerX, centerY, viewSize)
+              refreshOwnedTerritories()
             }}
           />
         )}

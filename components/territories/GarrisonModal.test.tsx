@@ -429,6 +429,130 @@ describe('GarrisonModal', () => {
     expect(screen.getByTestId('build-village-row')).toBeInTheDocument()
   })
 
+  // --- abandon territory feature (#19) ---
+
+  it('shows the abandon button for the owner of a non-home territory', () => {
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'me', is_home: false }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+        onAbandon={jest.fn()}
+      />
+    )
+    expect(screen.getByRole('button', { name: 'Vzdát se území' })).toBeInTheDocument()
+  })
+
+  it('does not show the abandon button for the home territory', () => {
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'me', is_home: true }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+        onAbandon={jest.fn()}
+      />
+    )
+    expect(screen.queryByRole('button', { name: 'Vzdát se území' })).not.toBeInTheDocument()
+  })
+
+  it('does not show the abandon button for a non-owner', () => {
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'other-player', is_home: false }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+        onAbandon={jest.fn()}
+      />
+    )
+    expect(screen.queryByRole('button', { name: 'Vzdát se území' })).not.toBeInTheDocument()
+  })
+
+  it('does not show the abandon button when onAbandon is not provided', () => {
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'me', is_home: false }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+      />
+    )
+    expect(screen.queryByRole('button', { name: 'Vzdát se území' })).not.toBeInTheDocument()
+  })
+
+  it('shows a warning confirm step and calls onAbandon with the territory id when confirmed', async () => {
+    const onAbandon = jest.fn().mockResolvedValue(undefined)
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'me', is_home: false, id: 123 }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+        onAbandon={onAbandon}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Vzdát se území' }))
+    expect(screen.getByTestId('abandon-confirm')).toBeInTheDocument()
+    expect(screen.getByText(/vydají na cestu zpět do tvého domovského území/)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ano, vzdát se území' }))
+    await waitFor(() => expect(onAbandon).toHaveBeenCalledWith(123))
+  })
+
+  it('hides the abandon confirm step when cancel is clicked', () => {
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'me', is_home: false }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+        onAbandon={jest.fn()}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Vzdát se území' }))
+    expect(screen.getByTestId('abandon-confirm')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Zrušit' }))
+    expect(screen.queryByTestId('abandon-confirm')).not.toBeInTheDocument()
+  })
+
+  it('shows an error message when onAbandon rejects', async () => {
+    const onAbandon = jest.fn().mockRejectedValue(new Error('cannot abandon a territory with an unresolved battle'))
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'me', is_home: false }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+        onAbandon={onAbandon}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Vzdát se území' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Ano, vzdát se území' }))
+
+    await waitFor(() =>
+      expect(screen.getByText('cannot abandon a territory with an unresolved battle')).toBeInTheDocument()
+    )
+  })
+
   it('opens and closes the card zoom modal when a garrison card is clicked', () => {
     render(
       <GarrisonModal
