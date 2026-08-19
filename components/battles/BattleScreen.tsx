@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { getBattle, markReady, pickDefenderCard, GetBattleResult, BattleCard, BattleRoundRow } from '@/lib/battles/api'
+import { getBattle, markReady, pickDefenderCard, surrenderBattle, GetBattleResult, BattleCard, BattleRoundRow } from '@/lib/battles/api'
 import { useBattleChannel } from '@/lib/battles/useBattleChannel'
 import { getLastSeenRound, setLastSeenRound } from '@/lib/battles/lastSeenRound'
 import { applyRank, calculateWinProbability } from '@/lib/cards/combat'
@@ -48,6 +48,8 @@ export default function BattleScreen({ battleId, currentUserId }: BattleScreenPr
   const [actionError, setActionError] = useState<string | null>(null)
   const [popupQueue, setPopupQueue] = useState<BattleRoundRow[]>([])
   const [previewInstanceId, setPreviewInstanceId] = useState<string | null>(null)
+  const [confirmingSurrender, setConfirmingSurrender] = useState(false)
+  const [surrenderSubmitting, setSurrenderSubmitting] = useState(false)
 
   const load = useCallback(() => {
     getBattle(battleId).then(({ data: result, error: rpcError }) => {
@@ -164,6 +166,19 @@ export default function BattleScreen({ battleId, currentUserId }: BattleScreenPr
     load()
   }
 
+  async function handleSurrender() {
+    setSurrenderSubmitting(true)
+    setActionError(null)
+    const { error: rpcError } = await surrenderBattle(battleId)
+    setSurrenderSubmitting(false)
+    if (rpcError) {
+      setActionError(rpcError.message)
+      return
+    }
+    setConfirmingSurrender(false)
+    load()
+  }
+
   async function handlePickDefender(instanceId: string) {
     setPickSubmittingId(instanceId)
     setActionError(null)
@@ -198,6 +213,7 @@ export default function BattleScreen({ battleId, currentUserId }: BattleScreenPr
   const awaitingMyReady =
     battle.status === 'awaiting_ready' &&
     ((isAttacker && !battle.attacker_ready_at) || (isDefender && !battle.defender_ready_at))
+  const canSurrender = battle.status === 'active' && (isAttacker || isDefender)
   const isMyPickTurn = battle.status === 'active' && isDefender && Boolean(pendingRound) && !defenderCard
   const previewCard = previewInstanceId
     ? defenderPool.find((card) => card.instance_id === previewInstanceId) ?? null
@@ -218,6 +234,45 @@ export default function BattleScreen({ battleId, currentUserId }: BattleScreenPr
         Tvá role v této bitvě: {isAttacker ? 'útočník' : isDefender ? 'obránce' : 'divák (nejsi účastník)'}
       </p>
       {actionError && <p className="text-red-400 text-sm">{actionError}</p>}
+
+      {canSurrender && (
+        <div className="flex flex-col items-center gap-2">
+          {confirmingSurrender ? (
+            <div
+              data-testid="surrender-confirm"
+              className="flex flex-col items-center gap-2 rounded border border-red-700 bg-red-950/40 px-4 py-3"
+            >
+              <p className="text-sm text-red-200">Opravdu se chceš vzdát?</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleSurrender}
+                  disabled={surrenderSubmitting}
+                  className="rounded bg-red-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-50"
+                >
+                  {surrenderSubmitting ? 'Vzdávám se…' : 'Ano, vzdát se'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmingSurrender(false)}
+                  disabled={surrenderSubmitting}
+                  className="rounded border border-zinc-600 px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
+                >
+                  Zrušit
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmingSurrender(true)}
+              className="rounded border border-red-700 px-3 py-1.5 text-sm text-red-300 hover:bg-red-900/40"
+            >
+              Vzdát se
+            </button>
+          )}
+        </div>
+      )}
 
       {battle.status === 'awaiting_ready' && (
         <div className="flex flex-col items-center gap-2">

@@ -246,6 +246,18 @@ export async function recallAttack(movementId: string) {
   }>
 }
 
+/**
+ * Backlog #22: lets a participant concede a battle that is currently
+ * `active`. Rejected server-side outside that status or for non-
+ * participants.
+ */
+export async function surrenderBattle(battleId: string) {
+  return supabase.rpc('surrender_battle', { p_battle_id: battleId }) as unknown as Promise<{
+    data: null
+    error: { message: string } | null
+  }>
+}
+
 export async function getBattle(battleId: string) {
   const { data, error } = await supabase.rpc('get_battle', { p_battle_id: battleId })
   // get_battle is a `returns table (...)` function — Postgres/PostgREST

@@ -5,11 +5,13 @@ import { GetBattleResult } from '@/lib/battles/api'
 const getBattle = jest.fn()
 const markReady = jest.fn().mockResolvedValue({ error: null })
 const pickDefenderCard = jest.fn().mockResolvedValue({ error: null })
+const surrenderBattle = jest.fn().mockResolvedValue({ error: null })
 
 jest.mock('@/lib/battles/api', () => ({
   getBattle: (...args: unknown[]) => getBattle(...args),
   markReady: (...args: unknown[]) => markReady(...args),
   pickDefenderCard: (...args: unknown[]) => pickDefenderCard(...args),
+  surrenderBattle: (...args: unknown[]) => surrenderBattle(...args),
 }))
 
 jest.mock('@/lib/battles/useBattleChannel', () => ({
@@ -116,6 +118,7 @@ describe('BattleScreen', () => {
     getBattle.mockReset()
     markReady.mockClear()
     pickDefenderCard.mockClear()
+    surrenderBattle.mockClear()
     window.localStorage.clear()
   })
 
@@ -308,5 +311,60 @@ describe('BattleScreen', () => {
 
     await waitFor(() => expect(screen.getByTestId('duel-stage')).toBeInTheDocument())
     expect(screen.queryByTestId('round-result-popup')).not.toBeInTheDocument()
+  })
+
+  it('shows a surrender button for a participant during an active battle', async () => {
+    getBattle.mockResolvedValue({ data: activeFixture(), error: null })
+    render(<BattleScreen battleId="battle-1" currentUserId="attacker-1" />)
+
+    expect(await screen.findByRole('button', { name: 'Vzdát se' })).toBeInTheDocument()
+  })
+
+  it('does not show a surrender button for a spectator', async () => {
+    getBattle.mockResolvedValue({ data: activeFixture(), error: null })
+    render(<BattleScreen battleId="battle-1" currentUserId="someone-else" />)
+    await waitFor(() => expect(screen.getByTestId('duel-stage')).toBeInTheDocument())
+    expect(screen.queryByRole('button', { name: 'Vzdát se' })).not.toBeInTheDocument()
+  })
+
+  it('does not show a surrender button outside the active status', async () => {
+    getBattle.mockResolvedValue({ data: awaitingReadyFixture(), error: null })
+    render(<BattleScreen battleId="battle-2" currentUserId="attacker-1" />)
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Jsem připraven' })).toBeInTheDocument())
+    expect(screen.queryByRole('button', { name: 'Vzdát se' })).not.toBeInTheDocument()
+  })
+
+  it('requires confirmation before calling surrenderBattle', async () => {
+    getBattle.mockResolvedValue({ data: activeFixture(), error: null })
+    render(<BattleScreen battleId="battle-1" currentUserId="defender-1" />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Vzdát se' }))
+    expect(screen.getByTestId('surrender-confirm')).toBeInTheDocument()
+    expect(surrenderBattle).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zrušit' }))
+    expect(screen.queryByTestId('surrender-confirm')).not.toBeInTheDocument()
+    expect(surrenderBattle).not.toHaveBeenCalled()
+  })
+
+  it('calls surrenderBattle once the player confirms', async () => {
+    getBattle.mockResolvedValue({ data: activeFixture(), error: null })
+    render(<BattleScreen battleId="battle-1" currentUserId="defender-1" />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Vzdát se' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Ano, vzdát se' }))
+
+    await waitFor(() => expect(surrenderBattle).toHaveBeenCalledWith('battle-1'))
+  })
+
+  it('shows an error message when surrenderBattle fails', async () => {
+    surrenderBattle.mockResolvedValueOnce({ error: { message: 'boom' } })
+    getBattle.mockResolvedValue({ data: activeFixture(), error: null })
+    render(<BattleScreen battleId="battle-1" currentUserId="defender-1" />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Vzdát se' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Ano, vzdát se' }))
+
+    expect(await screen.findByText('boom')).toBeInTheDocument()
   })
 })
