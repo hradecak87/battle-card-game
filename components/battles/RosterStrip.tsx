@@ -27,8 +27,8 @@ function toUnitTemplate(card: BattleCard): UnitCardTemplate | null {
     category: 'unit',
     unitType: t.unit_type as UnitType,
     rank: t.rank as Rank,
-    name: t.name,
-    flavorText: t.flavor_text,
+    name: t.name ?? 'Neznámá karta',
+    flavorText: t.flavor_text ?? '',
     baseStats: t.base_stats,
     totalSupply: t.total_supply,
   }

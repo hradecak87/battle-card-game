@@ -6,9 +6,10 @@ import { TradingCard } from '@/components/cards/TradingCard'
 import { CastleIcon, VillageIcon } from '@/components/territories/icons/StructureIcons'
 import { CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
 import { applyRank } from '@/lib/cards/combat'
-import { Rank, UnitType, UnitCardTemplate } from '@/lib/cards/types'
+import { BoostCardTemplate, Rank, UnitType, UnitCardTemplate } from '@/lib/cards/types'
 import { NATIONS } from '@/lib/players/nations'
 import { formatEta } from '@/lib/time/formatEta'
+import { MaskedBoostSummaryTile, VisibleBoostCardTile } from '@/components/cards/BoostCardTile'
 
 export interface GarrisonModalOwnerInfo {
   id: string
@@ -70,8 +71,8 @@ function toUnitTemplate(row: NonNullable<CardInstanceWithTemplate['card_template
     category: 'unit',
     unitType: row.unit_type as UnitType,
     rank: row.rank as Rank,
-    name: row.name,
-    flavorText: row.flavor_text,
+    name: row.name ?? 'Neznámá karta',
+    flavorText: row.flavor_text ?? '',
     baseStats: row.base_stats,
     totalSupply: row.total_supply,
   }
@@ -79,6 +80,25 @@ function toUnitTemplate(row: NonNullable<CardInstanceWithTemplate['card_template
 
 function formatNation(nationId: string) {
   return NATIONS.find((nation) => nation.id === nationId)?.name ?? nationId
+}
+
+function toBoostTemplate(row: NonNullable<CardInstanceWithTemplate['card_templates']>): BoostCardTemplate | null {
+  if (row.category !== 'boost' || !row.name || !row.flavor_text || !row.boost_type || !row.effect_kind) return null
+  return {
+    id: row.id,
+    category: 'boost',
+    rank: row.rank as Rank,
+    name: row.name,
+    flavorText: row.flavor_text,
+    boostType: row.boost_type,
+    effectKind: row.effect_kind,
+    instantEffectKind: row.instant_effect_kind ?? null,
+    pctStr: row.pct_str ?? null,
+    pctLng: row.pct_lng ?? null,
+    pctDef: row.pct_def ?? null,
+    pctHp: row.pct_hp ?? null,
+    totalSupply: row.total_supply,
+  }
 }
 
 /**
@@ -172,6 +192,21 @@ export default function GarrisonModal({
 
   const buildLabelIconStyle = { width: '28px', height: '28px' }
   const structureCardIconStyle = { width: '32px', height: '32px' }
+  const unitInstances = (instances ?? []).filter((instance) => instance.card_templates?.category === 'unit')
+  const structureInstances = (instances ?? []).filter((instance) => {
+    const category = instance.card_templates?.category
+    return category === 'castle' || category === 'village'
+  })
+  const visibleBoostInstances = (instances ?? []).filter((instance) => {
+    const row = instance.card_templates
+    return row?.category === 'boost' && row.name && row.boost_type && row.effect_kind
+  })
+  const maskedBoostCounts = (instances ?? []).reduce<Record<string, number>>((acc, instance) => {
+    const row = instance.card_templates
+    if (row?.category !== 'boost' || row.name) return acc
+    acc[row.rank] = (acc[row.rank] ?? 0) + 1
+    return acc
+  }, {})
 
   return (
     <div
@@ -490,9 +525,33 @@ export default function GarrisonModal({
           <p className="text-zinc-400 text-sm">Žádná vojska na tomto území.</p>
         )}
 
-        {!error && instances !== null && instances.length > 0 && (
+        {!error && instances !== null && Object.keys(maskedBoostCounts).length > 0 && (
+          <div className="mb-4">
+            <p className="mb-2 text-sm font-semibold text-zinc-200">Skryté boost karty obránce</p>
+            <div data-testid="foreign-boost-summary" className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {Object.entries(maskedBoostCounts).map(([rank, count]) => (
+                <MaskedBoostSummaryTile key={rank} rank={rank as Rank} count={count} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!error && instances !== null && visibleBoostInstances.length > 0 && (
+          <div className="mb-4">
+            <p className="mb-2 text-sm font-semibold text-zinc-200">Boost karty</p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {visibleBoostInstances.map((instance) => {
+                const template = instance.card_templates ? toBoostTemplate(instance.card_templates) : null
+                if (!template) return null
+                return <VisibleBoostCardTile key={instance.instance_id} template={template} />
+              })}
+            </div>
+          </div>
+        )}
+
+        {!error && instances !== null && (unitInstances.length > 0 || structureInstances.length > 0) && (
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
-            {instances.map((instance) => {
+            {[...unitInstances, ...structureInstances].map((instance) => {
               const row = instance.card_templates
               const unitTemplate = row ? toUnitTemplate(row) : null
               return (

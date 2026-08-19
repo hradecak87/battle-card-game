@@ -158,13 +158,18 @@ export interface AttackOriginGroup {
   cardInstanceIds: string[]
 }
 
-export async function declareAttack(targetTerritoryId: number, originGroups: AttackOriginGroup[]) {
+export async function declareAttack(
+  targetTerritoryId: number,
+  originGroups: AttackOriginGroup[],
+  boostCardInstanceId: string | null = null
+) {
   return supabase.rpc('declare_attack', {
     target_territory_id: targetTerritoryId,
     origin_groups: originGroups.map((group) => ({
       origin_territory_id: group.originTerritoryId,
       card_instance_ids: group.cardInstanceIds,
     })),
+    p_boost_card_instance_id: boostCardInstanceId,
   }) as unknown as Promise<{ data: string | null; error: { message: string } | null }>
 }
 
@@ -357,27 +362,32 @@ export interface CardInstanceWithTemplate {
   owner_id: string | null
   stationed_territory_id: number | null
   status: 'stationed' | 'in_transit'
+  is_masked?: boolean
   card_templates: {
     id: string
-    name: string
-    flavor_text: string
+    name: string | null
+    flavor_text: string | null
     rank: string
-    category: 'unit' | 'castle' | 'village'
+    category: 'unit' | 'castle' | 'village' | 'boost'
     unit_type: string | null
     base_stats: { str: number; lng: number; def: number; hp: number; speed: number } | null
     total_supply: number | null
     defense_bonus_pct: number | null
     attack_bonus_pct: number | null
+    boost_type?: 'territorial' | 'offensive' | null
+    effect_kind?: 'stat_multiplier' | 'instant_effect' | null
+    instant_effect_kind?: 'steal_unit' | null
+    pct_str?: number | null
+    pct_lng?: number | null
+    pct_def?: number | null
+    pct_hp?: number | null
   } | null
 }
 
 export async function getCardInstancesAtTerritory(territoryId: number) {
-  return supabase
-    .from('card_instances')
-    .select(
-      'instance_id, template_id, owner_id, stationed_territory_id, status, card_templates(id, name, flavor_text, rank, category, unit_type, base_stats, total_supply, defense_bonus_pct, attack_bonus_pct)'
-    )
-    .eq('stationed_territory_id', territoryId) as unknown as Promise<{
+  return supabase.rpc('get_visible_territory_cards', {
+    p_territory_id: territoryId,
+  }) as unknown as Promise<{
     data: CardInstanceWithTemplate[] | null
     error: { message: string } | null
   }>
@@ -396,7 +406,7 @@ export async function getMyCardInstances(ownerId: string) {
   return supabase
     .from('card_instances')
     .select(
-      'instance_id, template_id, owner_id, stationed_territory_id, status, card_templates(id, name, flavor_text, rank, category, unit_type, base_stats, total_supply, defense_bonus_pct, attack_bonus_pct), territories(id, x, y, is_home)'
+      'instance_id, template_id, owner_id, stationed_territory_id, status, card_templates(id, name, flavor_text, rank, category, unit_type, base_stats, total_supply, defense_bonus_pct, attack_bonus_pct, boost_type, effect_kind, instant_effect_kind, pct_str, pct_lng, pct_def, pct_hp), territories(id, x, y, is_home)'
     )
     .eq('owner_id', ownerId) as unknown as Promise<{
     data: MyCardInstance[] | null
@@ -485,7 +495,7 @@ export async function getMyStructureCardInstances(ownerId: string) {
   return supabase
     .from('card_instances')
     .select(
-      'instance_id, template_id, owner_id, stationed_territory_id, status, card_templates!inner(id, name, flavor_text, rank, category, unit_type, base_stats, total_supply, defense_bonus_pct, attack_bonus_pct)'
+      'instance_id, template_id, owner_id, stationed_territory_id, status, card_templates!inner(id, name, flavor_text, rank, category, unit_type, base_stats, total_supply, defense_bonus_pct, attack_bonus_pct, boost_type, effect_kind, instant_effect_kind, pct_str, pct_lng, pct_def, pct_hp)'
     )
     .eq('owner_id', ownerId)
     .in('card_templates.category', ['castle', 'village']) as unknown as Promise<{

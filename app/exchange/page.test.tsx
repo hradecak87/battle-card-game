@@ -52,6 +52,17 @@ jest.mock('@/lib/supabase/client', () => ({
 
 import { useSession } from '@/lib/supabase/useSession'
 
+const unitTradeFields = {
+  template_category: 'unit' as const,
+  template_boost_type: null,
+  template_effect_kind: null,
+  template_instant_effect_kind: null,
+  template_pct_str: null,
+  template_pct_lng: null,
+  template_pct_def: null,
+  template_pct_hp: null,
+}
+
 function createOffer(overrides: Partial<TradeOffer> = {}): TradeOffer {
   return {
     id: 'offer-1',
@@ -83,6 +94,7 @@ function createOffer(overrides: Partial<TradeOffer> = {}): TradeOffer {
         template_flavor_text: 'Hlídka z pohraničí.',
         template_base_stats: { str: 5, lng: 10, def: 4, hp: 8, speed: 5 },
         template_total_supply: null,
+        ...unitTradeFields,
       },
     ],
     requested_cards: [
@@ -98,6 +110,7 @@ function createOffer(overrides: Partial<TradeOffer> = {}): TradeOffer {
         template_flavor_text: 'Drží linii.',
         template_base_stats: { str: 6, lng: 2, def: 6, hp: 9, speed: 5 },
         template_total_supply: null,
+        ...unitTradeFields,
       },
     ],
     ...overrides,

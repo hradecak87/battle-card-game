@@ -37,7 +37,7 @@ export interface AdminPlayerCardRow {
   template_id: string
   template_name: string
   template_rank: string
-  template_category: 'unit' | 'castle' | 'village'
+  template_category: 'unit' | 'castle' | 'village' | 'boost'
   owner_id: string | null
   stationed_territory_id: number | null
   territory_x: number | null
@@ -49,7 +49,7 @@ export interface AdminCardTemplateOption {
   id: string
   name: string
   rank: string
-  category: 'unit' | 'castle' | 'village'
+  category: 'unit' | 'castle' | 'village' | 'boost'
   unit_type: string | null
 }
 

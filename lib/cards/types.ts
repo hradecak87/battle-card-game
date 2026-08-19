@@ -30,6 +30,10 @@ export type Rank = 'common' | 'uncommon' | 'rare' | 'epic' | 'legend'
 
 export const RANKS: Rank[] = ['common', 'uncommon', 'rare', 'epic', 'legend']
 
+export type BoostType = 'territorial' | 'offensive'
+export type BoostEffectKind = 'stat_multiplier' | 'instant_effect'
+export type InstantEffectKind = 'steal_unit'
+
 /** How many named variants exist per unit type for each rank (spec §6). */
 export const VARIANTS_PER_RANK: Record<Rank, number> = {
   common: 10,
@@ -96,15 +100,35 @@ export interface StructureCardTemplate {
   totalSupply: number | null
 }
 
+export interface BoostCardTemplate {
+  id: string
+  category: 'boost'
+  rank: Rank
+  name: string
+  flavorText: string
+  boostType: BoostType
+  effectKind: BoostEffectKind
+  instantEffectKind: InstantEffectKind | null
+  pctStr: number | null
+  pctLng: number | null
+  pctDef: number | null
+  pctHp: number | null
+  totalSupply: number | null
+}
+
 /**
  * A card template is either a unit (used in combat) or a structure
  * (Castle/Village, built onto a territory). Discriminate on `category`.
  */
-export type CardTemplate = UnitCardTemplate | StructureCardTemplate
+export type CardTemplate = UnitCardTemplate | StructureCardTemplate | BoostCardTemplate
 
 /** Narrows a possibly-mixed CardTemplate list down to unit templates only. */
 export function isUnitTemplate(template: CardTemplate): template is UnitCardTemplate {
   return template.category === 'unit'
+}
+
+export function isBoostTemplate(template: CardTemplate): template is BoostCardTemplate {
+  return template.category === 'boost'
 }
 
 /**

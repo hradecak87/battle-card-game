@@ -14,6 +14,55 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-19d (boost cards end-to-end in worktree `feat/boost-cards`)
+
+Approved boost-card feature is now implemented across schema/migrations,
+catalog seeding, client APIs, battle/territory/exchange UI, and visibility
+rules.
+
+- New SQL files: `supabase/migrations/0026_boost_cards.sql` +
+  `0026_boost_cards.verification.sql`.
+  - Adds `card_templates` boost columns/checks and `battles` boost-tracking
+    columns.
+  - Adds `activate_boost_card(...)`.
+  - Extends multi-origin `declare_attack(..., origin_groups, p_boost_card_instance_id)`
+    so one offensive boost can travel with the declared attack and attach to
+    the spawned battle.
+  - Rebuilds battle payload/visibility helpers so foreign non-activated boost
+    cards are masked to rarity/count only until activation.
+  - Applies round effects for stat-multiplier boosts and one-shot
+    `instant_effect_kind='steal_unit'`.
+  - Consumes activated boost cards on battle end, adds 20% post-win random
+    boost rewards, adds common/uncommon level-milestone boost rewards, and
+    broadens trade validation/payloads to include category `boost`.
+- New catalog source: `lib/cards/boost-catalog-data.json`; seeding updated in
+  `scripts/seed-card-templates.ts`. Includes territorial/offensive boosts
+  across all 5 ranks plus `Krysa` as the first `steal_unit` card.
+- New shared client helpers/UI:
+  - `lib/cards/boosts.ts`
+  - `components/cards/BoostCardTile.tsx`
+- Updated user-facing surfaces:
+  - `GarrisonModal`: shows owned boost details, masks foreign boost details.
+  - `DeclareAttackModal`: optional offensive boost picker from selected origin
+    territories + masked defender boost summary.
+  - `BattleScreen`: per-side boost activation UI, masked opponent summary, and
+    revealed opponent boost tiles after activation.
+  - `Collection`: new boost category/filter and boost card rendering.
+  - `Exchange` + trade components: boost cards are selectable/renderable in
+    offers.
+  - `Admin`: template category handling now includes boost cards too.
+- Type/API updates:
+  - `lib/cards/types.ts`, `lib/territories/api.ts`, `lib/battles/api.ts`,
+    `lib/trading/api.ts`, `lib/admin/api.ts`.
+- Tests added/updated for collection, garrison, declare-attack, battle screen,
+  territory API, exchange UI, and related type-safe fixtures.
+- Verification in this worktree:
+  - `npx jest --runInBand --silent`: **420/420 passing**
+  - `npx tsc --noEmit`: clean
+  - `npm run build`: succeeds
+  - Build still emits the pre-existing `@supabase/supabase-js` warning that
+    Node.js 20 is deprecated; feature work did not introduce it.
+
 ## Latest update — 2026-08-19c (terrain difficulty textures in map viewport)
 
 Backlog #11 is now implemented in the map viewport with CSS-only terrain

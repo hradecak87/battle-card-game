@@ -34,8 +34,8 @@ function toUnitTemplate(row: NonNullable<CardInstanceWithTemplate['card_template
     category: 'unit',
     unitType: row.unit_type as UnitType,
     rank: row.rank as Rank,
-    name: row.name,
-    flavorText: row.flavor_text,
+    name: row.name ?? 'Neznámá karta',
+    flavorText: row.flavor_text ?? '',
     baseStats: row.base_stats,
     totalSupply: row.total_supply,
   }

@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { applyRank } from '@/lib/cards/combat'
-import type { Rank, UnitCardTemplate, UnitType } from '@/lib/cards/types'
+import type { BoostCardTemplate, Rank, UnitCardTemplate, UnitType } from '@/lib/cards/types'
 import { TradingCard } from '@/components/cards/TradingCard'
 import { CardZoomIconButton, CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
+import { VisibleBoostCardTile } from '@/components/cards/BoostCardTile'
 import type {
   CreateTradeOfferInput,
   CounterOfferInput,
@@ -49,6 +50,31 @@ function toUnitTemplate(card: TradeSelectableCard): UnitCardTemplate | null {
   }
 }
 
+function toBoostTemplate(card: TradeSelectableCard): BoostCardTemplate | null {
+  if (
+    card.template_category !== 'boost' ||
+    !card.template_boost_type ||
+    !card.template_effect_kind
+  ) {
+    return null
+  }
+  return {
+    id: card.template_id,
+    category: 'boost',
+    rank: card.template_rank,
+    name: card.template_name,
+    flavorText: card.template_flavor_text,
+    boostType: card.template_boost_type,
+    effectKind: card.template_effect_kind,
+    instantEffectKind: card.template_instant_effect_kind,
+    pctStr: card.template_pct_str,
+    pctLng: card.template_pct_lng,
+    pctDef: card.template_pct_def,
+    pctHp: card.template_pct_hp,
+    totalSupply: card.template_total_supply,
+  }
+}
+
 function CardSelector({
   cards,
   selectedIds,
@@ -71,9 +97,9 @@ function CardSelector({
         <div className="grid max-h-72 grid-cols-2 gap-3 overflow-y-auto md:grid-cols-3">
           {cards.map((card) => {
             const template = toUnitTemplate(card)
-            if (!template) return null
+            const boostTemplate = toBoostTemplate(card)
             const checked = selectedIds.includes(card.instance_id)
-            const stats = applyRank(template.baseStats, template.rank)
+            const stats = template ? applyRank(template.baseStats, template.rank) : null
             return (
               <div
                 key={card.instance_id}
@@ -85,16 +111,22 @@ function CardSelector({
                   aria-pressed={checked}
                   className="block w-full text-left"
                 >
-                  <TradingCard template={template} stats={stats} compact />
+                  {template && stats ? (
+                    <TradingCard template={template} stats={stats} compact />
+                  ) : boostTemplate ? (
+                    <VisibleBoostCardTile template={boostTemplate} compact />
+                  ) : null}
                 </button>
-                <CardZoomIconButton
-                  cardName={card.template_name}
-                  className="absolute right-2 top-2"
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    openZoom(template, stats)
-                  }}
-                />
+                {template && stats && (
+                  <CardZoomIconButton
+                    cardName={card.template_name}
+                    className="absolute right-2 top-2"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      openZoom(template, stats)
+                    }}
+                  />
+                )}
               </div>
             )
           })}

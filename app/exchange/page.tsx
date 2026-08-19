@@ -31,8 +31,12 @@ import { TradeOfferList } from '@/components/exchange/TradeOfferList'
 type ExchangeTab = 'mine' | 'market' | 'history'
 const ACTIVE_MY_OFFER_STATUSES: TradeOffer['status'][] = ['pending', 'countered']
 
-function filterUnitCards(cards: TradeSelectableCard[]) {
-  return cards.filter((card) => card.template_base_stats && card.template_unit_type)
+function filterTradeEligibleCards(cards: TradeSelectableCard[]) {
+  return cards.filter(
+    (card) =>
+      card.template_category === 'boost' ||
+      (card.template_category === 'unit' && card.template_base_stats && card.template_unit_type)
+  )
 }
 
 function mapTradeSelectableCards(rows: unknown[]): TradeSelectableCard[] {
@@ -46,12 +50,23 @@ function mapTradeSelectableCards(rows: unknown[]): TradeSelectableCard[] {
       stationed_territory_id:
         typeof card.stationed_territory_id === 'number' ? card.stationed_territory_id : null,
       status: String(card.status) as TradeSelectableCard['status'],
+      template_category: String(template.category) as TradeSelectableCard['template_category'],
       template_name: String(template.name),
       template_rank: String(template.rank) as TradeSelectableCard['template_rank'],
       template_unit_type: template.unit_type ? String(template.unit_type) as TradeSelectableCard['template_unit_type'] : null,
       template_flavor_text: String(template.flavor_text ?? ''),
       template_base_stats: (template.base_stats as TradeSelectableCard['template_base_stats']) ?? null,
       template_total_supply: typeof template.total_supply === 'number' ? Number(template.total_supply) : null,
+      template_boost_type: template.boost_type ? String(template.boost_type) as TradeSelectableCard['template_boost_type'] : null,
+      template_effect_kind: template.effect_kind ? String(template.effect_kind) as TradeSelectableCard['template_effect_kind'] : null,
+      template_instant_effect_kind:
+        template.instant_effect_kind
+          ? String(template.instant_effect_kind) as TradeSelectableCard['template_instant_effect_kind']
+          : null,
+      template_pct_str: typeof template.pct_str === 'number' ? Number(template.pct_str) : null,
+      template_pct_lng: typeof template.pct_lng === 'number' ? Number(template.pct_lng) : null,
+      template_pct_def: typeof template.pct_def === 'number' ? Number(template.pct_def) : null,
+      template_pct_hp: typeof template.pct_hp === 'number' ? Number(template.pct_hp) : null,
     }
   })
 }
@@ -136,7 +151,7 @@ export default function ExchangePage() {
       setPageError(error.message)
       return
     }
-    setOwnCards(filterUnitCards(mapTradeSelectableCards(data ?? [])))
+    setOwnCards(filterTradeEligibleCards(mapTradeSelectableCards(data ?? [])))
   }
 
   useEffect(() => {
@@ -199,7 +214,7 @@ export default function ExchangePage() {
     const { data, error } = await (supabase
       .from('card_instances')
       .select(
-        'instance_id, template_id, owner_id, stationed_territory_id, status, card_templates!inner(name, rank, unit_type, flavor_text, base_stats, total_supply, category)'
+        'instance_id, template_id, owner_id, stationed_territory_id, status, card_templates!inner(name, rank, unit_type, flavor_text, base_stats, total_supply, category, boost_type, effect_kind, instant_effect_kind, pct_str, pct_lng, pct_def, pct_hp)'
       )
       .eq('owner_id', playerId) as unknown as Promise<{
       data: unknown[] | null
@@ -213,7 +228,7 @@ export default function ExchangePage() {
       return
     }
 
-    setTargetCards(filterUnitCards(mapTradeSelectableCards(data ?? [])))
+    setTargetCards(filterTradeEligibleCards(mapTradeSelectableCards(data ?? [])))
   }
 
   async function submitModal(payload:

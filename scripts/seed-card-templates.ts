@@ -13,6 +13,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import catalogData from '../lib/cards/catalog-data.json'
+import boostCatalogData from '../lib/cards/boost-catalog-data.json'
 import { Rank } from '../lib/cards/types'
 
 // Node <22 has no native WebSocket global, which @supabase/supabase-js's
@@ -43,7 +44,7 @@ const RANKS: Rank[] = ['common', 'uncommon', 'rare', 'epic', 'legend']
 
 interface CardTemplateRow {
   id: string
-  category: 'unit' | 'castle' | 'village'
+  category: 'unit' | 'castle' | 'village' | 'boost'
   unit_type: string | null
   rank: string
   name: string
@@ -52,6 +53,13 @@ interface CardTemplateRow {
   defense_bonus_pct: number | null
   attack_bonus_pct: number | null
   total_supply: number | null
+  boost_type?: string | null
+  effect_kind?: string | null
+  instant_effect_kind?: string | null
+  pct_str?: number | null
+  pct_lng?: number | null
+  pct_def?: number | null
+  pct_hp?: number | null
 }
 
 function buildUnitRows(): CardTemplateRow[] {
@@ -107,7 +115,29 @@ function buildStructureRows(): CardTemplateRow[] {
 }
 
 export function buildCardTemplateRows(): CardTemplateRow[] {
-  return [...buildUnitRows(), ...buildStructureRows()]
+  return [
+    ...buildUnitRows(),
+    ...(boostCatalogData as Array<Record<string, unknown>>).map((t) => ({
+      id: String(t.id),
+      category: 'boost' as const,
+      unit_type: null,
+      rank: String(t.rank),
+      name: String(t.name),
+      flavor_text: String(t.flavorText),
+      base_stats: null,
+      defense_bonus_pct: null,
+      attack_bonus_pct: null,
+      total_supply: typeof t.totalSupply === 'number' ? Number(t.totalSupply) : null,
+      boost_type: String(t.boostType),
+      effect_kind: String(t.effectKind),
+      instant_effect_kind: t.instantEffectKind ? String(t.instantEffectKind) : null,
+      pct_str: typeof t.pctStr === 'number' ? Number(t.pctStr) : null,
+      pct_lng: typeof t.pctLng === 'number' ? Number(t.pctLng) : null,
+      pct_def: typeof t.pctDef === 'number' ? Number(t.pctDef) : null,
+      pct_hp: typeof t.pctHp === 'number' ? Number(t.pctHp) : null,
+    })),
+    ...buildStructureRows(),
+  ]
 }
 
 async function main() {
@@ -136,7 +166,9 @@ async function main() {
     const { error } = await supabase.from('card_templates').insert(batch)
     if (error) throw error
   }
-  console.log(`Seeded ${rows.length} card templates (${catalogData.length} unit + 10 structure)`)
+  console.log(
+    `Seeded ${rows.length} card templates (${catalogData.length} unit + ${(boostCatalogData as unknown[]).length} boost + 10 structure)`
+  )
 }
 
 if (require.main === module) {

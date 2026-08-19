@@ -24,20 +24,37 @@ export interface BattleRow {
   winner_side: 'attacker' | 'defender' | null
   resolved_at: string | null
   created_at: string
+  attacker_boost_cards?: BattleBoostCard[]
+  defender_boost_cards?: BattleBoostCard[]
 }
 
 export interface BattleCardTemplate {
   id: string
-  category: 'unit' | 'castle' | 'village'
+  category: 'unit' | 'castle' | 'village' | 'boost'
   unit_type: string | null
   rank: string
-  name: string
-  flavor_text: string
+  name: string | null
+  flavor_text: string | null
   base_stats: { str: number; lng: number; def: number; hp: number; speed: number } | null
   defense_bonus_pct: number | null
   attack_bonus_pct: number | null
   total_supply: number | null
   minted_count: number
+  boost_type?: 'territorial' | 'offensive' | null
+  effect_kind?: 'stat_multiplier' | 'instant_effect' | null
+  instant_effect_kind?: 'steal_unit' | null
+  pct_str?: number | null
+  pct_lng?: number | null
+  pct_def?: number | null
+  pct_hp?: number | null
+  is_masked?: boolean
+}
+
+export interface BattleBoostCard {
+  instance_id: string
+  owner_id: string | null
+  status: 'stationed' | 'in_transit'
+  template: BattleCardTemplate
 }
 
 export interface BattleCard {
@@ -276,4 +293,11 @@ export async function pickDefenderCard(battleId: string, cardInstanceId: string)
     p_battle_id: battleId,
     p_card_instance_id: cardInstanceId,
   })
+}
+
+export async function activateBoostCard(battleId: string, cardInstanceId: string) {
+  return supabase.rpc('activate_boost_card', {
+    p_battle_id: battleId,
+    p_card_instance_id: cardInstanceId,
+  }) as unknown as Promise<{ data: null; error: { message: string } | null }>
 }
