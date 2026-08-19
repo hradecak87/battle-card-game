@@ -1,0 +1,30 @@
+-- Verification checklist for 0023_dynamic_card_supply.sql (#15: dynamic
+-- total_supply display formula, no new enforcement)
+--
+-- 1. Confirm base_total_supply was backfilled from the pre-existing static
+--    values and only for rare/epic/legend:
+--    select rank, count(*), min(base_total_supply), max(base_total_supply)
+--    from card_templates group by rank order by rank;
+--    -> common/uncommon: base_total_supply is null (unaffected)
+--    -> rare/epic/legend: base_total_supply matches the old total_supply
+--       values from before this migration ran.
+--
+-- 2. Confirm total_supply was recomputed against the current player count
+--    right after migration (the one-off backfill call at the end of the
+--    file):
+--    select count(*) from players;                      -- e.g. N
+--    select rank, total_supply, base_total_supply from card_templates
+--    where rank = 'rare' limit 3;
+--    -> total_supply should equal base_total_supply + floor(N / 2)
+--    (epic: floor(N / 5), legend: floor(N / 20))
+--
+-- 3. Confirm the trigger recomputes on new registration -- sign up a new
+--    test account (or insert directly into auth.users if testing via SQL),
+--    then re-run the query from step 2 with the new player count and
+--    confirm total_supply increased (or stayed the same, if the divisor
+--    threshold wasn't crossed yet).
+--
+-- 4. Confirm this is display-only: no card issuance path (admin_grant_card,
+--    daily reward, streak reward) references total_supply -- this was
+--    already true before this migration and remains unchanged; this
+--    migration does not add any enforcement.

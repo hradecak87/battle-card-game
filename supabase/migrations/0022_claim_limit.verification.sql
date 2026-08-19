@@ -1,0 +1,50 @@
+-- Verification checklist for 0022_claim_limit.sql (#16: max 5 concurrent
+-- claims-in-progress)
+--
+-- IMPORTANT: the real enforcement point is `declare_attack` (the only path
+-- the current UI actually uses to claim empty territory -- confirmed no
+-- component/lib code calls `startClaim`/`start_claim` at all). `start_claim`
+-- is patched too for consistency but is currently dead code.
+--
+-- 1. Confirm both functions were redefined:
+--    select prosrc from pg_proc where proname in ('declare_attack', 'start_claim');
+--    -> both should contain 'concurrent claim limit (5) reached'
+--
+-- 2. Manual smoke test (replace <player_uuid> / <origin_id> with real values
+--    from a test account that owns a home territory, has >= 6 spare empty
+--    neighboring territories with no NPC garrison to attempt claiming via
+--    declare_attack, and has cards stationed at the origin):
+--
+--    -- Declare 5 "attacks" against 5 different genuinely-empty
+--    -- destinations -- all 5 should succeed and immediately set
+--    -- claim_locked_by (peaceful-claim conversion happens on arrival):
+--    select declare_attack(<origin_id>, <dest_1>, array[<card_id_1>]);
+--    select declare_attack(<origin_id>, <dest_2>, array[<card_id_2>]);
+--    select declare_attack(<origin_id>, <dest_3>, array[<card_id_3>]);
+--    select declare_attack(<origin_id>, <dest_4>, array[<card_id_4>]);
+--    select declare_attack(<origin_id>, <dest_5>, array[<card_id_5>]);
+--
+--    -- A 6th concurrent claim attempt (against another genuinely-empty
+--    -- destination) must fail immediately, at declare time:
+--    select declare_attack(<origin_id>, <dest_6>, array[<card_id_6>]);
+--    -- expect: ERROR: concurrent claim limit (5) reached ...
+--
+--    -- A real attack against an OCCUPIED territory must NOT be blocked by
+--    -- this cap, even while the 5 claims above are still in progress:
+--    select declare_attack(<origin_id>, <occupied_dest_id>, array[<card_id_7>]);
+--    -- expect: succeeds (assuming all other normal preconditions hold)
+--
+-- 3. Confirm the cap only counts *in-progress* claims (owner_id is null),
+--    not completed ones -- once one of the 5 above claims resolves
+--    (owner_id gets set once claim_occupation_completes_at passes and
+--    resolve_due_battles/resolve_due_movements runs), a 6th claim attempt
+--    should become possible again:
+--    select count(*) from territories where claim_locked_by = <player_uuid> and owner_id is null;
+--    -- should drop below 5 after resolution, allowing a new declare_attack
+--    -- call against an empty destination to succeed.
+--
+-- 4. Confirm the error surfaces to the player -- DeclareAttackModal.tsx
+--    passes `error.message` from the RPC straight through to
+--    `setSubmitError`, so no additional client code changes were needed;
+--    the raw Postgres message displays as-is (matches how the existing
+--    32-territory ownership cap error already surfaces).
