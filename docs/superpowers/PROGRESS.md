@@ -14,6 +14,39 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-19c (terrain difficulty textures in map viewport)
+
+Backlog #11 is now implemented in the map viewport with CSS-only terrain
+textures keyed directly off `territory.difficulty`, keeping structure markers
+drawn on top.
+
+- `app/globals.css`: added shared `.terrain-difficulty-1` ..
+  `.terrain-difficulty-5` classes using layered gradients/patterns only
+  (no new image assets) — lush green grassland → scrubland → dry earth →
+  rocky highland → harsh blue-grey rock/sea.
+- `components/territories/MapViewport.tsx`: replaced flat difficulty color
+  fills with the new terrain classes; castle/village/home markers now sit in
+  a small translucent chip above the textured tile so they stay legible on
+  every background.
+- `components/territories/MapViewport.test.tsx`: added tier-by-tier Jest
+  coverage asserting the correct terrain class for all 5 difficulty values.
+- `components/territories/icons/StructureIcons.tsx`: switched the structure
+  PNG renderer from plain `<img>` to `next/image`, removing the map build's
+  prior `no-img-element` warning.
+- Verification in this worktree:
+  - `npx jest components/territories/MapViewport.test.tsx --runInBand --silent`:
+    **28/28 passing**
+  - `npx tsc --noEmit`: clean
+  - `npm run build`: succeeds; still emits the existing environment warning
+    from `@supabase/supabase-js` about Node.js 20 deprecation
+
+Follow-up later the same day: the owner added real tileable JPEG terrain
+textures in `public/textures/terrain-1.jpg` .. `terrain-5.jpg`. The CSS-only
+fallback textures were then replaced in `app/globals.css` by repeated
+`background-image: url(...)` layers with a light tint overlay kept on top for
+icon contrast; behavior/tests stay the same because `MapViewport` still maps
+`difficulty` to the same `terrain-difficulty-*` classes.
+
 ### Card-art sheet cropping tool
 - `scripts/crop-card-sheet.py` — reusable tool for slicing a grid-sheet PNG
   of illustrated unit-card artwork into individual per-card PNGs named by
@@ -161,7 +194,7 @@ status inline as items are picked up.
 | 8 | Mobile card collection shows 1 card per row (portrait) — should be 3 per row | 2 | 7 | **done** (`ed036a0`) | Fixed 2026-08-18 directly |
 | 9 | Multiple game servers via separate Supabase DBs per region (Europe/USA/Asia), chosen at login | 9 | 2 | pending | Major infra change; not needed at current player count |
 | 10 | Attacks must go through adjacent/border territory — can't target a territory fully surrounded by another player's land | 7 | 6 | **done** (confirmed live via RPC probe) | Design: `docs/superpowers/specs/2026-08-19-attack-adjacency-design.md`. Rule: a territory owned by player P is attackable only if at least one of its 4 orthogonal (not diagonal) neighbors is not owned by P — off-grid neighbors count as "not owned by P" too. `supabase/migrations/0017_attack_adjacency.sql` redefines `declare_attack()` with this check at both existing target-validation points. NPC/empty territories (`owner_id is null`) are exempt and always attackable — **NOTE for later**: revisit this once the `npc-autonomous-behavior` world simulation exists, since NPC land currently has no ownership column to group into a contiguous "landmass" the way player land does, so it can't have a meaningful siege/adjacency rule yet. Client: `lib/territories/attackReachability.ts` (`isTerritoryAttackable`) + `getTerritoryNeighborOwners()` in `lib/territories/api.ts`; `DeclareAttackModal` hides the attack form and shows a message when the target is surrounded. 18/18 targeted tests pass, `tsc` clean. |
-| 11 | Territory difficulty shown via terrain texture (1/5 grass .. 5/5 rock/sea) as tile background, castle/village drawn on top | 5 | 3 | pending | Mostly art asset work + render layering |
+| 11 | Territory difficulty shown via terrain texture (1/5 grass .. 5/5 rock/sea) as tile background, castle/village drawn on top | 5 | 3 | done | CSS-only layered terrain classes now drive tile backgrounds by `difficulty`; structure markers remain on top in a translucent contrast chip |
 | 12 | New unit attribute: Speed (movement speed); group speed = slowest unit | 6 | 5 | **done** (confirmed live via RPC probe) | Design: `docs/superpowers/specs/2026-08-19-speed-attribute-design.md`. `speed` (0-10 scale) added to `RawStats`/`card_templates.base_stats` — movement-only, **not** rank-scaled and **not** read by combat math (`applyRank`/`EffectiveCard` untouched). Per-unit-type baseline in `scripts/generate-catalog-data.js` (lightCavalry 9 fastest .. siegeEngines 2 slowest); per-card variance derived deterministically as the INVERSE of that card's own str/lng/def/hp variance roll (stronger/heavier variant = slightly slower), so all 248 catalog entries got a sensible speed with no manual authoring — `catalog-data.json` regenerated. New shared SQL helper `_min_group_speed(card_instance_ids uuid[])` (`supabase/migrations/0020_speed_attribute.sql`) replaces the 5 hand-duplicated `transfer_hrs` formulas (`declare_attack`, `start_transfer`, `start_claim`, both `_finalize_battle` branches) with `hours = max(0.25, distance*0.3*clamp(5/groupSpeed, 0.4, 3.0)) * nationPerk` — baseline speed 5 reproduces today's unmodified duration. Occupation time and `_recall_movement_to_origin` (#23) are unaffected (deliberately out of scope). Client: `transferHours()` in `lib/territories/formulas.ts` gained an optional `groupSpeed` param; `DeclareAttackModal`/`TransferModal` compute it from the selected cards for live ETA previews; `TradingCard.tsx` now shows a 5th SPD stat cell. New one-off `scripts/backfill-card-template-speed.ts` (not yet run against live DB) merges `speed` into existing `card_templates.base_stats` rows. 381/381 tests pass, `tsc` clean. |
 | 13 | "News feed" module: recent + upcoming attacks visible to all players | 6 | 4 | pending | Needs its own brainstorming session |
 | 14 | Ability to recall/cancel an attack in transit; recalled troops must travel back the same duration | 6 | 5 | **done, narrow scope** (confirmed live via RPC probe) | Implemented together with #23 (same migration/design). **Scope note**: only covers recall while the attack movement is still `in_transit` (before arrival) — a post-arrival/`awaiting_ready` withdrawal was explicitly deferred by the user as a follow-up, not implemented. Return-trip duration = elapsed time already traveled (not full original duration, not remaining time), per user's explicit choice. New `recall_attack(p_movement_id)` RPC in `supabase/migrations/0018_reinforcement_lock_and_recall.sql`; `recallAttack()` wrapper in `lib/battles/api.ts`; "Zrušit útok" button in `MyMovementsPanel` for every in-transit attack row. |

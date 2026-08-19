@@ -1,10 +1,11 @@
+import Image from 'next/image'
 import type { ComponentPropsWithoutRef } from 'react'
 
 type SvgIconProps = Omit<ComponentPropsWithoutRef<'svg'>, 'viewBox'> & {
   title?: string
 }
 
-type ImgIconProps = Omit<ComponentPropsWithoutRef<'img'>, 'src' | 'alt'> & {
+type ImgIconProps = Omit<ComponentPropsWithoutRef<typeof Image>, 'src' | 'alt' | 'width' | 'height'> & {
   title?: string
 }
 
@@ -72,10 +73,12 @@ function StructureImg({
   ...props
 }: ImgIconProps & { variant: string }) {
   return (
-    <img
+    <Image
       src={`/icons/structures/${variant}.png`}
-      alt={title}
+      alt={title ?? ''}
       title={title}
+      width={96}
+      height={96}
       style={{ objectFit: 'contain', ...style }}
       className={className}
       {...props}
