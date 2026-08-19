@@ -999,7 +999,33 @@ begin
       from territories
       where owner_id = v_npc.id;
 
+      -- NOTE: expansion/attack candidate search is deliberately bounded to a
+      -- random 200-row sample of the *base* filter conditions before the
+      -- expensive per-candidate lateral join (nearest-origin distance sort,
+      -- `_territory_effective_unit_power(...)`) runs — without this bound,
+      -- the lateral join was evaluated once per matching territory across
+      -- the full 256x256 map (tens of thousands of rows), which took ~65s
+      -- per tick and made every RPC calling resolve_due_movements() (i.e.
+      -- almost every RPC in the app, including the map) time out with a
+      -- Postgres statement-timeout 500 once real NPC ticks started firing.
       if v_owned_territory_count < 32 then
+        with sampled_targets as (
+          select t.id, t.x, t.y
+          from territories t
+          where t.owner_id is null
+            and t.claim_locked_by is null
+            and t.battle_locked_by is null
+            and not exists (
+              select 1
+              from card_instances ci
+              join card_templates ct on ct.id = ci.template_id
+              where ci.stationed_territory_id = t.id
+                and ci.owner_id is null
+                and ct.category = 'unit'
+            )
+          order by random()
+          limit 200
+        )
         select candidate.target_id, candidate.origin_id, candidate.card_ids
         into v_expansion_target_id, v_expansion_origin_id, v_expansion_card_ids
         from (
@@ -1007,7 +1033,7 @@ begin
             t.id as target_id,
             origin.id as origin_id,
             origin.card_ids
-          from territories t
+          from sampled_targets t
           join lateral (
             select
               o.id,
@@ -1025,22 +1051,32 @@ begin
             order by greatest(abs(o.x - t.x), abs(o.y - t.y)) asc, o.id
             limit 1
           ) origin on true
-          where t.owner_id is null
-            and t.claim_locked_by is null
-            and t.battle_locked_by is null
-            and not exists (
-              select 1
-              from card_instances ci
-              join card_templates ct on ct.id = ci.template_id
-              where ci.stationed_territory_id = t.id
-                and ci.owner_id is null
-                and ct.category = 'unit'
-            )
           order by random()
           limit 1
         ) candidate;
       end if;
 
+      with sampled_targets as (
+        select t.id, t.x, t.y, t.owner_id, t.claim_locked_by
+        from territories t
+        where t.battle_locked_by is null
+          and (
+            (t.owner_id is not null and t.owner_id <> v_npc.id)
+            or (t.owner_id is null and t.claim_locked_by is not null and t.claim_locked_by <> v_npc.id)
+          )
+          and (
+            t.owner_id is null
+            or exists (
+              select 1
+              from (values (t.x - 1, t.y), (t.x + 1, t.y),
+                           (t.x, t.y - 1), (t.x, t.y + 1)) as n(nx, ny)
+              left join territories t2 on t2.x = n.nx and t2.y = n.ny
+              where t2.id is null or t2.owner_id is distinct from t.owner_id
+            )
+          )
+        order by random()
+        limit 200
+      )
       select candidate.target_id, candidate.origin_id, candidate.card_ids
       into v_attack_target_id, v_attack_origin_id, v_attack_card_ids
       from (
@@ -1048,7 +1084,7 @@ begin
           t.id as target_id,
           origin.id as origin_id,
           origin.card_ids
-        from territories t
+        from sampled_targets t
         join lateral (
           select
             o.id,
@@ -1067,27 +1103,12 @@ begin
           order by greatest(abs(o.x - t.x), abs(o.y - t.y)) asc, o.id
           limit 1
         ) origin on true
-        where t.battle_locked_by is null
-          and (
-            (t.owner_id is not null and t.owner_id <> v_npc.id)
-            or (t.owner_id is null and t.claim_locked_by is not null and t.claim_locked_by <> v_npc.id)
-          )
-          and (
-            t.owner_id is null
-            or exists (
-              select 1
-              from (values (t.x - 1, t.y), (t.x + 1, t.y),
-                           (t.x, t.y - 1), (t.x, t.y + 1)) as n(nx, ny)
-              left join territories t2 on t2.x = n.nx and t2.y = n.ny
-              where t2.id is null or t2.owner_id is distinct from t.owner_id
-            )
-          )
-          and origin.attack_power >=
-            _territory_effective_unit_power(
-              case when t.owner_id is not null then t.owner_id else t.claim_locked_by end,
-              t.id,
-              true
-            ) * 1.2
+        where origin.attack_power >=
+          _territory_effective_unit_power(
+            case when t.owner_id is not null then t.owner_id else t.claim_locked_by end,
+            t.id,
+            true
+          ) * 1.2
         order by random()
         limit 1
       ) candidate;
