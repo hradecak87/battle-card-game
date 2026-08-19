@@ -483,7 +483,7 @@ begin
 end;
 $$;
 
-alter function if exists declare_attack(integer, jsonb) rename to declare_attack_multi_origin_base_0025;
+alter function declare_attack(integer, jsonb) rename to declare_attack_multi_origin_base_0025;
 create or replace function declare_attack(
   target_territory_id integer,
   origin_groups jsonb,
@@ -628,7 +628,7 @@ begin
 end;
 $$;
 
-alter function if exists _finalize_battle(uuid, text, boolean) rename to _finalize_battle_base_0025;
+alter function _finalize_battle(uuid, text, boolean) rename to _finalize_battle_base_0025;
 
 -- Reapply the current latest battle-finalize function with boost consumption
 -- and the new 20% post-win boost reward.
