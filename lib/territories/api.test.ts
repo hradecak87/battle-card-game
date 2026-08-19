@@ -1,8 +1,9 @@
-import { getPlayerPublicInfo, getMyStructureCardInstances, relocateHome, renameTerritory } from './api'
+import { declareAttack, getPlayerPublicInfo, getMyStructureCardInstances, getMyTerritories, relocateHome, renameTerritory } from './api'
 
 const single = jest.fn()
 const inFn = jest.fn()
-const eq = jest.fn(() => ({ single, in: inFn }))
+const order = jest.fn()
+const eq = jest.fn(() => ({ single, in: inFn, order }))
 const select = jest.fn(() => ({ eq }))
 const from = jest.fn((_table: string) => ({ select }))
 const rpc = jest.fn()
@@ -73,6 +74,29 @@ describe('renameTerritory', () => {
   })
 })
 
+describe('declareAttack', () => {
+  beforeEach(() => {
+    rpc.mockReset()
+  })
+
+  it('calls the declare_attack RPC with grouped multi-origin payload', async () => {
+    rpc.mockResolvedValue({ data: 'movement-1', error: null })
+
+    await declareAttack(99, [
+      { originTerritoryId: 1, cardInstanceIds: ['inst-1'] },
+      { originTerritoryId: 2, cardInstanceIds: ['inst-2', 'inst-3'] },
+    ])
+
+    expect(rpc).toHaveBeenCalledWith('declare_attack', {
+      target_territory_id: 99,
+      origin_groups: [
+        { origin_territory_id: 1, card_instance_ids: ['inst-1'] },
+        { origin_territory_id: 2, card_instance_ids: ['inst-2', 'inst-3'] },
+      ],
+    })
+  })
+})
+
 describe('getMyTerritories', () => {
   it('selects the owned-territory battle lock alongside the existing fields', async () => {
     const orderChain: { order: jest.Mock } & PromiseLike<{ data: unknown[]; error: null }> = {
@@ -82,7 +106,6 @@ describe('getMyTerritories', () => {
     } as unknown as { order: jest.Mock } & PromiseLike<{ data: unknown[]; error: null }>
     eq.mockReturnValueOnce(orderChain as unknown as ReturnType<typeof eq>)
 
-    const { getMyTerritories } = await import('./api')
     await getMyTerritories('player-1')
 
     expect(select).toHaveBeenCalledWith('id, x, y, is_home, castle_rank, village_rank, name, battle_locked_by')

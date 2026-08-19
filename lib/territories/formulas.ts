@@ -11,6 +11,11 @@ export interface GridPoint {
   y: number
 }
 
+export interface AttackContingent {
+  origin: GridPoint
+  groupSpeed?: number
+}
+
 /** Chebyshev (chessboard) distance — max of the x and y deltas. */
 export function chebyshevDistance(a: GridPoint, b: GridPoint): number {
   return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y))
@@ -59,6 +64,24 @@ export function transferHours(distance: number, nation?: NationId, groupSpeed?: 
       : Math.min(SPEED_MULTIPLIER_MAX, Math.max(SPEED_MULTIPLIER_MIN, BASELINE_SPEED / groupSpeed))
   const base = Math.max(TRANSFER_FLOOR_HOURS, distance * TRANSFER_RATE_HOURS_PER_TILE * speedMultiplier)
   return nation === 'mongol_horde' ? base * MONGOL_TRANSFER_MULTIPLIER : base
+}
+
+/**
+ * Backlog #6: a multi-origin attack arrives only once the slowest/farthest
+ * selected contingent reaches the target, so the combined ETA is the
+ * maximum of the per-origin `transferHours(...)` results.
+ */
+export function multiOriginAttackHours(
+  contingents: AttackContingent[],
+  target: GridPoint,
+  nation?: NationId
+): number | null {
+  if (contingents.length === 0) return null
+  return Math.max(
+    ...contingents.map(({ origin, groupSpeed }) =>
+      transferHours(chebyshevDistance(origin, target), nation, groupSpeed)
+    )
+  )
 }
 
 /**

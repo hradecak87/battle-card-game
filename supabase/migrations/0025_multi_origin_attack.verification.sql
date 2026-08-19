@@ -1,0 +1,46 @@
+-- Verification checklist for 0024_multi_origin_attack.sql (#6)
+--
+-- 1. Confirm the schema can remember per-card origins for a single attack:
+--    select column_name, is_nullable
+--    from information_schema.columns
+--    where table_name = 'troop_movement_units' and column_name = 'origin_territory_id';
+--    -> one nullable integer FK column exists.
+--
+-- 2. Multi-origin declare path: call the new signature with two origin
+--    groups owned by the same attacker, both targeting one enemy tile.
+--    -> exactly one troop_movements row of kind='attack' is created
+--    -> its troop_movement_units rows contain both origin_territory_id values
+--    -> every moved card becomes status='in_transit'
+--    -> territories.battle_locked_by is set for the target.
+--
+-- 3. ETA rule: choose one nearby fast contingent and one far/slow
+--    contingent, then compare:
+--      a) per-origin hours from the formula in declare_attack
+--      b) the stored attack movement.transfer_arrives_at - started_at
+--    -> the stored arrival duration equals the MAX of the per-origin values.
+--
+-- 4. Backward compatibility: call the legacy single-origin signature
+--    declare_attack(origin_territory_id, target_territory_id, card_instance_ids).
+--    -> it still succeeds and creates one attack movement whose
+--       troop_movement_units.origin_territory_id all equal the origin.
+--
+-- 5. Claim/battle invariants: re-run manual spot checks from 0017, 0018,
+--    0020, and 0022 against the new declare path:
+--    -> surrounded owned targets still reject
+--    -> 32-territory ownership cap still rejects
+--    -> 5-concurrent-claim cap still rejects for empty/unclaimed targets
+--    -> existing contested/NPC/empty/home-target branches still route to
+--       the same battle or claim outcomes after resolve_due_movements().
+--
+-- 6. Recall path: declare a multi-origin in-transit attack, then call
+--    recall_attack(movement_id).
+--    -> original attack movement becomes status='cancelled'
+--    -> one return transfer is created per distinct origin_territory_id
+--    -> each return ETA equals elapsed travel time so far
+--    -> target territory battle_locked_by clears.
+--
+-- 7. Failed/expired attacker return path: complete a battle from a
+--    multi-origin attack where the attacker does NOT capture the target.
+--    -> survivors are split into one transfer per stored origin territory
+--    -> captured defender cards (if any) fall back to the canonical attack
+--       movement.origin_territory_id instead of blocking resolution.

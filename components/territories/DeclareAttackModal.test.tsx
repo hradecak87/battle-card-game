@@ -13,6 +13,7 @@ jest.mock('@/lib/territories/api', () => ({
   getMyTerritories: (...args: unknown[]) => getMyTerritories(...args),
   getPlayerPublicInfo: (...args: unknown[]) => getPlayerPublicInfo(...args),
   getTerritoryNeighborOwners: (...args: unknown[]) => getTerritoryNeighborOwners(...args),
+  declareAttack: (...args: unknown[]) => declareAttack(...args),
 }))
 
 jest.mock('@/lib/battles/api', () => ({
@@ -56,6 +57,18 @@ const myCard = {
   },
 }
 
+const mySecondCard = {
+  ...myCard,
+  instance_id: 'inst-2',
+  stationed_territory_id: 2,
+  card_templates: {
+    ...myCard.card_templates,
+    id: 'tmpl-2',
+    name: 'Hraničáři z druhé državy',
+    base_stats: { str: 12, lng: 11, def: 8, hp: 14, speed: 3 },
+  },
+}
+
 function deferred<T>() {
   let resolve!: (value: T) => void
   const promise = new Promise<T>((res) => {
@@ -80,22 +93,41 @@ describe('DeclareAttackModal', () => {
     declareAttack.mockReset()
   })
 
-  it('loads origin cards, selects one, and calls declareAttack', async () => {
-    getCardInstancesAtTerritory.mockResolvedValue({ data: [myCard], error: null })
+  it('loads cards from multiple selected origins and calls declareAttack with grouped payload', async () => {
+    getMyTerritories.mockResolvedValue({
+      data: [
+        { id: 1, x: 0, y: 0, is_home: true },
+        { id: 2, x: 3, y: 4, is_home: false },
+      ],
+      error: null,
+    })
+    getCardInstancesAtTerritory.mockImplementation((id: number) =>
+      Promise.resolve({ data: id === 1 ? [myCard] : id === 2 ? [mySecondCard] : [], error: null })
+    )
     declareAttack.mockResolvedValue({ data: 'movement-1', error: null })
 
     render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} onDeclared={jest.fn()} />)
 
-    fireEvent.change(await screen.findByLabelText('Odkud útočíš'), { target: { value: '1' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Odkud útočíš' }))
+    fireEvent.click(screen.getByTestId('declare-attack-origin-check-1'))
+    fireEvent.click(screen.getByTestId('declare-attack-origin-check-2'))
 
     await waitFor(() => expect(getCardInstancesAtTerritory).toHaveBeenCalledWith(1))
+    await waitFor(() => expect(getCardInstancesAtTerritory).toHaveBeenCalledWith(2))
     expect(await screen.findByText('Elitní rytíři')).toBeInTheDocument()
+    expect(await screen.findByText('Hraničáři z druhé državy')).toBeInTheDocument()
 
     fireEvent.click(screen.getByTestId('declare-attack-card-select-inst-1'))
+    fireEvent.click(screen.getByTestId('declare-attack-card-select-inst-2'))
     const submit = screen.getByRole('button', { name: /Zaútočit/ })
     fireEvent.click(submit)
 
-    await waitFor(() => expect(declareAttack).toHaveBeenCalledWith(1, 99, ['inst-1']))
+    await waitFor(() =>
+      expect(declareAttack).toHaveBeenCalledWith(99, [
+        { originTerritoryId: 1, cardInstanceIds: ['inst-1'] },
+        { originTerritoryId: 2, cardInstanceIds: ['inst-2'] },
+      ])
+    )
     expect(await screen.findByText(/Útok vyslán/)).toBeInTheDocument()
   })
 
@@ -105,7 +137,8 @@ describe('DeclareAttackModal', () => {
 
     render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
 
-    fireEvent.change(await screen.findByLabelText('Odkud útočíš'), { target: { value: '1' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Odkud útočíš' }))
+    fireEvent.click(screen.getByTestId('declare-attack-origin-check-1'))
     await screen.findByText('Elitní rytíři')
 
     fireEvent.click(screen.getByTestId('declare-attack-card-select-inst-1'))
@@ -136,11 +169,11 @@ describe('DeclareAttackModal', () => {
 
     render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
 
-    expect(await screen.findByLabelText('Odkud útočíš')).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Odkud útočíš' })).toBeInTheDocument()
     expect(screen.queryByTestId('declare-attack-unreachable')).not.toBeInTheDocument()
   })
 
-  it('lists the caller\'s own territories in the origin dropdown, home first', async () => {
+  it('lists the caller\'s own territories in the multi-check dropdown, home first', async () => {
     getMyTerritories.mockResolvedValue({
       data: [
         { id: 1, x: 0, y: 0, is_home: true },
@@ -150,10 +183,12 @@ describe('DeclareAttackModal', () => {
     })
     render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
 
-    const select = (await screen.findByLabelText('Odkud útočíš')) as HTMLSelectElement
+    fireEvent.click(await screen.findByRole('button', { name: 'Odkud útočíš' }))
     await waitFor(() => expect(getMyTerritories).toHaveBeenCalledWith('me'))
-    const options = Array.from(select.options).map((o) => o.textContent)
-    expect(options).toEqual(['— vyber území —', 'Domov (0, 0)', 'Území (3, 4)'])
+    const options = screen
+      .getAllByTestId(/^declare-attack-origin-option-/)
+      .map((option) => option.textContent?.replace(/\s+/g, ' ').trim())
+    expect(options).toEqual(['Domov (0, 0)', 'Území (3, 4)'])
   })
 
   it('renders the defender structure bonus panel when the target has castle and village', async () => {
@@ -175,45 +210,8 @@ describe('DeclareAttackModal', () => {
   it('does not render the defender structure bonus panel when the target has no structures', async () => {
     render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
 
-    await screen.findByLabelText('Odkud útočíš')
+    await screen.findByRole('button', { name: 'Odkud útočíš' })
     expect(screen.queryByTestId('declare-attack-structure-bonuses')).not.toBeInTheDocument()
-  })
-
-  it('ignores stale origin loads when the player quickly switches origin territory', async () => {
-    const first = deferred<{ data: typeof myCard[]; error: null }>()
-    const second = deferred<{ data: typeof myCard[]; error: null }>()
-    getMyTerritories.mockResolvedValue({
-      data: [
-        { id: 1, x: 0, y: 0, is_home: true },
-        { id: 2, x: 3, y: 4, is_home: false },
-      ],
-      error: null,
-    })
-    getCardInstancesAtTerritory
-      .mockResolvedValueOnce({ data: [], error: null }) // defender-garrison fetch on mount
-      .mockReturnValueOnce(first.promise)
-      .mockReturnValueOnce(second.promise)
-
-    render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
-
-    const select = await screen.findByLabelText('Odkud útočíš')
-    fireEvent.change(select, { target: { value: '1' } })
-    fireEvent.change(select, { target: { value: '2' } })
-
-    second.resolve({
-      data: [
-        {
-          ...myCard,
-          instance_id: 'inst-2',
-          card_templates: { ...myCard.card_templates, name: 'Jezdci z druhé državy' },
-        },
-      ],
-      error: null,
-    })
-    first.resolve({ data: [myCard], error: null })
-
-    expect(await screen.findByText('Jezdci z druhé državy')).toBeInTheDocument()
-    await waitFor(() => expect(screen.queryByText('Elitní rytíři')).not.toBeInTheDocument())
   })
 
   it('clears the loading state if the player deselects the origin while units are still loading', async () => {
@@ -224,11 +222,11 @@ describe('DeclareAttackModal', () => {
 
     render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
 
-    const select = await screen.findByLabelText('Odkud útočíš')
-    fireEvent.change(select, { target: { value: '1' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Odkud útočíš' }))
+    fireEvent.click(screen.getByTestId('declare-attack-origin-check-1'))
     expect(await screen.findByText('Načítám vojska…')).toBeInTheDocument()
 
-    fireEvent.change(select, { target: { value: '' } })
+    fireEvent.click(screen.getByTestId('declare-attack-origin-check-1'))
     await waitFor(() => expect(screen.queryByText('Načítám vojska…')).not.toBeInTheDocument())
   })
 
@@ -237,7 +235,8 @@ describe('DeclareAttackModal', () => {
 
     render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
 
-    fireEvent.change(await screen.findByLabelText('Odkud útočíš'), { target: { value: '1' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Odkud útočíš' }))
+    fireEvent.click(screen.getByTestId('declare-attack-origin-check-1'))
     await screen.findByText('Elitní rytíři')
 
     fireEvent.click(screen.getByRole('button', { name: 'Zvětšit kartu Elitní rytíři' }))
@@ -256,9 +255,45 @@ describe('DeclareAttackModal', () => {
 
     render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
 
-    fireEvent.change(await screen.findByLabelText('Odkud útočíš'), { target: { value: '1' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Odkud útočíš' }))
+    fireEvent.click(screen.getByTestId('declare-attack-origin-check-1'))
 
     expect(await screen.findByTestId('declare-attack-eta')).toBeInTheDocument()
+  })
+
+  it('uses the slowest selected contingent for the shared ETA preview', async () => {
+    getMyTerritories.mockResolvedValue({
+      data: [
+        { id: 1, x: 4, y: 5, is_home: true },
+        { id: 2, x: 0, y: 0, is_home: false },
+      ],
+      error: null,
+    })
+    getCardInstancesAtTerritory.mockImplementation((id: number) =>
+      Promise.resolve({
+        data:
+          id === 1
+            ? [{ ...myCard, card_templates: { ...myCard.card_templates, base_stats: { str: 20, lng: 5, def: 15, hp: 30, speed: 10 } } }]
+            : id === 2
+              ? [mySecondCard]
+              : [],
+        error: null,
+      })
+    )
+
+    render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Odkud útočíš' }))
+    fireEvent.click(screen.getByTestId('declare-attack-origin-check-1'))
+    await screen.findByText('Elitní rytíři')
+    fireEvent.click(screen.getByTestId('declare-attack-card-select-inst-1'))
+    const firstEta = (await screen.findByTestId('declare-attack-eta')).textContent
+
+    fireEvent.click(screen.getByTestId('declare-attack-origin-check-2'))
+    await screen.findByText('Hraničáři z druhé državy')
+    fireEvent.click(screen.getByTestId('declare-attack-card-select-inst-2'))
+
+    expect(await screen.findByTestId('declare-attack-eta')).not.toHaveTextContent(firstEta ?? '')
   })
 
   it('shows an army-strength comparison once attacker cards are selected', async () => {
@@ -268,7 +303,8 @@ describe('DeclareAttackModal', () => {
 
     render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
 
-    fireEvent.change(await screen.findByLabelText('Odkud útočíš'), { target: { value: '1' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Odkud útočíš' }))
+    fireEvent.click(screen.getByTestId('declare-attack-origin-check-1'))
     await screen.findByText('Elitní rytíři')
     fireEvent.click(screen.getByTestId('declare-attack-card-select-inst-1'))
 
@@ -284,7 +320,8 @@ describe('DeclareAttackModal', () => {
 
     render(<DeclareAttackModal territory={emptyTerritory} myPlayerId="me" onClose={jest.fn()} />)
 
-    fireEvent.change(await screen.findByLabelText('Odkud útočíš'), { target: { value: '1' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Odkud útočíš' }))
+    fireEvent.click(screen.getByTestId('declare-attack-origin-check-1'))
     await screen.findByText('Elitní rytíři')
     fireEvent.click(screen.getByTestId('declare-attack-card-select-inst-1'))
 
@@ -298,7 +335,8 @@ describe('DeclareAttackModal', () => {
 
     render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
 
-    fireEvent.change(await screen.findByLabelText('Odkud útočíš'), { target: { value: '1' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Odkud útočíš' }))
+    fireEvent.click(screen.getByTestId('declare-attack-origin-check-1'))
     await screen.findByText('Elitní rytíři')
     fireEvent.click(screen.getByTestId('declare-attack-card-select-inst-1'))
 

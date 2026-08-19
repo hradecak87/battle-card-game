@@ -153,6 +153,21 @@ export async function getTerritory(territoryId: number) {
   }>
 }
 
+export interface AttackOriginGroup {
+  originTerritoryId: number
+  cardInstanceIds: string[]
+}
+
+export async function declareAttack(targetTerritoryId: number, originGroups: AttackOriginGroup[]) {
+  return supabase.rpc('declare_attack', {
+    target_territory_id: targetTerritoryId,
+    origin_groups: originGroups.map((group) => ({
+      origin_territory_id: group.originTerritoryId,
+      card_instance_ids: group.cardInstanceIds,
+    })),
+  }) as unknown as Promise<{ data: string | null; error: { message: string } | null }>
+}
+
 export async function getMyMovements() {
   return supabase.rpc('get_my_movements') as unknown as Promise<{
     data: TroopMovement[] | null
