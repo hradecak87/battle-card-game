@@ -11,7 +11,7 @@ describe('computeEffectiveStats', () => {
     (ownerNation, expected) => {
       expect(
         computeEffectiveStats({
-          baseStats: { str: 10, lng: 20, def: 30, hp: 40 },
+          baseStats: { str: 10, lng: 20, def: 30, hp: 40, speed: 5 },
           rank: 'uncommon',
           isDefendingThisRound: false,
           castleRank: 'legend',
@@ -25,7 +25,7 @@ describe('computeEffectiveStats', () => {
   it('applies only village defense when defending with a village and no castle', () => {
     expect(
       computeEffectiveStats({
-        baseStats: { str: 10, lng: 10, def: 20, hp: 10 },
+        baseStats: { str: 10, lng: 10, def: 20, hp: 10, speed: 5 },
         rank: 'common',
         isDefendingThisRound: true,
         castleRank: null,
@@ -38,7 +38,7 @@ describe('computeEffectiveStats', () => {
   it('applies both castle defense and castle attack bonuses when defending with only a castle', () => {
     expect(
       computeEffectiveStats({
-        baseStats: { str: 10, lng: 10, def: 20, hp: 10 },
+        baseStats: { str: 10, lng: 10, def: 20, hp: 10, speed: 5 },
         rank: 'common',
         isDefendingThisRound: true,
         castleRank: 'uncommon',
@@ -51,7 +51,7 @@ describe('computeEffectiveStats', () => {
   it('stacks castle and village defense additively while still applying the castle attack bonus', () => {
     expect(
       computeEffectiveStats({
-        baseStats: { str: 10, lng: 10, def: 20, hp: 10 },
+        baseStats: { str: 10, lng: 10, def: 20, hp: 10, speed: 5 },
         rank: 'common',
         isDefendingThisRound: true,
         castleRank: 'rare',
@@ -64,7 +64,7 @@ describe('computeEffectiveStats', () => {
   it('multiplies stacked defense bonuses sequentially and rounds only once at the end', () => {
     expect(
       computeEffectiveStats({
-        baseStats: { str: 4, lng: 5, def: 3, hp: 7 },
+        baseStats: { str: 4, lng: 5, def: 3, hp: 7, speed: 5 },
         rank: 'common',
         isDefendingThisRound: true,
         castleRank: 'common',
@@ -79,7 +79,7 @@ describe('computeEffectiveStats', () => {
     (ownerNation) => {
       expect(
         computeEffectiveStats({
-          baseStats: { str: 10, lng: 10, def: 20, hp: 10 },
+          baseStats: { str: 10, lng: 10, def: 20, hp: 10, speed: 5 },
           rank: 'common',
           isDefendingThisRound: true,
           castleRank: 'common',

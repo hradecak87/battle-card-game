@@ -34,14 +34,29 @@ const OCCUPATION_FLOOR_HOURS = 10
 const MONGOL_TRANSFER_MULTIPLIER = 0.75 // Mongol Horde: -25% transfer time
 const SCANDINAVIA_OCCUPATION_MULTIPLIER = 0.8 // Scandinavia: -20% occupation time
 
+/** Reference speed (0-10 scale) at which the speed multiplier is a no-op. */
+const BASELINE_SPEED = 5
+const SPEED_MULTIPLIER_MIN = 0.4
+const SPEED_MULTIPLIER_MAX = 3.0
+
 /**
  * Hours for troops to physically travel `distance` tiles. Mongol Horde's
  * -25% perk (spec/subsystem #2 §3, applied here per that spec's explicit
  * deferral to "whichever subsystem owns the mechanic") is applied after
  * the floor.
+ *
+ * `groupSpeed` (backlog #12) is the minimum `speed` stat among the moving
+ * card selection — the slowest unit sets the pace for the whole group.
+ * Omit it (or pass the baseline `5`) to get today's unmodified duration.
+ * The resulting multiplier is clamped to [0.4, 3.0] so no future speed
+ * value can produce a degenerate duration.
  */
-export function transferHours(distance: number, nation?: NationId): number {
-  const base = Math.max(TRANSFER_FLOOR_HOURS, distance * TRANSFER_RATE_HOURS_PER_TILE)
+export function transferHours(distance: number, nation?: NationId, groupSpeed?: number): number {
+  const speedMultiplier =
+    groupSpeed === undefined
+      ? 1
+      : Math.min(SPEED_MULTIPLIER_MAX, Math.max(SPEED_MULTIPLIER_MIN, BASELINE_SPEED / groupSpeed))
+  const base = Math.max(TRANSFER_FLOOR_HOURS, distance * TRANSFER_RATE_HOURS_PER_TILE * speedMultiplier)
   return nation === 'mongol_horde' ? base * MONGOL_TRANSFER_MULTIPLIER : base
 }
 

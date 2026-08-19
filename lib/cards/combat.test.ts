@@ -2,7 +2,7 @@ import { applyRank, calculateWinProbability, resolveDuel, resolveDuelWithBreakdo
 import { EffectiveCard, RawStats } from './types'
 
 describe('applyRank', () => {
-  const base: RawStats = { str: 4, lng: 8, def: 2, hp: 5 }
+  const base: RawStats = { str: 4, lng: 8, def: 2, hp: 5, speed: 5 }
 
   it('scales all 4 attributes by the common multiplier (x1.0)', () => {
     expect(applyRank(base, 'common')).toEqual({ str: 4, lng: 8, def: 2, hp: 5 })
@@ -28,7 +28,7 @@ describe('applyRank', () => {
   })
 
   it('clamps negative results to 0 (defensive; base stats should never be negative)', () => {
-    const negative: RawStats = { str: -1, lng: -2, def: 0, hp: 3 }
+    const negative: RawStats = { str: -1, lng: -2, def: 0, hp: 3, speed: 5 }
     const result = applyRank(negative, 'common')
     expect(result.str).toBe(0)
     expect(result.lng).toBe(0)

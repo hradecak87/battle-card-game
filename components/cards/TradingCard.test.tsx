@@ -12,7 +12,7 @@ function makeTemplate(overrides: Partial<UnitCardTemplate>): UnitCardTemplate {
     rank: 'common',
     name: 'Královští lučištníci',
     flavorText: 'Déšť šípů přichází bez varování.',
-    baseStats: { str: 5, lng: 12, def: 4, hp: 11 },
+    baseStats: { str: 5, lng: 12, def: 4, hp: 11, speed: 6 },
     totalSupply: null,
     ...overrides,
   }

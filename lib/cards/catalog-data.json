@@ -9,7 +9,8 @@
       "str": 1,
       "lng": 8.7,
       "def": 2.2,
-      "hp": 4
+      "hp": 4,
+      "speed": 5.8
     },
     "totalSupply": null
   },
@@ -23,7 +24,8 @@
       "str": 0.9,
       "lng": 8.3,
       "def": 2.1,
-      "hp": 4
+      "hp": 4,
+      "speed": 6
     },
     "totalSupply": null
   },
@@ -37,7 +39,8 @@
       "str": 1.1,
       "lng": 7.9,
       "def": 2,
-      "hp": 3.9
+      "hp": 3.9,
+      "speed": 6
     },
     "totalSupply": null
   },
@@ -51,7 +54,8 @@
       "str": 1,
       "lng": 7.5,
       "def": 1.9,
-      "hp": 3.8
+      "hp": 3.8,
+      "speed": 6.2
     },
     "totalSupply": null
   },
@@ -65,7 +69,8 @@
       "str": 1,
       "lng": 8.7,
       "def": 2.2,
-      "hp": 3.7
+      "hp": 3.7,
+      "speed": 5.9
     },
     "totalSupply": null
   },
@@ -79,7 +84,8 @@
       "str": 0.9,
       "lng": 8.3,
       "def": 2.1,
-      "hp": 3.6
+      "hp": 3.6,
+      "speed": 6.1
     },
     "totalSupply": null
   },
@@ -93,7 +99,8 @@
       "str": 1.1,
       "lng": 8,
       "def": 2,
-      "hp": 4.3
+      "hp": 4.3,
+      "speed": 5.8
     },
     "totalSupply": null
   },
@@ -107,7 +114,8 @@
       "str": 1,
       "lng": 7.6,
       "def": 1.9,
-      "hp": 4.2
+      "hp": 4.2,
+      "speed": 6
     },
     "totalSupply": null
   },
@@ -121,7 +129,8 @@
       "str": 1,
       "lng": 8.8,
       "def": 1.8,
-      "hp": 4.2
+      "hp": 4.2,
+      "speed": 5.9
     },
     "totalSupply": null
   },
@@ -135,7 +144,8 @@
       "str": 0.9,
       "lng": 8.4,
       "def": 2.1,
-      "hp": 3.9
+      "hp": 3.9,
+      "speed": 6
     },
     "totalSupply": null
   },
@@ -149,7 +159,8 @@
       "str": 1,
       "lng": 8.7,
       "def": 2.2,
-      "hp": 3.8
+      "hp": 3.8,
+      "speed": 5.9
     },
     "totalSupply": null
   },
@@ -163,7 +174,8 @@
       "str": 0.9,
       "lng": 8.3,
       "def": 2.1,
-      "hp": 3.7
+      "hp": 3.7,
+      "speed": 6.1
     },
     "totalSupply": null
   },
@@ -177,7 +189,8 @@
       "str": 1.1,
       "lng": 7.9,
       "def": 2,
-      "hp": 3.6
+      "hp": 3.6,
+      "speed": 6.1
     },
     "totalSupply": null
   },
@@ -191,7 +204,8 @@
       "str": 1,
       "lng": 7.5,
       "def": 1.9,
-      "hp": 4.3
+      "hp": 4.3,
+      "speed": 6
     },
     "totalSupply": null
   },
@@ -205,7 +219,8 @@
       "str": 1,
       "lng": 8.7,
       "def": 2.2,
-      "hp": 4.3
+      "hp": 4.3,
+      "speed": 5.7
     },
     "totalSupply": null
   },
@@ -219,7 +234,8 @@
       "str": 0.9,
       "lng": 8.3,
       "def": 2.1,
-      "hp": 4.2
+      "hp": 4.2,
+      "speed": 5.9
     },
     "totalSupply": null
   },
@@ -233,7 +249,8 @@
       "str": 1.1,
       "lng": 8,
       "def": 2,
-      "hp": 4.1
+      "hp": 4.1,
+      "speed": 5.8
     },
     "totalSupply": null
   },
@@ -247,7 +264,8 @@
       "str": 1,
       "lng": 7.6,
       "def": 1.9,
-      "hp": 4
+      "hp": 4,
+      "speed": 6.1
     },
     "totalSupply": null
   },
@@ -261,7 +279,8 @@
       "str": 1,
       "lng": 8.5,
       "def": 2.1,
-      "hp": 4.2
+      "hp": 4.2,
+      "speed": 5.8
     },
     "totalSupply": 20
   },
@@ -275,7 +294,8 @@
       "str": 0.9,
       "lng": 8.2,
       "def": 2,
-      "hp": 4.1
+      "hp": 4.1,
+      "speed": 6
     },
     "totalSupply": 26
   },
@@ -289,7 +309,8 @@
       "str": 1.1,
       "lng": 7.8,
       "def": 1.9,
-      "hp": 4
+      "hp": 4,
+      "speed": 6
     },
     "totalSupply": 32
   },
@@ -303,7 +324,8 @@
       "str": 1,
       "lng": 7.4,
       "def": 1.9,
-      "hp": 3.9
+      "hp": 3.9,
+      "speed": 6.2
     },
     "totalSupply": 38
   },
@@ -317,7 +339,8 @@
       "str": 1,
       "lng": 8.6,
       "def": 2.2,
-      "hp": 3.8
+      "hp": 3.8,
+      "speed": 5.9
     },
     "totalSupply": 44
   },
@@ -331,7 +354,8 @@
       "str": 0.9,
       "lng": 8.2,
       "def": 2.1,
-      "hp": 3.8
+      "hp": 3.8,
+      "speed": 6.1
     },
     "totalSupply": 50
   },
@@ -345,7 +369,8 @@
       "str": 1,
       "lng": 8.7,
       "def": 2.2,
-      "hp": 3.9
+      "hp": 3.9,
+      "speed": 5.8
     },
     "totalSupply": 5
   },
@@ -359,7 +384,8 @@
       "str": 0.9,
       "lng": 8.3,
       "def": 2.1,
-      "hp": 3.8
+      "hp": 3.8,
+      "speed": 6.1
     },
     "totalSupply": 8
   },
@@ -373,7 +399,8 @@
       "str": 1.1,
       "lng": 7.9,
       "def": 2,
-      "hp": 3.7
+      "hp": 3.7,
+      "speed": 6
     },
     "totalSupply": 12
   },
@@ -387,7 +414,8 @@
       "str": 1,
       "lng": 7.6,
       "def": 1.9,
-      "hp": 3.6
+      "hp": 3.6,
+      "speed": 6.2
     },
     "totalSupply": 15
   },
@@ -401,7 +429,8 @@
       "str": 0.9,
       "lng": 8.4,
       "def": 2.1,
-      "hp": 3.7
+      "hp": 3.7,
+      "speed": 6.1
     },
     "totalSupply": 1
   },
@@ -415,7 +444,8 @@
       "str": 1.1,
       "lng": 8,
       "def": 2,
-      "hp": 3.6
+      "hp": 3.6,
+      "speed": 6
     },
     "totalSupply": 3
   },
@@ -429,7 +459,8 @@
       "str": 1,
       "lng": 7.6,
       "def": 1.9,
-      "hp": 4.3
+      "hp": 4.3,
+      "speed": 6
     },
     "totalSupply": 5
   },
@@ -443,7 +474,8 @@
       "str": 1.1,
       "lng": 6.9,
       "def": 5,
-      "hp": 4.2
+      "hp": 4.2,
+      "speed": 4.4
     },
     "totalSupply": null
   },
@@ -457,7 +489,8 @@
       "str": 1,
       "lng": 6.6,
       "def": 4.7,
-      "hp": 4.2
+      "hp": 4.2,
+      "speed": 4.5
     },
     "totalSupply": null
   },
@@ -471,7 +504,8 @@
       "str": 1,
       "lng": 7.7,
       "def": 5.5,
-      "hp": 4.1
+      "hp": 4.1,
+      "speed": 4.3
     },
     "totalSupply": null
   },
@@ -485,7 +519,8 @@
       "str": 0.9,
       "lng": 7.3,
       "def": 5.3,
-      "hp": 4
+      "hp": 4,
+      "speed": 4.5
     },
     "totalSupply": null
   },
@@ -499,7 +534,8 @@
       "str": 1.1,
       "lng": 7,
       "def": 5,
-      "hp": 3.9
+      "hp": 3.9,
+      "speed": 4.4
     },
     "totalSupply": null
   },
@@ -513,7 +549,8 @@
       "str": 1,
       "lng": 6.7,
       "def": 4.8,
-      "hp": 3.8
+      "hp": 3.8,
+      "speed": 4.6
     },
     "totalSupply": null
   },
@@ -527,7 +564,8 @@
       "str": 1,
       "lng": 6.3,
       "def": 4.5,
-      "hp": 3.7
+      "hp": 3.7,
+      "speed": 4.8
     },
     "totalSupply": null
   },
@@ -541,7 +579,8 @@
       "str": 0.9,
       "lng": 7.4,
       "def": 5.3,
-      "hp": 3.7
+      "hp": 3.7,
+      "speed": 4.5
     },
     "totalSupply": null
   },
@@ -555,7 +594,8 @@
       "str": 0.9,
       "lng": 7.1,
       "def": 5.1,
-      "hp": 4.4
+      "hp": 4.4,
+      "speed": 4.5
     },
     "totalSupply": null
   },
@@ -569,7 +609,8 @@
       "str": 1,
       "lng": 6.7,
       "def": 4.8,
-      "hp": 4.1
+      "hp": 4.1,
+      "speed": 4.5
     },
     "totalSupply": null
   },
@@ -583,7 +624,8 @@
       "str": 1.1,
       "lng": 7,
       "def": 5,
-      "hp": 3.8
+      "hp": 3.8,
+      "speed": 4.4
     },
     "totalSupply": null
   },
@@ -597,7 +639,8 @@
       "str": 1,
       "lng": 6.7,
       "def": 4.8,
-      "hp": 3.7
+      "hp": 3.7,
+      "speed": 4.6
     },
     "totalSupply": null
   },
@@ -611,7 +654,8 @@
       "str": 1,
       "lng": 6.4,
       "def": 4.6,
-      "hp": 3.7
+      "hp": 3.7,
+      "speed": 4.8
     },
     "totalSupply": null
   },
@@ -625,7 +669,8 @@
       "str": 1,
       "lng": 7.4,
       "def": 5.3,
-      "hp": 4.4
+      "hp": 4.4,
+      "speed": 4.3
     },
     "totalSupply": null
   },
@@ -639,7 +684,8 @@
       "str": 0.9,
       "lng": 7.1,
       "def": 5.1,
-      "hp": 4.3
+      "hp": 4.3,
+      "speed": 4.5
     },
     "totalSupply": null
   },
@@ -653,7 +699,8 @@
       "str": 1.1,
       "lng": 6.8,
       "def": 4.8,
-      "hp": 4.2
+      "hp": 4.2,
+      "speed": 4.5
     },
     "totalSupply": null
   },
@@ -667,7 +714,8 @@
       "str": 1,
       "lng": 6.4,
       "def": 4.6,
-      "hp": 4.1
+      "hp": 4.1,
+      "speed": 4.6
     },
     "totalSupply": null
   },
@@ -681,7 +729,8 @@
       "str": 1,
       "lng": 7.5,
       "def": 5.4,
-      "hp": 4
+      "hp": 4,
+      "speed": 4.4
     },
     "totalSupply": null
   },
@@ -695,7 +744,8 @@
       "str": 1,
       "lng": 6.5,
       "def": 4.6,
-      "hp": 3.8
+      "hp": 3.8,
+      "speed": 4.7
     },
     "totalSupply": 20
   },
@@ -709,7 +759,8 @@
       "str": 1,
       "lng": 7.5,
       "def": 5.4,
-      "hp": 3.7
+      "hp": 3.7,
+      "speed": 4.4
     },
     "totalSupply": 26
   },
@@ -723,7 +774,8 @@
       "str": 0.9,
       "lng": 7.2,
       "def": 5.2,
-      "hp": 3.6
+      "hp": 3.6,
+      "speed": 4.6
     },
     "totalSupply": 32
   },
@@ -737,7 +789,8 @@
       "str": 1.1,
       "lng": 6.9,
       "def": 4.9,
-      "hp": 4.3
+      "hp": 4.3,
+      "speed": 4.4
     },
     "totalSupply": 38
   },
@@ -751,7 +804,8 @@
       "str": 1,
       "lng": 6.5,
       "def": 4.7,
-      "hp": 4.3
+      "hp": 4.3,
+      "speed": 4.6
     },
     "totalSupply": 44
   },
@@ -765,7 +819,8 @@
       "str": 1,
       "lng": 7.6,
       "def": 5.4,
-      "hp": 4.2
+      "hp": 4.2,
+      "speed": 4.3
     },
     "totalSupply": 50
   },
@@ -779,7 +834,8 @@
       "str": 1,
       "lng": 6.6,
       "def": 4.7,
-      "hp": 4.3
+      "hp": 4.3,
+      "speed": 4.5
     },
     "totalSupply": 5
   },
@@ -793,7 +849,8 @@
       "str": 1,
       "lng": 7.7,
       "def": 4.5,
-      "hp": 4.2
+      "hp": 4.2,
+      "speed": 4.5
     },
     "totalSupply": 8
   },
@@ -807,7 +864,8 @@
       "str": 0.9,
       "lng": 7.3,
       "def": 5.3,
-      "hp": 4.1
+      "hp": 4.1,
+      "speed": 4.4
     },
     "totalSupply": 12
   },
@@ -821,7 +879,8 @@
       "str": 1.1,
       "lng": 7,
       "def": 5,
-      "hp": 4
+      "hp": 4,
+      "speed": 4.4
     },
     "totalSupply": 15
   },
@@ -835,7 +894,8 @@
       "str": 1,
       "lng": 6.7,
       "def": 4.8,
-      "hp": 3.9
+      "hp": 3.9,
+      "speed": 4.6
     },
     "totalSupply": 1
   },
@@ -849,7 +909,8 @@
       "str": 1,
       "lng": 6.4,
       "def": 4.6,
-      "hp": 3.8
+      "hp": 3.8,
+      "speed": 4.8
     },
     "totalSupply": 3
   },
@@ -863,7 +924,8 @@
       "str": 1,
       "lng": 7.4,
       "def": 5.3,
-      "hp": 3.7
+      "hp": 3.7,
+      "speed": 4.5
     },
     "totalSupply": 5
   },
@@ -877,7 +939,8 @@
       "str": 4.3,
       "lng": 1,
       "def": 7,
-      "hp": 4.7
+      "hp": 4.7,
+      "speed": 5
     },
     "totalSupply": null
   },
@@ -891,7 +954,8 @@
       "str": 4.2,
       "lng": 0.9,
       "def": 6.6,
-      "hp": 4.6
+      "hp": 4.6,
+      "speed": 5.2
     },
     "totalSupply": null
   },
@@ -905,7 +969,8 @@
       "str": 4,
       "lng": 1.1,
       "def": 6.3,
-      "hp": 5.5
+      "hp": 5.5,
+      "speed": 4.9
     },
     "totalSupply": null
   },
@@ -919,7 +984,8 @@
       "str": 3.8,
       "lng": 1.1,
       "def": 7.4,
-      "hp": 5.4
+      "hp": 5.4,
+      "speed": 4.8
     },
     "totalSupply": null
   },
@@ -933,7 +999,8 @@
       "str": 4.4,
       "lng": 1,
       "def": 7,
-      "hp": 5.3
+      "hp": 5.3,
+      "speed": 4.8
     },
     "totalSupply": null
   },
@@ -947,7 +1014,8 @@
       "str": 4.2,
       "lng": 1,
       "def": 6.7,
-      "hp": 5.2
+      "hp": 5.2,
+      "speed": 5
     },
     "totalSupply": null
   },
@@ -961,7 +1029,8 @@
       "str": 4,
       "lng": 0.9,
       "def": 6.4,
-      "hp": 5.1
+      "hp": 5.1,
+      "speed": 5.2
     },
     "totalSupply": null
   },
@@ -975,7 +1044,8 @@
       "str": 3.8,
       "lng": 1.1,
       "def": 7.4,
-      "hp": 5
+      "hp": 5,
+      "speed": 4.9
     },
     "totalSupply": null
   },
@@ -989,7 +1059,8 @@
       "str": 3.6,
       "lng": 1,
       "def": 7.1,
-      "hp": 4.9
+      "hp": 4.9,
+      "speed": 5.1
     },
     "totalSupply": null
   },
@@ -1003,7 +1074,8 @@
       "str": 4.2,
       "lng": 1,
       "def": 6.7,
-      "hp": 4.6
+      "hp": 4.6,
+      "speed": 5.1
     },
     "totalSupply": null
   },
@@ -1017,7 +1089,8 @@
       "str": 4,
       "lng": 0.9,
       "def": 6.4,
-      "hp": 4.9
+      "hp": 4.9,
+      "speed": 5.2
     },
     "totalSupply": null
   },
@@ -1031,7 +1104,8 @@
       "str": 3.9,
       "lng": 1.1,
       "def": 7.5,
-      "hp": 4.8
+      "hp": 4.8,
+      "speed": 4.9
     },
     "totalSupply": null
   },
@@ -1045,7 +1119,8 @@
       "str": 3.7,
       "lng": 1,
       "def": 7.2,
-      "hp": 4.6
+      "hp": 4.6,
+      "speed": 5.1
     },
     "totalSupply": null
   },
@@ -1059,7 +1134,8 @@
       "str": 4.3,
       "lng": 1,
       "def": 6.8,
-      "hp": 4.5
+      "hp": 4.5,
+      "speed": 5.1
     },
     "totalSupply": null
   },
@@ -1073,7 +1149,8 @@
       "str": 4.1,
       "lng": 0.9,
       "def": 6.5,
-      "hp": 5.4
+      "hp": 5.4,
+      "speed": 5
     },
     "totalSupply": null
   },
@@ -1087,7 +1164,8 @@
       "str": 3.9,
       "lng": 1.1,
       "def": 7.6,
-      "hp": 5.3
+      "hp": 5.3,
+      "speed": 4.8
     },
     "totalSupply": null
   },
@@ -1101,7 +1179,8 @@
       "str": 3.7,
       "lng": 1,
       "def": 7.2,
-      "hp": 5.2
+      "hp": 5.2,
+      "speed": 5
     },
     "totalSupply": null
   },
@@ -1115,7 +1194,8 @@
       "str": 4.3,
       "lng": 1,
       "def": 6.9,
-      "hp": 5.1
+      "hp": 5.1,
+      "speed": 4.9
     },
     "totalSupply": null
   },
@@ -1129,7 +1209,8 @@
       "str": 3.6,
       "lng": 1,
       "def": 7.1,
-      "hp": 4.9
+      "hp": 4.9,
+      "speed": 5.1
     },
     "totalSupply": 20
   },
@@ -1143,7 +1224,8 @@
       "str": 4.2,
       "lng": 1,
       "def": 6.8,
-      "hp": 4.8
+      "hp": 4.8,
+      "speed": 5
     },
     "totalSupply": 26
   },
@@ -1157,7 +1239,8 @@
       "str": 4.1,
       "lng": 0.9,
       "def": 6.5,
-      "hp": 4.7
+      "hp": 4.7,
+      "speed": 5.2
     },
     "totalSupply": 32
   },
@@ -1171,7 +1254,8 @@
       "str": 3.9,
       "lng": 1.1,
       "def": 7.5,
-      "hp": 4.6
+      "hp": 4.6,
+      "speed": 5
     },
     "totalSupply": 38
   },
@@ -1185,7 +1269,8 @@
       "str": 3.7,
       "lng": 1,
       "def": 7.2,
-      "hp": 4.5
+      "hp": 4.5,
+      "speed": 5.2
     },
     "totalSupply": 44
   },
@@ -1199,7 +1284,8 @@
       "str": 4.3,
       "lng": 1,
       "def": 6.9,
-      "hp": 5.4
+      "hp": 5.4,
+      "speed": 4.9
     },
     "totalSupply": 50
   },
@@ -1213,7 +1299,8 @@
       "str": 3.7,
       "lng": 1,
       "def": 7.3,
-      "hp": 4.9
+      "hp": 4.9,
+      "speed": 5
     },
     "totalSupply": 5
   },
@@ -1227,7 +1314,8 @@
       "str": 4.3,
       "lng": 1,
       "def": 7,
-      "hp": 4.8
+      "hp": 4.8,
+      "speed": 5
     },
     "totalSupply": 8
   },
@@ -1241,7 +1329,8 @@
       "str": 4.1,
       "lng": 0.9,
       "def": 6.6,
-      "hp": 4.7
+      "hp": 4.7,
+      "speed": 5.2
     },
     "totalSupply": 12
   },
@@ -1255,7 +1344,8 @@
       "str": 3.9,
       "lng": 1.1,
       "def": 7.7,
-      "hp": 4.6
+      "hp": 4.6,
+      "speed": 4.9
     },
     "totalSupply": 15
   },
@@ -1269,7 +1359,8 @@
       "str": 3.7,
       "lng": 1,
       "def": 7.2,
-      "hp": 4.6
+      "hp": 4.6,
+      "speed": 5.1
     },
     "totalSupply": 1
   },
@@ -1283,7 +1374,8 @@
       "str": 4.3,
       "lng": 1,
       "def": 6.9,
-      "hp": 4.5
+      "hp": 4.5,
+      "speed": 5.1
     },
     "totalSupply": 3
   },
@@ -1297,7 +1389,8 @@
       "str": 4.1,
       "lng": 0.9,
       "def": 6.6,
-      "hp": 5.4
+      "hp": 5.4,
+      "speed": 5
     },
     "totalSupply": 5
   },
@@ -1311,7 +1404,8 @@
       "str": 7.2,
       "lng": 0.9,
       "def": 3.8,
-      "hp": 5.1
+      "hp": 5.1,
+      "speed": 5.6
     },
     "totalSupply": null
   },
@@ -1325,7 +1419,8 @@
       "str": 6.9,
       "lng": 1.1,
       "def": 4.4,
-      "hp": 5
+      "hp": 5,
+      "speed": 5.3
     },
     "totalSupply": null
   },
@@ -1339,7 +1434,8 @@
       "str": 6.6,
       "lng": 1,
       "def": 4.2,
-      "hp": 4.9
+      "hp": 4.9,
+      "speed": 5.5
     },
     "totalSupply": null
   },
@@ -1353,7 +1449,8 @@
       "str": 7.6,
       "lng": 1,
       "def": 4,
-      "hp": 4.8
+      "hp": 4.8,
+      "speed": 5.4
     },
     "totalSupply": null
   },
@@ -1367,7 +1464,8 @@
       "str": 7.3,
       "lng": 1,
       "def": 3.8,
-      "hp": 4.7
+      "hp": 4.7,
+      "speed": 5.7
     },
     "totalSupply": null
   },
@@ -1381,7 +1479,8 @@
       "str": 7,
       "lng": 0.9,
       "def": 3.6,
-      "hp": 4.6
+      "hp": 4.6,
+      "speed": 5.9
     },
     "totalSupply": null
   },
@@ -1395,7 +1494,8 @@
       "str": 6.6,
       "lng": 1.1,
       "def": 4.2,
-      "hp": 5.5
+      "hp": 5.5,
+      "speed": 5.3
     },
     "totalSupply": null
   },
@@ -1409,7 +1509,8 @@
       "str": 7.7,
       "lng": 1,
       "def": 4,
-      "hp": 5.4
+      "hp": 5.4,
+      "speed": 5.2
     },
     "totalSupply": null
   },
@@ -1423,7 +1524,8 @@
       "str": 7.4,
       "lng": 1,
       "def": 3.8,
-      "hp": 5.3
+      "hp": 5.3,
+      "speed": 5.5
     },
     "totalSupply": null
   },
@@ -1437,7 +1539,8 @@
       "str": 7,
       "lng": 0.9,
       "def": 3.6,
-      "hp": 5
+      "hp": 5,
+      "speed": 5.8
     },
     "totalSupply": null
   },
@@ -1451,7 +1554,8 @@
       "str": 6.5,
       "lng": 1,
       "def": 4.2,
-      "hp": 5.3
+      "hp": 5.3,
+      "speed": 5.4
     },
     "totalSupply": null
   },
@@ -1465,7 +1569,8 @@
       "str": 7.6,
       "lng": 1,
       "def": 4,
-      "hp": 5.2
+      "hp": 5.2,
+      "speed": 5.4
     },
     "totalSupply": null
   },
@@ -1479,7 +1584,8 @@
       "str": 7.2,
       "lng": 0.9,
       "def": 3.8,
-      "hp": 5.1
+      "hp": 5.1,
+      "speed": 5.6
     },
     "totalSupply": null
   },
@@ -1493,7 +1599,8 @@
       "str": 6.9,
       "lng": 1.1,
       "def": 4.4,
-      "hp": 5
+      "hp": 5,
+      "speed": 5.3
     },
     "totalSupply": null
   },
@@ -1507,7 +1614,8 @@
       "str": 6.6,
       "lng": 1,
       "def": 4.2,
-      "hp": 4.9
+      "hp": 4.9,
+      "speed": 5.5
     },
     "totalSupply": null
   },
@@ -1521,7 +1629,8 @@
       "str": 7.6,
       "lng": 1,
       "def": 4,
-      "hp": 4.8
+      "hp": 4.8,
+      "speed": 5.4
     },
     "totalSupply": null
   },
@@ -1535,7 +1644,8 @@
       "str": 7.3,
       "lng": 0.9,
       "def": 3.8,
-      "hp": 4.7
+      "hp": 4.7,
+      "speed": 5.7
     },
     "totalSupply": null
   },
@@ -1549,7 +1659,8 @@
       "str": 6.9,
       "lng": 1.1,
       "def": 3.6,
-      "hp": 4.6
+      "hp": 4.6,
+      "speed": 5.6
     },
     "totalSupply": null
   },
@@ -1563,7 +1674,8 @@
       "str": 6.6,
       "lng": 1.1,
       "def": 4.2,
-      "hp": 4.6
+      "hp": 4.6,
+      "speed": 5.5
     },
     "totalSupply": 20
   },
@@ -1577,7 +1689,8 @@
       "str": 6.3,
       "lng": 1,
       "def": 4,
-      "hp": 4.5
+      "hp": 4.5,
+      "speed": 5.7
     },
     "totalSupply": 26
   },
@@ -1591,7 +1704,8 @@
       "str": 7.4,
       "lng": 1,
       "def": 3.9,
-      "hp": 5.4
+      "hp": 5.4,
+      "speed": 5.4
     },
     "totalSupply": 32
   },
@@ -1605,7 +1719,8 @@
       "str": 7,
       "lng": 0.9,
       "def": 3.7,
-      "hp": 5.3
+      "hp": 5.3,
+      "speed": 5.6
     },
     "totalSupply": 38
   },
@@ -1619,7 +1734,8 @@
       "str": 6.7,
       "lng": 1.1,
       "def": 4.3,
-      "hp": 5.2
+      "hp": 5.2,
+      "speed": 5.3
     },
     "totalSupply": 44
   },
@@ -1633,7 +1749,8 @@
       "str": 6.4,
       "lng": 1,
       "def": 4.1,
-      "hp": 5.1
+      "hp": 5.1,
+      "speed": 5.5
     },
     "totalSupply": 50
   },
@@ -1647,7 +1764,8 @@
       "str": 6.8,
       "lng": 1.1,
       "def": 4.3,
-      "hp": 5.2
+      "hp": 5.2,
+      "speed": 5.3
     },
     "totalSupply": 5
   },
@@ -1661,7 +1779,8 @@
       "str": 6.5,
       "lng": 1,
       "def": 4.1,
-      "hp": 5.1
+      "hp": 5.1,
+      "speed": 5.5
     },
     "totalSupply": 8
   },
@@ -1675,7 +1794,8 @@
       "str": 7.5,
       "lng": 1,
       "def": 3.9,
-      "hp": 5
+      "hp": 5,
+      "speed": 5.4
     },
     "totalSupply": 12
   },
@@ -1689,7 +1809,8 @@
       "str": 7.2,
       "lng": 0.9,
       "def": 3.8,
-      "hp": 4.9
+      "hp": 4.9,
+      "speed": 5.7
     },
     "totalSupply": 15
   },
@@ -1703,7 +1824,8 @@
       "str": 7,
       "lng": 0.9,
       "def": 3.6,
-      "hp": 5.1
+      "hp": 5.1,
+      "speed": 5.7
     },
     "totalSupply": 1
   },
@@ -1717,7 +1839,8 @@
       "str": 6.7,
       "lng": 1.1,
       "def": 4.2,
-      "hp": 5
+      "hp": 5,
+      "speed": 5.4
     },
     "totalSupply": 3
   },
@@ -1731,7 +1854,8 @@
       "str": 6.3,
       "lng": 1,
       "def": 4.1,
-      "hp": 4.9
+      "hp": 4.9,
+      "speed": 5.6
     },
     "totalSupply": 5
   },
@@ -1745,7 +1869,8 @@
       "str": 6.1,
       "lng": 0.9,
       "def": 7.5,
-      "hp": 7.2
+      "hp": 7.2,
+      "speed": 3.7
     },
     "totalSupply": null
   },
@@ -1759,7 +1884,8 @@
       "str": 5.8,
       "lng": 1.1,
       "def": 8.7,
-      "hp": 8.7
+      "hp": 8.7,
+      "speed": 3.3
     },
     "totalSupply": null
   },
@@ -1773,7 +1899,8 @@
       "str": 5.6,
       "lng": 1,
       "def": 8.3,
-      "hp": 8.5
+      "hp": 8.5,
+      "speed": 3.4
     },
     "totalSupply": null
   },
@@ -1787,7 +1914,8 @@
       "str": 6.5,
       "lng": 1,
       "def": 7.9,
-      "hp": 8.3
+      "hp": 8.3,
+      "speed": 3.4
     },
     "totalSupply": null
   },
@@ -1801,7 +1929,8 @@
       "str": 6.2,
       "lng": 0.9,
       "def": 7.5,
-      "hp": 8.2
+      "hp": 8.2,
+      "speed": 3.6
     },
     "totalSupply": null
   },
@@ -1815,7 +1944,8 @@
       "str": 5.9,
       "lng": 1.1,
       "def": 8.7,
-      "hp": 8
+      "hp": 8,
+      "speed": 3.4
     },
     "totalSupply": null
   },
@@ -1829,7 +1959,8 @@
       "str": 5.6,
       "lng": 1,
       "def": 8.4,
-      "hp": 7.8
+      "hp": 7.8,
+      "speed": 3.5
     },
     "totalSupply": null
   },
@@ -1843,7 +1974,8 @@
       "str": 6.5,
       "lng": 1,
       "def": 8,
-      "hp": 7.7
+      "hp": 7.7,
+      "speed": 3.5
     },
     "totalSupply": null
   },
@@ -1857,7 +1989,8 @@
       "str": 6.2,
       "lng": 0.9,
       "def": 7.6,
-      "hp": 7.5
+      "hp": 7.5,
+      "speed": 3.6
     },
     "totalSupply": null
   },
@@ -1871,7 +2004,8 @@
       "str": 5.9,
       "lng": 1.1,
       "def": 8.8,
-      "hp": 8.6
+      "hp": 8.6,
+      "speed": 3.3
     },
     "totalSupply": null
   },
@@ -1885,7 +2019,8 @@
       "str": 6.1,
       "lng": 0.9,
       "def": 7.4,
-      "hp": 8.7
+      "hp": 8.7,
+      "speed": 3.5
     },
     "totalSupply": null
   },
@@ -1899,7 +2034,8 @@
       "str": 5.8,
       "lng": 1.1,
       "def": 8.6,
-      "hp": 8.6
+      "hp": 8.6,
+      "speed": 3.3
     },
     "totalSupply": null
   },
@@ -1913,7 +2049,8 @@
       "str": 5.5,
       "lng": 1,
       "def": 8.2,
-      "hp": 8.4
+      "hp": 8.4,
+      "speed": 3.5
     },
     "totalSupply": null
   },
@@ -1927,7 +2064,8 @@
       "str": 6.4,
       "lng": 1,
       "def": 7.9,
-      "hp": 8.2
+      "hp": 8.2,
+      "speed": 3.4
     },
     "totalSupply": null
   },
@@ -1941,7 +2079,8 @@
       "str": 6.1,
       "lng": 0.9,
       "def": 7.5,
-      "hp": 8.1
+      "hp": 8.1,
+      "speed": 3.6
     },
     "totalSupply": null
   },
@@ -1955,7 +2094,8 @@
       "str": 5.9,
       "lng": 1.1,
       "def": 8.7,
-      "hp": 7.9
+      "hp": 7.9,
+      "speed": 3.4
     },
     "totalSupply": null
   },
@@ -1969,7 +2109,8 @@
       "str": 5.6,
       "lng": 1,
       "def": 8.3,
-      "hp": 7.7
+      "hp": 7.7,
+      "speed": 3.5
     },
     "totalSupply": null
   },
@@ -1983,7 +2124,8 @@
       "str": 6.5,
       "lng": 1,
       "def": 7.9,
-      "hp": 7.6
+      "hp": 7.6,
+      "speed": 3.5
     },
     "totalSupply": null
   },
@@ -1997,7 +2139,8 @@
       "str": 5.6,
       "lng": 1,
       "def": 8.4,
-      "hp": 8.6
+      "hp": 8.6,
+      "speed": 3.4
     },
     "totalSupply": 20
   },
@@ -2011,7 +2154,8 @@
       "str": 6.5,
       "lng": 1,
       "def": 8,
-      "hp": 8.4
+      "hp": 8.4,
+      "speed": 3.4
     },
     "totalSupply": 26
   },
@@ -2025,7 +2169,8 @@
       "str": 6.3,
       "lng": 1,
       "def": 7.6,
-      "hp": 8.2
+      "hp": 8.2,
+      "speed": 3.5
     },
     "totalSupply": 32
   },
@@ -2039,7 +2184,8 @@
       "str": 6,
       "lng": 0.9,
       "def": 7.3,
-      "hp": 8.1
+      "hp": 8.1,
+      "speed": 3.7
     },
     "totalSupply": 38
   },
@@ -2053,7 +2199,8 @@
       "str": 5.7,
       "lng": 1.1,
       "def": 8.5,
-      "hp": 7.9
+      "hp": 7.9,
+      "speed": 3.5
     },
     "totalSupply": 44
   },
@@ -2067,7 +2214,8 @@
       "str": 5.4,
       "lng": 1,
       "def": 8.1,
-      "hp": 7.7
+      "hp": 7.7,
+      "speed": 3.6
     },
     "totalSupply": 50
   },
@@ -2081,7 +2229,8 @@
       "str": 5.8,
       "lng": 1.1,
       "def": 8.6,
-      "hp": 7.9
+      "hp": 7.9,
+      "speed": 3.4
     },
     "totalSupply": 5
   },
@@ -2095,7 +2244,8 @@
       "str": 5.5,
       "lng": 1,
       "def": 8.2,
-      "hp": 7.8
+      "hp": 7.8,
+      "speed": 3.6
     },
     "totalSupply": 8
   },
@@ -2109,7 +2259,8 @@
       "str": 6.4,
       "lng": 1,
       "def": 7.8,
-      "hp": 7.6
+      "hp": 7.6,
+      "speed": 3.5
     },
     "totalSupply": 12
   },
@@ -2123,7 +2274,8 @@
       "str": 6.1,
       "lng": 0.9,
       "def": 7.4,
-      "hp": 7.4
+      "hp": 7.4,
+      "speed": 3.7
     },
     "totalSupply": 15
   },
@@ -2137,7 +2289,8 @@
       "str": 6.3,
       "lng": 1,
       "def": 7.7,
-      "hp": 8.2
+      "hp": 8.2,
+      "speed": 3.5
     },
     "totalSupply": 1
   },
@@ -2151,7 +2304,8 @@
       "str": 6.1,
       "lng": 0.9,
       "def": 7.4,
-      "hp": 8
+      "hp": 8,
+      "speed": 3.6
     },
     "totalSupply": 3
   },
@@ -2165,7 +2319,8 @@
       "str": 5.8,
       "lng": 1.1,
       "def": 8.6,
-      "hp": 7.8
+      "hp": 7.8,
+      "speed": 3.4
     },
     "totalSupply": 5
   },
@@ -2179,7 +2334,8 @@
       "str": 7.7,
       "lng": 1.1,
       "def": 5.4,
-      "hp": 6.4
+      "hp": 6.4,
+      "speed": 7.4
     },
     "totalSupply": null
   },
@@ -2193,7 +2349,8 @@
       "str": 7.3,
       "lng": 1,
       "def": 5.1,
-      "hp": 7.7
+      "hp": 7.7,
+      "speed": 7.4
     },
     "totalSupply": null
   },
@@ -2207,7 +2364,8 @@
       "str": 8.5,
       "lng": 1,
       "def": 4.9,
-      "hp": 7.5
+      "hp": 7.5,
+      "speed": 7.3
     },
     "totalSupply": null
   },
@@ -2221,7 +2379,8 @@
       "str": 8.2,
       "lng": 0.9,
       "def": 4.7,
-      "hp": 7.4
+      "hp": 7.4,
+      "speed": 7.6
     },
     "totalSupply": null
   },
@@ -2235,7 +2394,8 @@
       "str": 7.8,
       "lng": 1.1,
       "def": 5.4,
-      "hp": 7.2
+      "hp": 7.2,
+      "speed": 7.2
     },
     "totalSupply": null
   },
@@ -2249,7 +2409,8 @@
       "str": 7.4,
       "lng": 1,
       "def": 5.2,
-      "hp": 7.1
+      "hp": 7.1,
+      "speed": 7.5
     },
     "totalSupply": null
   },
@@ -2263,7 +2424,8 @@
       "str": 8.6,
       "lng": 1,
       "def": 4.9,
-      "hp": 6.9
+      "hp": 6.9,
+      "speed": 7.4
     },
     "totalSupply": null
   },
@@ -2277,7 +2439,8 @@
       "str": 8.2,
       "lng": 0.9,
       "def": 4.7,
-      "hp": 6.8
+      "hp": 6.8,
+      "speed": 7.7
     },
     "totalSupply": null
   },
@@ -2291,7 +2454,8 @@
       "str": 7.8,
       "lng": 1.1,
       "def": 5.5,
-      "hp": 6.7
+      "hp": 6.7,
+      "speed": 7.3
     },
     "totalSupply": null
   },
@@ -2305,7 +2469,8 @@
       "str": 7.4,
       "lng": 1,
       "def": 5.2,
-      "hp": 7.6
+      "hp": 7.6,
+      "speed": 7.3
     },
     "totalSupply": null
   },
@@ -2319,7 +2484,8 @@
       "str": 7.9,
       "lng": 1.1,
       "def": 4.5,
-      "hp": 7.2
+      "hp": 7.2,
+      "speed": 7.5
     },
     "totalSupply": null
   },
@@ -2333,7 +2499,8 @@
       "str": 7.5,
       "lng": 1.1,
       "def": 5.3,
-      "hp": 7
+      "hp": 7,
+      "speed": 7.4
     },
     "totalSupply": null
   },
@@ -2347,7 +2514,8 @@
       "str": 8.8,
       "lng": 1,
       "def": 5,
-      "hp": 6.9
+      "hp": 6.9,
+      "speed": 7.3
     },
     "totalSupply": null
   },
@@ -2361,7 +2529,8 @@
       "str": 8.4,
       "lng": 1,
       "def": 4.8,
-      "hp": 6.8
+      "hp": 6.8,
+      "speed": 7.6
     },
     "totalSupply": null
   },
@@ -2375,7 +2544,8 @@
       "str": 8,
       "lng": 0.9,
       "def": 4.5,
-      "hp": 6.6
+      "hp": 6.6,
+      "speed": 8
     },
     "totalSupply": null
   },
@@ -2389,7 +2559,8 @@
       "str": 7.6,
       "lng": 1.1,
       "def": 5.3,
-      "hp": 6.5
+      "hp": 6.5,
+      "speed": 7.5
     },
     "totalSupply": null
   },
@@ -2403,7 +2574,8 @@
       "str": 7.2,
       "lng": 1,
       "def": 5.1,
-      "hp": 6.3
+      "hp": 6.3,
+      "speed": 7.8
     },
     "totalSupply": null
   },
@@ -2417,7 +2589,8 @@
       "str": 8.4,
       "lng": 1,
       "def": 4.8,
-      "hp": 7.6
+      "hp": 7.6,
+      "speed": 7.4
     },
     "totalSupply": null
   },
@@ -2431,7 +2604,8 @@
       "str": 8.2,
       "lng": 0.9,
       "def": 4.7,
-      "hp": 6.9
+      "hp": 6.9,
+      "speed": 7.7
     },
     "totalSupply": 20
   },
@@ -2445,7 +2619,8 @@
       "str": 7.8,
       "lng": 1.1,
       "def": 5.4,
-      "hp": 6.8
+      "hp": 6.8,
+      "speed": 7.3
     },
     "totalSupply": 26
   },
@@ -2459,7 +2634,8 @@
       "str": 7.4,
       "lng": 1,
       "def": 5.2,
-      "hp": 6.6
+      "hp": 6.6,
+      "speed": 7.6
     },
     "totalSupply": 32
   },
@@ -2473,7 +2649,8 @@
       "str": 8.6,
       "lng": 1,
       "def": 5,
-      "hp": 6.5
+      "hp": 6.5,
+      "speed": 7.5
     },
     "totalSupply": 38
   },
@@ -2487,7 +2664,8 @@
       "str": 8.3,
       "lng": 0.9,
       "def": 4.7,
-      "hp": 6.3
+      "hp": 6.3,
+      "speed": 7.8
     },
     "totalSupply": 44
   },
@@ -2501,7 +2679,8 @@
       "str": 7.9,
       "lng": 1.1,
       "def": 5.5,
-      "hp": 7.6
+      "hp": 7.6,
+      "speed": 7
     },
     "totalSupply": 50
   },
@@ -2515,7 +2694,8 @@
       "str": 7.8,
       "lng": 1.1,
       "def": 5.4,
-      "hp": 6.3
+      "hp": 6.3,
+      "speed": 7.4
     },
     "totalSupply": 5
   },
@@ -2529,7 +2709,8 @@
       "str": 7.4,
       "lng": 1,
       "def": 5.2,
-      "hp": 7.6
+      "hp": 7.6,
+      "speed": 7.3
     },
     "totalSupply": 8
   },
@@ -2543,7 +2724,8 @@
       "str": 8.6,
       "lng": 1,
       "def": 5,
-      "hp": 7.5
+      "hp": 7.5,
+      "speed": 7.3
     },
     "totalSupply": 12
   },
@@ -2557,7 +2739,8 @@
       "str": 8.3,
       "lng": 0.9,
       "def": 4.7,
-      "hp": 7.3
+      "hp": 7.3,
+      "speed": 7.6
     },
     "totalSupply": 15
   },
@@ -2571,7 +2754,8 @@
       "str": 8,
       "lng": 0.9,
       "def": 4.6,
-      "hp": 6.3
+      "hp": 6.3,
+      "speed": 8
     },
     "totalSupply": 1
   },
@@ -2585,7 +2769,8 @@
       "str": 7.6,
       "lng": 1.1,
       "def": 5.3,
-      "hp": 7.6
+      "hp": 7.6,
+      "speed": 7.2
     },
     "totalSupply": 3
   },
@@ -2599,7 +2784,8 @@
       "str": 7.2,
       "lng": 1,
       "def": 5.1,
-      "hp": 7.4
+      "hp": 7.4,
+      "speed": 7.5
     },
     "totalSupply": 5
   },
@@ -2613,7 +2799,8 @@
       "str": 5.4,
       "lng": 4,
       "def": 2,
-      "hp": 3.6
+      "hp": 3.6,
+      "speed": 9.1
     },
     "totalSupply": null
   },
@@ -2627,7 +2814,8 @@
       "str": 5.2,
       "lng": 3.8,
       "def": 1.9,
-      "hp": 4.3
+      "hp": 4.3,
+      "speed": 9
     },
     "totalSupply": null
   },
@@ -2641,7 +2829,8 @@
       "str": 4.9,
       "lng": 4.4,
       "def": 2.2,
-      "hp": 4.3
+      "hp": 4.3,
+      "speed": 8.5
     },
     "totalSupply": null
   },
@@ -2655,7 +2844,8 @@
       "str": 4.7,
       "lng": 4.2,
       "def": 2.1,
-      "hp": 4.2
+      "hp": 4.2,
+      "speed": 8.8
     },
     "totalSupply": null
   },
@@ -2669,7 +2859,8 @@
       "str": 5.5,
       "lng": 4,
       "def": 2,
-      "hp": 4.1
+      "hp": 4.1,
+      "speed": 8.7
     },
     "totalSupply": null
   },
@@ -2683,7 +2874,8 @@
       "str": 5.2,
       "lng": 3.8,
       "def": 1.9,
-      "hp": 4
+      "hp": 4,
+      "speed": 9.1
     },
     "totalSupply": null
   },
@@ -2697,7 +2889,8 @@
       "str": 5,
       "lng": 3.6,
       "def": 1.8,
-      "hp": 3.9
+      "hp": 3.9,
+      "speed": 9.5
     },
     "totalSupply": null
   },
@@ -2711,7 +2904,8 @@
       "str": 4.7,
       "lng": 4.2,
       "def": 2.1,
-      "hp": 3.8
+      "hp": 3.8,
+      "speed": 9
     },
     "totalSupply": null
   },
@@ -2725,7 +2919,8 @@
       "str": 5.5,
       "lng": 4,
       "def": 2,
-      "hp": 3.8
+      "hp": 3.8,
+      "speed": 8.9
     },
     "totalSupply": null
   },
@@ -2739,7 +2934,8 @@
       "str": 5.2,
       "lng": 3.8,
       "def": 1.9,
-      "hp": 4.3
+      "hp": 4.3,
+      "speed": 8.9
     },
     "totalSupply": null
   },
@@ -2753,7 +2949,8 @@
       "str": 4.5,
       "lng": 4,
       "def": 2,
-      "hp": 3.7
+      "hp": 3.7,
+      "speed": 9.3
     },
     "totalSupply": null
   },
@@ -2767,7 +2964,8 @@
       "str": 5.3,
       "lng": 3.8,
       "def": 1.9,
-      "hp": 3.6
+      "hp": 3.6,
+      "speed": 9.2
     },
     "totalSupply": null
   },
@@ -2781,7 +2979,8 @@
       "str": 5,
       "lng": 3.7,
       "def": 1.8,
-      "hp": 4.4
+      "hp": 4.4,
+      "speed": 9.2
     },
     "totalSupply": null
   },
@@ -2795,7 +2994,8 @@
       "str": 4.8,
       "lng": 4.3,
       "def": 2.1,
-      "hp": 4.3
+      "hp": 4.3,
+      "speed": 8.6
     },
     "totalSupply": null
   },
@@ -2809,7 +3009,8 @@
       "str": 4.6,
       "lng": 4.1,
       "def": 2,
-      "hp": 4.2
+      "hp": 4.2,
+      "speed": 9
     },
     "totalSupply": null
   },
@@ -2823,7 +3024,8 @@
       "str": 5.3,
       "lng": 3.9,
       "def": 1.9,
-      "hp": 4.1
+      "hp": 4.1,
+      "speed": 8.9
     },
     "totalSupply": null
   },
@@ -2837,7 +3039,8 @@
       "str": 5.1,
       "lng": 3.7,
       "def": 1.9,
-      "hp": 4
+      "hp": 4,
+      "speed": 9.3
     },
     "totalSupply": null
   },
@@ -2851,7 +3054,8 @@
       "str": 4.8,
       "lng": 4.3,
       "def": 2.2,
-      "hp": 3.9
+      "hp": 3.9,
+      "speed": 8.8
     },
     "totalSupply": null
   },
@@ -2865,7 +3069,8 @@
       "str": 5.2,
       "lng": 3.8,
       "def": 1.9,
-      "hp": 4
+      "hp": 4,
+      "speed": 9.1
     },
     "totalSupply": 20
   },
@@ -2879,7 +3084,8 @@
       "str": 5,
       "lng": 3.6,
       "def": 1.8,
-      "hp": 4
+      "hp": 4,
+      "speed": 9.4
     },
     "totalSupply": 26
   },
@@ -2893,7 +3099,8 @@
       "str": 4.8,
       "lng": 4.2,
       "def": 2.1,
-      "hp": 3.9
+      "hp": 3.9,
+      "speed": 8.9
     },
     "totalSupply": 32
   },
@@ -2907,7 +3114,8 @@
       "str": 4.5,
       "lng": 4,
       "def": 2,
-      "hp": 3.8
+      "hp": 3.8,
+      "speed": 9.3
     },
     "totalSupply": 38
   },
@@ -2921,7 +3129,8 @@
       "str": 5.3,
       "lng": 3.9,
       "def": 1.9,
-      "hp": 3.7
+      "hp": 3.7,
+      "speed": 9.2
     },
     "totalSupply": 44
   },
@@ -2935,7 +3144,8 @@
       "str": 5,
       "lng": 3.7,
       "def": 1.8,
-      "hp": 3.6
+      "hp": 3.6,
+      "speed": 9.6
     },
     "totalSupply": 50
   },
@@ -2949,7 +3159,8 @@
       "str": 5.3,
       "lng": 3.9,
       "def": 2,
-      "hp": 3.7
+      "hp": 3.7,
+      "speed": 9.1
     },
     "totalSupply": 5
   },
@@ -2963,7 +3174,8 @@
       "str": 5.1,
       "lng": 3.7,
       "def": 1.9,
-      "hp": 3.6
+      "hp": 3.6,
+      "speed": 9.5
     },
     "totalSupply": 8
   },
@@ -2977,7 +3189,8 @@
       "str": 4.9,
       "lng": 4.3,
       "def": 2.2,
-      "hp": 4.4
+      "hp": 4.4,
+      "speed": 8.5
     },
     "totalSupply": 12
   },
@@ -2991,7 +3204,8 @@
       "str": 4.6,
       "lng": 4.1,
       "def": 2.1,
-      "hp": 4.3
+      "hp": 4.3,
+      "speed": 8.9
     },
     "totalSupply": 15
   },
@@ -3005,7 +3219,8 @@
       "str": 5.2,
       "lng": 3.8,
       "def": 1.9,
-      "hp": 4.4
+      "hp": 4.4,
+      "speed": 8.9
     },
     "totalSupply": 1
   },
@@ -3019,7 +3234,8 @@
       "str": 5,
       "lng": 3.6,
       "def": 1.8,
-      "hp": 4.3
+      "hp": 4.3,
+      "speed": 9.2
     },
     "totalSupply": 3
   },
@@ -3033,7 +3249,8 @@
       "str": 4.8,
       "lng": 4.2,
       "def": 2.1,
-      "hp": 4.2
+      "hp": 4.2,
+      "speed": 8.7
     },
     "totalSupply": 5
   },
@@ -3047,7 +3264,8 @@
       "str": 0,
       "lng": 9.1,
       "def": 0.9,
-      "hp": 2.9
+      "hp": 2.9,
+      "speed": 2.1
     },
     "totalSupply": null
   },
@@ -3061,7 +3279,8 @@
       "str": 0,
       "lng": 10.6,
       "def": 1.1,
-      "hp": 2.9
+      "hp": 2.9,
+      "speed": 2
     },
     "totalSupply": null
   },
@@ -3075,7 +3294,8 @@
       "str": 0,
       "lng": 10.2,
       "def": 1,
-      "hp": 2.8
+      "hp": 2.8,
+      "speed": 2.1
     },
     "totalSupply": null
   },
@@ -3089,7 +3309,8 @@
       "str": 0,
       "lng": 9.7,
       "def": 1,
-      "hp": 2.7
+      "hp": 2.7,
+      "speed": 2
     },
     "totalSupply": null
   },
@@ -3103,7 +3324,8 @@
       "str": 0,
       "lng": 9.2,
       "def": 0.9,
-      "hp": 3.3
+      "hp": 3.3,
+      "speed": 2
     },
     "totalSupply": null
   },
@@ -3117,7 +3339,8 @@
       "str": 0,
       "lng": 10.7,
       "def": 1.1,
-      "hp": 3.2
+      "hp": 3.2,
+      "speed": 1.9
     },
     "totalSupply": null
   },
@@ -3131,7 +3354,8 @@
       "str": 0,
       "lng": 10.2,
       "def": 1,
-      "hp": 3.2
+      "hp": 3.2,
+      "speed": 2
     },
     "totalSupply": null
   },
@@ -3145,7 +3369,8 @@
       "str": 0,
       "lng": 9.8,
       "def": 1,
-      "hp": 3.1
+      "hp": 3.1,
+      "speed": 2
     },
     "totalSupply": null
   },
@@ -3159,7 +3384,8 @@
       "str": 0,
       "lng": 9.3,
       "def": 0.9,
-      "hp": 3
+      "hp": 3,
+      "speed": 2.1
     },
     "totalSupply": null
   },
@@ -3173,7 +3399,8 @@
       "str": 0,
       "lng": 10.7,
       "def": 1.1,
-      "hp": 2.8
+      "hp": 2.8,
+      "speed": 2
     },
     "totalSupply": null
   },
@@ -3187,7 +3414,8 @@
       "str": 0,
       "lng": 9.5,
       "def": 0.9,
-      "hp": 2.8
+      "hp": 2.8,
+      "speed": 2.1
     },
     "totalSupply": null
   },
@@ -3201,7 +3429,8 @@
       "str": 0,
       "lng": 11,
       "def": 0.9,
-      "hp": 2.8
+      "hp": 2.8,
+      "speed": 2
     },
     "totalSupply": null
   },
@@ -3215,7 +3444,8 @@
       "str": 0,
       "lng": 10.5,
       "def": 1.1,
-      "hp": 2.7
+      "hp": 2.7,
+      "speed": 2
     },
     "totalSupply": null
   },
@@ -3229,7 +3459,8 @@
       "str": 0,
       "lng": 10,
       "def": 1,
-      "hp": 3.2
+      "hp": 3.2,
+      "speed": 1.9
     },
     "totalSupply": null
   },
@@ -3243,7 +3474,8 @@
       "str": 0,
       "lng": 9.5,
       "def": 1,
-      "hp": 3.2
+      "hp": 3.2,
+      "speed": 2
     },
     "totalSupply": null
   },
@@ -3257,7 +3489,8 @@
       "str": 0,
       "lng": 9.1,
       "def": 0.9,
-      "hp": 3.1
+      "hp": 3.1,
+      "speed": 2.1
     },
     "totalSupply": null
   },
@@ -3271,7 +3504,8 @@
       "str": 0,
       "lng": 10.6,
       "def": 1.1,
-      "hp": 3.1
+      "hp": 3.1,
+      "speed": 2
     },
     "totalSupply": null
   },
@@ -3285,7 +3519,8 @@
       "str": 0,
       "lng": 10.1,
       "def": 1,
-      "hp": 3
+      "hp": 3,
+      "speed": 2
     },
     "totalSupply": null
   },
@@ -3299,7 +3534,8 @@
       "str": 0,
       "lng": 9.1,
       "def": 0.9,
-      "hp": 2.9
+      "hp": 2.9,
+      "speed": 2.1
     },
     "totalSupply": 20
   },
@@ -3313,7 +3549,8 @@
       "str": 0,
       "lng": 10.6,
       "def": 1.1,
-      "hp": 2.9
+      "hp": 2.9,
+      "speed": 2
     },
     "totalSupply": 26
   },
@@ -3327,7 +3564,8 @@
       "str": 0,
       "lng": 10.1,
       "def": 1,
-      "hp": 2.8
+      "hp": 2.8,
+      "speed": 2.1
     },
     "totalSupply": 32
   },
@@ -3341,7 +3579,8 @@
       "str": 0,
       "lng": 9.6,
       "def": 1,
-      "hp": 2.8
+      "hp": 2.8,
+      "speed": 2
     },
     "totalSupply": 38
   },
@@ -3355,7 +3594,8 @@
       "str": 0,
       "lng": 9.2,
       "def": 0.9,
-      "hp": 3.3
+      "hp": 3.3,
+      "speed": 2
     },
     "totalSupply": 44
   },
@@ -3369,7 +3609,8 @@
       "str": 0,
       "lng": 10.7,
       "def": 1.1,
-      "hp": 3.2
+      "hp": 3.2,
+      "speed": 1.9
     },
     "totalSupply": 50
   },
@@ -3383,7 +3624,8 @@
       "str": 0,
       "lng": 9.3,
       "def": 0.9,
-      "hp": 2.7
+      "hp": 2.7,
+      "speed": 2.1
     },
     "totalSupply": 5
   },
@@ -3397,7 +3639,8 @@
       "str": 0,
       "lng": 10.8,
       "def": 1.1,
-      "hp": 3.2
+      "hp": 3.2,
+      "speed": 1.9
     },
     "totalSupply": 8
   },
@@ -3411,7 +3654,8 @@
       "str": 0,
       "lng": 10.3,
       "def": 1,
-      "hp": 3.2
+      "hp": 3.2,
+      "speed": 2
     },
     "totalSupply": 12
   },
@@ -3425,7 +3669,8 @@
       "str": 0,
       "lng": 9.9,
       "def": 1,
-      "hp": 3.1
+      "hp": 3.1,
+      "speed": 2
     },
     "totalSupply": 15
   },
@@ -3439,7 +3684,8 @@
       "str": 0,
       "lng": 9.5,
       "def": 0.9,
-      "hp": 2.9
+      "hp": 2.9,
+      "speed": 2.1
     },
     "totalSupply": 1
   },
@@ -3453,7 +3699,8 @@
       "str": 0,
       "lng": 11,
       "def": 0.9,
-      "hp": 2.8
+      "hp": 2.8,
+      "speed": 2
     },
     "totalSupply": 3
   },
@@ -3467,7 +3714,8 @@
       "str": 0,
       "lng": 10.5,
       "def": 1.1,
-      "hp": 2.8
+      "hp": 2.8,
+      "speed": 2
     },
     "totalSupply": 5
   }

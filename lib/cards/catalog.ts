@@ -45,10 +45,15 @@ function validateCatalog(templates: UnitCardTemplate[]): void {
     const key = `${template.unitType}:${template.rank}`
     countsByTypeRank.set(key, (countsByTypeRank.get(key) ?? 0) + 1)
 
-    const { str, lng, def, hp } = template.baseStats
+    const { str, lng, def, hp, speed } = template.baseStats
     if (str < 0 || lng < 0 || def < 0 || hp < 0) {
       throw new Error(
         `Card catalog validation failed: negative baseStats on template "${template.id}"`
+      )
+    }
+    if (typeof speed !== 'number' || speed <= 0 || speed > 10) {
+      throw new Error(
+        `Card catalog validation failed: speed must be within (0, 10] on template "${template.id}", got ${speed}`
       )
     }
 

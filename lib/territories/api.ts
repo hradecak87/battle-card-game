@@ -349,7 +349,7 @@ export interface CardInstanceWithTemplate {
     rank: string
     category: 'unit' | 'castle' | 'village'
     unit_type: string | null
-    base_stats: { str: number; lng: number; def: number; hp: number } | null
+    base_stats: { str: number; lng: number; def: number; hp: number; speed: number } | null
     total_supply: number | null
     defense_bonus_pct: number | null
     attack_bonus_pct: number | null

@@ -43,6 +43,40 @@ describe('transferHours', () => {
   it('still applies the floor under the Mongol discount', () => {
     expect(transferHours(0, 'mongol_horde')).toBeCloseTo(0.25 * 0.75, 5)
   })
+
+  it('is unaffected by groupSpeed when omitted (today\'s behavior)', () => {
+    expect(transferHours(255)).toBeCloseTo(76.5, 5)
+  })
+
+  it('is unaffected by the baseline speed of 5 (no-op reference point)', () => {
+    expect(transferHours(255, undefined, 5)).toBeCloseTo(76.5, 5)
+  })
+
+  it('takes longer for a slower group (below baseline speed)', () => {
+    expect(transferHours(255, undefined, 2.5)).toBeCloseTo(76.5 * 2, 5)
+  })
+
+  it('takes less time for a faster group (above baseline speed)', () => {
+    expect(transferHours(255, undefined, 10)).toBeCloseTo(76.5 * 0.5, 5)
+  })
+
+  it('clamps the speed multiplier for an extremely slow group', () => {
+    // 5 / 0.5 = 10x, clamped down to the 3.0x ceiling
+    expect(transferHours(255, undefined, 0.5)).toBeCloseTo(76.5 * 3.0, 5)
+  })
+
+  it('clamps the speed multiplier for an extremely fast group', () => {
+    // 5 / 100 = 0.05x, clamped up to the 0.4x floor
+    expect(transferHours(255, undefined, 100)).toBeCloseTo(76.5 * 0.4, 5)
+  })
+
+  it('combines groupSpeed with the Mongol Horde discount', () => {
+    expect(transferHours(255, 'mongol_horde', 10)).toBeCloseTo(76.5 * 0.5 * 0.75, 5)
+  })
+
+  it('still floors distance 0 to 0.25h even with a fast group', () => {
+    expect(transferHours(0, undefined, 10)).toBe(0.25)
+  })
 })
 
 describe('DIFFICULTY_MULTIPLIER', () => {

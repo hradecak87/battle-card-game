@@ -49,6 +49,13 @@ export interface RawStats {
   lng: number
   def: number
   hp: number
+  /**
+   * Movement-only stat (0-10 scale), NOT scaled by rank and NOT read by
+   * combat math (see combat.ts's `applyRank`/`EffectiveCard`, which only
+   * pick str/lng/def/hp). Used exclusively by territory movement-time
+   * formulas (backlog #12).
+   */
+  speed: number
 }
 
 /**

@@ -33,7 +33,7 @@ export interface BattleCardTemplate {
   rank: string
   name: string
   flavor_text: string
-  base_stats: { str: number; lng: number; def: number; hp: number } | null
+  base_stats: { str: number; lng: number; def: number; hp: number; speed: number } | null
   defense_bonus_pct: number | null
   attack_bonus_pct: number | null
   total_supply: number | null

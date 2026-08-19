@@ -21,7 +21,7 @@ import { NationId } from '../players/nations';
 
 describe('computeEffectiveStats parity with SQL _compute_effective_stats()', () => {
   // Base stats used for all test cases
-  const baseStats = { hp: 100, str: 50, lng: 40, def: 30 };
+  const baseStats = { hp: 100, str: 50, lng: 40, def: 30, speed: 5 };
 
   interface TestCase {
     name: string;

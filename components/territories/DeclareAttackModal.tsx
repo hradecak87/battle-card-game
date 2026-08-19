@@ -186,12 +186,24 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
 
   const originTerritory = myTerritories?.find((t) => t.id === Number(originTerritoryId)) ?? null
 
+  // Slowest selected unit sets the pace for the whole group (backlog #12).
+  // Falls back to `undefined` (baseline speed, i.e. today's plain formula)
+  // until at least one card is selected.
+  const groupSpeed = useMemo(() => {
+    if (!originInstances || selectedInstanceIds.length === 0) return undefined
+    const speeds = originInstances
+      .filter((ci) => selectedInstanceIds.includes(ci.instance_id))
+      .map((ci) => ci.card_templates?.base_stats?.speed)
+      .filter((s): s is number => typeof s === 'number')
+    return speeds.length > 0 ? Math.min(...speeds) : undefined
+  }, [originInstances, selectedInstanceIds])
+
   const etaText = useMemo(() => {
     if (!originTerritory) return null
     const distance = chebyshevDistance(originTerritory, territory)
-    const hours = transferHours(distance, attackerNation ?? undefined)
+    const hours = transferHours(distance, attackerNation ?? undefined, groupSpeed)
     return formatEta(new Date(Date.now() + hours * 3600000).toISOString())
-  }, [originTerritory, territory, attackerNation])
+  }, [originTerritory, territory, attackerNation, groupSpeed])
 
   // Simple, deterministic army-strength comparison (not a battle-outcome
   // simulation): tells the attacker whether their selected cards roughly

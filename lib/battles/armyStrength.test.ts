@@ -1,8 +1,8 @@
 import { compareArmyStrength } from './armyStrength'
 import { RawStats } from '../cards/types'
 
-const weak: RawStats = { str: 5, lng: 5, def: 5, hp: 20 }
-const strong: RawStats = { str: 40, lng: 40, def: 40, hp: 200 }
+const weak: RawStats = { str: 5, lng: 5, def: 5, hp: 20, speed: 5 }
+const strong: RawStats = { str: 40, lng: 40, def: 40, hp: 200, speed: 5 }
 
 describe('compareArmyStrength', () => {
   it('is "even" when both sides have no cards', () => {
@@ -54,7 +54,7 @@ describe('compareArmyStrength', () => {
   })
 
   it('is even for identical, evenly matched single-card sides', () => {
-    const even: RawStats = { str: 30, lng: 10, def: 15, hp: 50 }
+    const even: RawStats = { str: 30, lng: 10, def: 15, hp: 50, speed: 5 }
     const result = compareArmyStrength({
       attackerCards: [{ baseStats: even, rank: 'common' }],
       defenderCards: [{ baseStats: even, rank: 'common' }],

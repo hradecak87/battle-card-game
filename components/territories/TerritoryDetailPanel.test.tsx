@@ -27,7 +27,7 @@ const unitTemplate: UnitCardTemplate = {
   rank: 'common',
   name: 'Práčata',
   flavorText: 'flavor',
-  baseStats: { str: 1, lng: 8, def: 2, hp: 4 },
+  baseStats: { str: 1, lng: 8, def: 2, hp: 4, speed: 6 },
   totalSupply: null,
 }
 

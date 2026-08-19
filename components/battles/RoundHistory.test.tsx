@@ -10,7 +10,7 @@ function makeTemplate(overrides: Partial<BattleCardTemplate> = {}): BattleCardTe
     rank: 'common',
     name: 'Elitní lučištníci',
     flavor_text: 'Střílí zpovzdálí.',
-    base_stats: { str: 5, lng: 15, def: 5, hp: 20 },
+    base_stats: { str: 5, lng: 15, def: 5, hp: 20, speed: 5 },
     defense_bonus_pct: null,
     attack_bonus_pct: null,
     total_supply: null,

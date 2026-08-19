@@ -144,7 +144,7 @@ export function TradingCard({
             stat line lines up across every card, regardless of how many
             lines the name/flavor text wrap to. */}
         <div className="mt-auto">
-          <dl className="grid grid-cols-4 gap-[0.75cqw] text-center text-[4.8cqw] border-t border-zinc-700 pt-[1.5cqw]">
+          <dl className="grid grid-cols-5 gap-[0.75cqw] text-center text-[4.8cqw] border-t border-zinc-700 pt-[1.5cqw]">
             <div>
               <dt className="text-zinc-500">STR</dt>
               <dd className="font-mono font-semibold text-[6.3cqw]">{stats.str}</dd>
@@ -160,6 +160,10 @@ export function TradingCard({
             <div>
               <dt className="text-zinc-500">HP</dt>
               <dd className="font-mono font-semibold text-[6.3cqw]">{stats.hp}</dd>
+            </div>
+            <div>
+              <dt className="text-zinc-500">SPD</dt>
+              <dd className="font-mono font-semibold text-[6.3cqw]">{template.baseStats.speed}</dd>
             </div>
           </dl>
 

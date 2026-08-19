@@ -32,7 +32,7 @@ const stationedUnit = {
     rank: 'common',
     category: 'unit' as const,
     unit_type: 'archers',
-    base_stats: { str: 5, lng: 14, def: 4, hp: 9 },
+    base_stats: { str: 5, lng: 14, def: 4, hp: 9, speed: 5 },
     total_supply: null,
     defense_bonus_pct: null,
     attack_bonus_pct: null,

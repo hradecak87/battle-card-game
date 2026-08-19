@@ -26,6 +26,24 @@ const UNIT_TYPE_BASELINES = {
   siegeEngines: { str: 0, lng: 10, def: 1, hp: 3 },
 }
 
+// Speed baseline per unit type (backlog #12), 0-10 scale, movement-only —
+// NOT scaled by rank, NOT read by combat math. Heavier/slower archetypes
+// (siege engines, halberdiers) sit at the low end; light cavalry/knights
+// at the high end.
+const SPEED_BASELINES = {
+  archers: 6,
+  crossbowmen: 4.5,
+  spearmen: 5,
+  swordsmen: 5.5,
+  halberdiers: 3.5,
+  knights: 7.5,
+  lightCavalry: 9,
+  siegeEngines: 2,
+}
+
+const SPEED_MIN = 0.5
+const SPEED_MAX = 10
+
 // Czech plural label used in generated flavor text.
 const TYPE_LABEL = {
   archers: 'lučištníci',
@@ -177,16 +195,40 @@ function seededFactor(seed) {
 }
 
 function varyStats(baseline, idSeed) {
+  const factors = {
+    str: seededFactor(idSeed + ':str'),
+    lng: seededFactor(idSeed + ':lng'),
+    def: seededFactor(idSeed + ':def'),
+    hp: seededFactor(idSeed + ':hp'),
+  }
   return {
-    str: baseline.str * seededFactor(idSeed + ':str'),
-    lng: baseline.lng * seededFactor(idSeed + ':lng'),
-    def: baseline.def * seededFactor(idSeed + ':def'),
-    hp: baseline.hp * seededFactor(idSeed + ':hp'),
+    stats: {
+      str: baseline.str * factors.str,
+      lng: baseline.lng * factors.lng,
+      def: baseline.def * factors.def,
+      hp: baseline.hp * factors.hp,
+    },
+    avgFactor: (factors.str + factors.lng + factors.def + factors.hp) / 4,
   }
 }
 
 function round1(n) {
   return Math.round(n * 10) / 10
+}
+
+function clamp(n, min, max) {
+  return Math.min(max, Math.max(min, n))
+}
+
+// Derives this variant's speed from the type's speed baseline, inverted
+// against the variant's own combat-stat variance: a variant that rolled
+// above-average str/lng/def/hp (avgFactor > 1) gets a below-average speed,
+// and vice versa — "a mightier/heavier variant is slightly slower"
+// (backlog #12), with no per-card manual authoring required.
+function deriveSpeed(unitType, avgFactor) {
+  const speedFactor = 2.0 - avgFactor // mirror around 1.0
+  const speed = SPEED_BASELINES[unitType] * speedFactor
+  return round1(clamp(speed, SPEED_MIN, SPEED_MAX))
 }
 
 function supplyForIndex(rank, index, count) {
@@ -212,12 +254,13 @@ for (const unitType of Object.keys(UNIT_TYPE_BASELINES)) {
     names.forEach((name, index) => {
       const idIndex = String(index + 1).padStart(2, '0')
       const id = `${unitType}-${rank}-${idIndex}`
-      const rawVaried = varyStats(baseline, id)
+      const varied = varyStats(baseline, id)
       const baseStats = {
-        str: round1(rawVaried.str),
-        lng: round1(rawVaried.lng),
-        def: round1(rawVaried.def),
-        hp: round1(rawVaried.hp),
+        str: round1(varied.stats.str),
+        lng: round1(varied.stats.lng),
+        def: round1(varied.stats.def),
+        hp: round1(varied.stats.hp),
+        speed: deriveSpeed(unitType, varied.avgFactor),
       }
       templates.push({
         id,
