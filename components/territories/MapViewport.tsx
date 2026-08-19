@@ -22,7 +22,7 @@ const DIFFICULTY_TERRAIN_CLASS: Record<1 | 2 | 3 | 4 | 5, string> = {
 const MAP_MIN = 0
 const MAP_MAX = 255
 
-type HighlightColor = 'sky' | 'red' | 'foreign'
+type HighlightColor = 'sky' | 'red' | 'foreign' | 'npc'
 
 // Perimeter highlight edges are drawn as absolutely-positioned 1px overlay
 // bars, not a CSS border or box-shadow. box-shadow paints *underneath* the
@@ -36,6 +36,7 @@ type HighlightColor = 'sky' | 'red' | 'foreign'
 const HIGHLIGHT_BAR_COLOR: Record<Exclude<HighlightColor, 'foreign'>, string> = {
   sky: 'bg-sky-400',
   red: 'bg-red-500',
+  npc: 'bg-fuchsia-400',
 }
 
 // Distinct, easily-told-apart colors for other players' territory outlines
@@ -107,6 +108,7 @@ export interface MapViewportProps {
 function getOwnerLabel(tile: Territory, currentUserId?: string | null) {
   if (!tile.owner_id) return 'Neobsazeno'
   if (currentUserId && tile.owner_id === currentUserId) return 'Tvé území'
+  if (tile.owner_is_npc) return 'NPC říše'
   return 'Cizí hráč'
 }
 
@@ -126,6 +128,9 @@ function getHighlightInfo(
   }
   if (currentUserId && t.owner_id === currentUserId) {
     return { key: 'me', color: 'sky', colorClass: HIGHLIGHT_BAR_COLOR.sky }
+  }
+  if (t.owner_id && t.owner_is_npc) {
+    return { key: `npc:${t.owner_id}`, color: 'npc', colorClass: HIGHLIGHT_BAR_COLOR.npc }
   }
   if (t.owner_id) {
     return { key: `owner:${t.owner_id}`, color: 'foreign', colorClass: getForeignOwnerColorClass(t.owner_id) }
@@ -559,6 +564,15 @@ export default function MapViewport({
                     style={iconStyle}
                   >
                     ⚔️
+                  </span>
+                )}
+                {tile?.owner_id && tile.owner_is_npc && !isOwnedByMe && (
+                  <span
+                    data-testid={`npc-badge-${x},${y}`}
+                    title="NPC říše"
+                    className="pointer-events-none absolute right-0.5 top-0.5 z-20 rounded bg-fuchsia-500/90 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-white"
+                  >
+                    NPC
                   </span>
                 )}
                 {isHovered && (

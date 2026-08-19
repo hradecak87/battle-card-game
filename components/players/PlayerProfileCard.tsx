@@ -39,6 +39,7 @@ export function PlayerProfileCard({ player, editable = false, onUpdateKingdom }:
   const coat = COATS_OF_ARMS.find((c) => c.id === player.coat_of_arms_id)
 
   const isOnline = Date.now() - new Date(player.last_seen_at).getTime() < ONLINE_THRESHOLD_MS
+  const isNpc = Boolean(player.is_npc)
   const accountAgeDays = Math.floor(
     (Date.now() - new Date(player.created_at).getTime()) / (24 * 60 * 60 * 1000),
   )
@@ -65,9 +66,18 @@ export function PlayerProfileCard({ player, editable = false, onUpdateKingdom }:
         <div>
           <h1 className="text-xl font-bold">{player.display_name}</h1>
           <p className="text-zinc-400 text-sm">
-            <span data-testid="online-badge" className={isOnline ? 'text-emerald-400' : 'text-zinc-500'}>
-              {isOnline ? 'Online' : 'Offline'}
-            </span>
+            {isNpc ? (
+              <span
+                data-testid="npc-badge"
+                className="inline-flex rounded-full border border-fuchsia-500/60 bg-fuchsia-500/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-fuchsia-200"
+              >
+                NPC
+              </span>
+            ) : (
+              <span data-testid="online-badge" className={isOnline ? 'text-emerald-400' : 'text-zinc-500'}>
+                {isOnline ? 'Online' : 'Offline'}
+              </span>
+            )}
           </p>
         </div>
       </div>

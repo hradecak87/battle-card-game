@@ -18,6 +18,7 @@ export interface GarrisonModalOwnerInfo {
   kingdom_name: string | null
   xp: number
   level: number
+  is_npc?: boolean
 }
 
 export interface GarrisonModalProps {
@@ -502,6 +503,9 @@ export default function GarrisonModal({
               {!ownerInfoLoading && !ownerInfoError && ownerInfo && (
                 <div className="grid gap-1 sm:grid-cols-2">
                   <p>Jméno: {ownerInfo.display_name}</p>
+                  {ownerInfo.is_npc && (
+                    <p className="font-semibold text-fuchsia-300">Typ: NPC říše</p>
+                  )}
                   <p>Národ: {formatNation(ownerInfo.nation)}</p>
                   {ownerInfo.kingdom_name && <p>Království: {ownerInfo.kingdom_name}</p>}
                   <p>Úroveň: {ownerInfo.level}</p>

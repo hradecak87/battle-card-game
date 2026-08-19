@@ -1,0 +1,82 @@
+-- 0027_npc_kingdoms.verification.sql
+--
+-- Manual / local-only verification checklist for NPC kingdoms. Do NOT run
+-- against the live project automatically.
+
+-- 1. Schema shape
+-- select column_name, data_type, is_nullable, column_default
+-- from information_schema.columns
+-- where table_name = 'players'
+--   and column_name in ('is_npc', 'npc_next_action_at')
+-- order by column_name;
+
+-- 2. Onboarding/seed helper
+-- -- After creating an auth user + players row with is_npc=true:
+-- select seed_npc_kingdom_setup(:npc_player_id, :kingdom_name, :coat_of_arms_id);
+-- select id, owner_id, is_home
+-- from territories
+-- where owner_id = :npc_player_id or is_home = true
+-- order by is_home desc, id;
+-- -> exactly one home tile owned by the NPC, kingdom marked onboarded,
+--    and 6 stationed common units at the home territory plus castle/village
+--    common cards in inventory.
+
+-- 3. Public RPC compatibility
+-- select start_claim(:origin_territory_id, :empty_target_id, array[:unit_instance_id]::uuid[]);
+-- select declare_attack(
+--   :target_territory_id,
+--   jsonb_build_array(
+--     jsonb_build_object(
+--       'origin_territory_id', :origin_territory_id,
+--       'card_instance_ids', to_jsonb(array[:unit_instance_id]::uuid[])
+--     )
+--   ),
+--   null
+-- );
+-- -> both still behave exactly as before for a normal authenticated player.
+
+-- 4. Lazy NPC tick resolution
+-- update players
+-- set npc_next_action_at = now() - interval '1 minute'
+-- where id = :npc_player_id;
+-- select resolve_due_movements();
+-- select npc_next_action_at
+-- from players
+-- where id = :npc_player_id;
+-- -> resolve_due_movements() invokes resolve_due_npc_actions(), performs at
+--    most one NPC action, and reschedules npc_next_action_at 4-12 hours ahead.
+
+-- 5. NPC defenders auto-resolve immediately
+-- -- Declare an attack onto an NPC-owned territory, fast-forward the movement,
+-- -- then resolve:
+-- select resolve_due_movements();
+-- select status, defender_id, current_round, resolved_at
+-- from battles
+-- where territory_id = :npc_target_territory_id
+-- order by created_at desc
+-- limit 1;
+-- -> the spawned battle enters active/resolved immediately (no waiting for
+--    defender_ready_at), and round rows are created using the existing NPC
+--    defender-card picker logic.
+
+-- 6. Map payloads expose NPC ownership
+-- select owner_id, owner_is_npc
+-- from get_viewport(:x1, :y1, :x2, :y2)
+-- where owner_id = :npc_player_id;
+-- select owner_id, owner_is_npc
+-- from get_minimap_overview()
+-- where owner_id = :npc_player_id;
+-- -> NPC-owned territories surface owner_is_npc=true in both RPCs.
+
+-- 7. Rewards sanity check
+-- -- After an NPC player wins a battle, inspect their xp + newest inventory:
+-- select xp from players where id = :npc_player_id;
+-- select ci.instance_id, ct.id, ct.category
+-- from card_instances ci
+-- join card_templates ct on ct.id = ci.template_id
+-- where ci.owner_id = :npc_player_id
+-- order by ci.instance_id desc
+-- limit 10;
+-- -> NPC players (non-null defender_id/owner_id) receive the same winner XP
+--    and card rewards as human players; only defender_id null ownerless
+--    garrisons remain rewardless.

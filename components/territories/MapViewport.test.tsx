@@ -72,6 +72,15 @@ describe('MapViewport', () => {
     expect(screen.getByText('Cizí hráč')).toBeInTheDocument()
   })
 
+  it('shows NPC-owned tiles with an NPC label and badge on hover', () => {
+    renderViewport([makeTerritory({ owner_id: 'npc-player', owner_is_npc: true })], 'me')
+
+    fireEvent.mouseEnter(screen.getByRole('button', { name: 'Území 10,10' }))
+
+    expect(screen.getByText('NPC říše')).toBeInTheDocument()
+    expect(screen.getByTestId('npc-badge-10,10')).toBeInTheDocument()
+  })
+
   it('shows "Neobsazeno" and difficulty for an unclaimed tile', () => {
     renderViewport([makeTerritory({ difficulty: 3, owner_id: null })], 'me')
 

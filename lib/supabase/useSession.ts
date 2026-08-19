@@ -12,6 +12,8 @@ export interface PlayerRow {
   kingdom_name: string | null
   coat_of_arms_id: string | null
   onboarding_completed: boolean
+  is_npc?: boolean
+  npc_next_action_at?: string | null
   xp: number
   king_relocation_used_at: string | null
   daily_reward_streak: number

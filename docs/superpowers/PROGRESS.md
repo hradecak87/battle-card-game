@@ -68,6 +68,71 @@ and after the fix.
   - Build still emits the pre-existing `@supabase/supabase-js` warning that
     Node.js 20 is deprecated; feature work did not introduce it.
 
+  ## Latest update — 2026-08-19e (NPC kingdoms groundwork in feat/npc-kingdoms worktree)
+
+  Implemented the approved **NPC kingdoms** feature slice in the dedicated
+  `feat/npc-kingdoms` worktree (not committed/pushed, not applied to any live
+  Supabase project).
+
+  - Added migration pair:
+    - `supabase/migrations/0027_npc_kingdoms.sql`
+    - `supabase/migrations/0027_npc_kingdoms.verification.sql`
+  - Schema/RPC changes in `0027`:
+    - `players.is_npc boolean not null default false`
+    - `players.npc_next_action_at timestamptz`
+    - `_complete_kingdom_onboarding_core(...)` extracted from the latest
+      onboarding logic so both human onboarding and NPC seeding can reuse the
+      exact same home-territory + starter-army behavior.
+    - `seed_npc_kingdom_setup(...)` helper for the one-time TS seed script.
+    - `_start_claim_core(...)` and `_declare_attack_core(...)` extracted so NPC
+      server-side logic can execute the same business rules as public
+      `start_claim` / `declare_attack` without relying on `auth.uid()`.
+    - `resolve_due_npc_actions()` added and invoked lazily from
+      `resolve_due_movements()` (same opportunistic pattern as the rest of the
+      game; no cron/background worker added).
+    - Real `players.is_npc = true` defenders now use the same immediate
+      auto-resolve branch as ownerless NPC garrisons, by broadening the
+      `_start_next_round()` / arrival-time battle creation logic.
+    - `get_viewport()` / `get_minimap_overview()` now expose `owner_is_npc`.
+  - Added `scripts/seed-npc-kingdoms.ts`:
+    - Creates fake auth users via `supabase.auth.admin.createUser(...)`
+    - Marks the matching `players` rows as NPCs
+    - Calls `seed_npc_kingdom_setup(...)`
+    - Supports `--nations=` / positional nation filtering; skips already-seeded
+      NPC nations on re-run and can recover a partially created NPC player row
+      (same nation + deterministic display name) instead of blindly failing.
+  - Added pure helper tests in `lib/npc/kingdoms.test.ts` (+ implementation in
+    `lib/npc/kingdoms.ts`) for:
+    - weighted expand-vs-attack action choice
+    - 1.2× "meaningfully weaker" attack threshold
+    - nearest-origin selection
+    - 4–12h next-action scheduling formula
+  - UI/type propagation:
+    - `lib/territories/api.ts`, `lib/supabase/useSession.ts`
+    - `MapViewport` + `Minimap` distinguish NPC-owned territory visually
+    - `PlayerProfileCard` shows an `NPC` badge instead of online/offline
+    - `GarrisonModal` surfaces NPC-owner identity in territory owner info
+  - Added Jest coverage for the new UI markers/badges:
+    - `components/territories/MapViewport.test.tsx`
+    - `components/territories/Minimap.test.tsx`
+    - `components/players/PlayerProfileCard.test.tsx`
+    - updated `lib/territories/api.test.ts`
+  - Verification in this worktree:
+    - `npx jest --runInBand --silent`: **429/429 passing**
+    - `npx tsc --noEmit`: clean
+    - `npm run build`: succeeds
+    - build still emits the pre-existing Node 20 deprecation warning from
+      `@supabase/supabase-js`
+  - Post-review hardening:
+    - internal `_core`/NPC SQL helpers now explicitly revoke execute from
+      `public`, `anon`, and `authenticated`, granting only `service_role`
+      where needed, so clients cannot spoof `p_caller` through exposed RPCs
+    - NPC tick errors are now `RAISE LOG`'d instead of being swallowed silently
+  - Known simplification deliberately kept per approved spec/YAGNI:
+    - NPC attack candidate strength uses a simple **1.2× attacker power >=
+      defender effective power** threshold; the pure helper and SQL migration
+      both document/encode this.
+
 ## Latest update — 2026-08-19c (terrain difficulty textures in map viewport)
 
 Backlog #11 is now implemented in the map viewport with CSS-only terrain

@@ -118,6 +118,29 @@ describe('GarrisonModal', () => {
     expect(screen.getByText(/Úroveň:\s*5/)).toBeInTheDocument()
   })
 
+  it('labels NPC owners explicitly in the owner info panel', () => {
+    render(
+      <GarrisonModal
+        territory={baseTerritory}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        ownerInfo={{
+          id: 'npc-player',
+          display_name: 'NPC Francia',
+          nation: 'francia',
+          kingdom_name: 'Franské marky',
+          xp: 900,
+          level: 4,
+          is_npc: true,
+        }}
+      />
+    )
+
+    expect(screen.getByText('Typ: NPC říše')).toBeInTheDocument()
+  })
+
   it('shows an owner-info loading message while public owner data is being fetched', () => {
     render(
       <GarrisonModal

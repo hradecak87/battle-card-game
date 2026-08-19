@@ -13,6 +13,7 @@ const MAP_SIZE = 256
 function dotColor(tile: MinimapTile, myPlayerId?: string | null): string {
   if (tile.claim_locked_by) return 'bg-yellow-400 animate-pulse'
   if (tile.owner_id && tile.owner_id === myPlayerId) return 'bg-blue-400'
+  if (tile.owner_id && tile.owner_is_npc) return 'bg-fuchsia-500'
   if (tile.owner_id) return 'bg-red-400'
   if (tile.castle_rank || tile.village_rank) return 'bg-zinc-400'
   return 'bg-transparent'

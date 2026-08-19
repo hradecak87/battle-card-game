@@ -39,6 +39,7 @@ describe('getPlayerPublicInfo', () => {
         nation: 'england',
         kingdom_name: 'Bílý lev',
         xp: 1250,
+        is_npc: true,
       },
       error: null,
     }
@@ -46,7 +47,7 @@ describe('getPlayerPublicInfo', () => {
 
     await expect(getPlayerPublicInfo('player-1')).resolves.toEqual(response)
     expect(from).toHaveBeenCalledWith('players')
-    expect(select).toHaveBeenCalledWith('id, display_name, nation, kingdom_name, xp')
+    expect(select).toHaveBeenCalledWith('id, display_name, nation, kingdom_name, xp, is_npc')
     expect(eq).toHaveBeenCalledWith('id', 'player-1')
     expect(single).toHaveBeenCalled()
   })

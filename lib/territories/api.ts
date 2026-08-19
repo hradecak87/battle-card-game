@@ -16,6 +16,7 @@ export interface Territory {
   castle_rank: string | null
   village_rank: string | null
   owner_id: string | null
+  owner_is_npc?: boolean
   is_home: boolean
   claim_locked_by: string | null
   claim_started_at: string | null
@@ -39,6 +40,7 @@ export interface MinimapTile {
   x: number
   y: number
   owner_id: string | null
+  owner_is_npc?: boolean
   castle_rank: string | null
   village_rank: string | null
   claim_locked_by: string | null
@@ -111,6 +113,7 @@ export interface PlayerPublicInfo {
   nation: string
   kingdom_name: string | null
   xp: number
+  is_npc?: boolean
 }
 
 /**
@@ -138,7 +141,7 @@ export async function getMyTerritories(ownerId: string) {
 export async function getPlayerPublicInfo(playerId: string) {
   return supabase
     .from('players')
-    .select('id, display_name, nation, kingdom_name, xp')
+    .select('id, display_name, nation, kingdom_name, xp, is_npc')
     .eq('id', playerId)
     .single() as unknown as Promise<{
     data: PlayerPublicInfo | null
