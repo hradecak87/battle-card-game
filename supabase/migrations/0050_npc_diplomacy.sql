@@ -111,6 +111,27 @@ begin
     'pending'
   );
 
+  if exists (
+    select 1
+    from players
+    where id = p_target_id
+      and coalesce(is_npc, false) = false
+  ) then
+    perform _notify(
+      p_target_id,
+      'peace_offer_received',
+      (
+        select jsonb_build_object(
+          'offer_id', v_offer_id,
+          'other_player_id', p_caller_id,
+          'other_display_name', p.display_name
+        )
+        from players p
+        where p.id = p_caller_id
+      )
+    );
+  end if;
+
   return v_offer_id;
 end;
 $$;

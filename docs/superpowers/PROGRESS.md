@@ -14,6 +14,13 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-20u (notifications chunk 1 implemented in worktree, not applied live)
+
+- Implemented **Chunk 1 (steps 1-4)** of the notifications module plan in the isolated `feature/notifications-module` worktree: new migration `0055_notifications.sql`, manual checklist `0055_notifications.verification.sql`, and `_notify(...)` wiring across the current source-of-truth SQL functions for attacks, war declarations, battle results, territory loss, trade offers, peace offers, level-ups, and DMs.
+- **Confirmed current source-of-truth files before editing** via migration grep: `_declare_attack_core` → `0045_diplomacy_war_creation.sql`, `_finalize_battle_base_0025` + `_award_xp` → `0047_wall_structure_card.sql`, `create_trade_offer` / `respond_to_public_offer` / `reject_trade_offer` → `0014_trading_exchange.sql`, `accept_trade_offer` → `0030_wire_card_limit.sql`, `_diplomacy_propose_peace_core` + `resolve_due_movements` → `0050_npc_diplomacy.sql`, `chat_send_message` → `0041_chat_rpcs.sql`.
+- Added `notifications` + `push_subscriptions` schema, RLS policies, bell/panel RPCs, DM-conversation unique index/upsert helper, and 30-day retention piggy-backed onto `resolve_due_movements()` (same lazy-cleanup pattern as other no-cron maintenance in this project).
+- **Important implementation note:** the current `respond_to_public_offer()` body has no accept/reject branch despite earlier plan wording; in the repo as of 2026-08-20 it creates a targeted direct response to the public listing owner, so its `_notify(...)` wiring uses `trade_offer_received` for that owner. Acceptance/rejection notifications still come from `accept_trade_offer()` / `reject_trade_offer()`. Double-check this assumption during live review before applying the migration.
+
 ## Latest update — 2026-08-20t (one-off live data cleanup: 254 over-cap wild garrisons trimmed back to target size)
 
 - **Found while spot-checking 0053/0054**: user asked to check more villages

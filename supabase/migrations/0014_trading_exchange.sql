@@ -280,6 +280,22 @@ begin
     now() + interval '3 days'
   );
 
+  if p_type = 'direct' then
+    perform _notify(
+      p_target_player_id,
+      'trade_offer_received',
+      (
+        select jsonb_build_object(
+          'offer_id', v_offer_id,
+          'other_player_id', v_caller,
+          'other_display_name', p.display_name
+        )
+        from players p
+        where p.id = v_caller
+      )
+    );
+  end if;
+
   return v_offer_id;
 end;
 $$;
@@ -436,6 +452,20 @@ begin
     now() + interval '3 days'
   );
 
+  perform _notify(
+    v_public_offer.initiator_id,
+    'trade_offer_received',
+    (
+      select jsonb_build_object(
+        'offer_id', v_offer_id,
+        'other_player_id', v_caller,
+        'other_display_name', p.display_name
+      )
+      from players p
+      where p.id = v_caller
+    )
+  );
+
   return v_offer_id;
 end;
 $$;
@@ -553,6 +583,7 @@ set search_path = public
 as $$
 declare
   v_caller uuid := trade_require_player();
+  v_offer trade_offers%rowtype;
 begin
   perform resolve_due_movements();
   perform resolve_due_battles();
@@ -564,11 +595,26 @@ begin
   where id = p_offer_id
     and type = 'direct'
     and status = 'pending'
-    and target_player_id = v_caller;
+    and target_player_id = v_caller
+  returning * into v_offer;
 
   if not found then
     raise exception 'only the current target may reject a pending direct offer';
   end if;
+
+  perform _notify(
+    v_offer.initiator_id,
+    'trade_offer_rejected',
+    (
+      select jsonb_build_object(
+        'offer_id', v_offer.id,
+        'other_player_id', v_caller,
+        'other_display_name', p.display_name
+      )
+      from players p
+      where p.id = v_caller
+    )
+  );
 end;
 $$;
 

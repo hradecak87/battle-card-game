@@ -793,6 +793,14 @@ begin
         'new_level', v_new_level
       )
     );
+
+    perform _notify(
+      p_player_id,
+      'level_up',
+      jsonb_build_object(
+        'new_level', v_new_level
+      )
+    );
   end if;
 end;
 $$;
@@ -948,6 +956,75 @@ begin
   where id = p_battle_id;
 
   if p_winner_side is not null then
+    -- `_finalize_battle()` emits the matching world_events row immediately
+    -- after calling this base helper; keep notifications here where the final
+    -- resolved/capture state is already known.
+    if exists (
+      select 1
+      from players
+      where id = v_battle.attacker_id
+        and coalesce(is_npc, false) = false
+    ) then
+      perform _notify(
+        v_battle.attacker_id,
+        'battle_resolved',
+        (
+          select jsonb_build_object(
+            'territory_id', t.id,
+            'x', t.x::integer,
+            'y', t.y::integer,
+            'outcome', case when p_winner_side = 'attacker' then 'won' else 'lost' end,
+            'other_player_id', v_battle.defender_id
+          )
+          from territories t
+          where t.id = v_battle.territory_id
+        )
+      );
+    end if;
+
+    if v_battle.defender_id is not null and exists (
+      select 1
+      from players
+      where id = v_battle.defender_id
+        and coalesce(is_npc, false) = false
+    ) then
+      perform _notify(
+        v_battle.defender_id,
+        'battle_resolved',
+        (
+          select jsonb_build_object(
+            'territory_id', t.id,
+            'x', t.x::integer,
+            'y', t.y::integer,
+            'outcome', case when p_winner_side = 'defender' then 'won' else 'lost' end,
+            'other_player_id', v_battle.attacker_id
+          )
+          from territories t
+          where t.id = v_battle.territory_id
+        )
+      );
+
+      if v_capture then
+        perform _notify(
+          v_battle.defender_id,
+          'territory_lost',
+          (
+            select jsonb_build_object(
+              'territory_id', t.id,
+              'x', t.x::integer,
+              'y', t.y::integer,
+              'other_player_id', attacker.id,
+              'other_display_name', attacker.display_name
+            )
+            from territories t
+            join players attacker
+              on attacker.id = v_battle.attacker_id
+            where t.id = v_battle.territory_id
+          )
+        );
+      end if;
+    end if;
+
     v_winner_id := case p_winner_side
       when 'attacker' then v_battle.attacker_id
       when 'defender' then v_battle.defender_id
