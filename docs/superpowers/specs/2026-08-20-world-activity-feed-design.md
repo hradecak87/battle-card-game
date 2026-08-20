@@ -60,9 +60,56 @@ coordinates, and any event-specific detail (e.g. new level number).
 | `player_joined` | new-player registration path | "X se připojil do hry" |
 
 Each write is a single `insert into world_events (...) values (...)` added
-at the end of the current (latest-redefined) version of the relevant SQL
-function — no new business logic, no behavior change to the functions
-themselves.
+at the end of the correct, single canonical write-path for each action —
+**not necessarily the "latest redefinition of a same-named function"**,
+since some of these actions are resolved via set-based updates or have
+multiple overloads. Confirmed canonical owners (grep
+`create or replace function`/`create or replace trigger` across all
+`supabase/migrations/*.sql` and take the latest one — verify again at
+implementation time, since new migrations may land before this is built):
+
+- `attack_declared` — the canonical `declare_attack` implementation is the
+  JSONB-array-overload in `0027_npc_kingdoms.sql`; a later legacy
+  array-typed overload exists purely as a delegating wrapper. Log **only**
+  inside the JSONB implementation (or a shared `_declare_attack_core` if
+  one exists) — never in the wrapper too, or every attack logs twice.
+- `territory_claimed` — **not a simple end-of-function insert.**
+  `resolve_due_movements()` (latest in `0027_npc_kingdoms.sql`) completes
+  claims via a **set-based UPDATE that can finish multiple claims in one
+  call**. This must become a per-row insert (e.g. `RETURNING` the
+  completed claimant/territory rows, or extending whatever loop already
+  exists over completed claims) — a single trailing insert cannot capture
+  one event per claim.
+- `battle_won` / `battle_surrendered` — **must not double-log.**
+  `surrender_battle()` (`0019_battle_surrender.sql`) calls `_finalize_battle`
+  (latest in `0030_wire_card_limit.sql`), so naively adding an insert to
+  both functions produces two feed rows for one surrender. Centralize the
+  event insert inside `_finalize_battle`, passing through enough
+  information (the existing `p_defender_surrendered` param plus which side
+  initiated a surrender) to pick the correct single `event_type`.
+- `attack_recalled` — `recall_attack`, latest in `0025_...sql`.
+- `territory_abandoned` — `abandon_territory`, latest in
+  `0021_abandon_territory.sql`.
+- `king_relocated` — `relocate_home`, latest in `0024_king_relocate_home.sql`.
+- `player_leveled_up` — `_award_xp`, latest in `0030_wire_card_limit.sql`.
+- `player_joined` — **not an RPC.** The actual write path is the
+  `handle_new_user()` trigger function (`0001_players.sql`) fired by the
+  `on_auth_user_created` trigger. It runs with no `auth.uid()` context
+  (triggered by Supabase auth, not a logged-in player action) — redefine
+  the trigger function itself, don't treat it like a player-initiated RPC.
+
+## Row-level security & RPC grants
+
+- `world_events` has RLS **enabled** with **no** insert/update/delete
+  policy for `anon`/`authenticated` — all writes happen exclusively via
+  `security definer` functions, never directly from the client.
+- Every new RPC explicitly `revoke execute ... from public, anon` and
+  `grant execute ... to authenticated` (matches the existing pattern used
+  for `_`-prefixed internal helpers elsewhere in the migrations).
+- `payload` must only ever contain data that's already intentionally
+  public elsewhere in the game (display names, territory coordinates,
+  levels) — never anything sensitive — since these RPCs bypass per-row RLS
+  by construction.
 
 ## Backend RPCs
 
@@ -75,8 +122,10 @@ naturally small given the 32-territory-per-player cap and 5-concurrent-claims
 cap):
 
 - `world_list_attacks_in_transit()` — from `troop_movements` where
-  `kind = 'attack'`: attacker id/display_name/home coords, target territory
-  coords, `transfer_arrives_at` (battle-start ETA).
+  `kind = 'attack' and status = 'in_transit'` (status filter matters —
+  `kind = 'attack'` alone also matches already-resolved/cancelled rows):
+  attacker id/display_name/home coords, target territory coords,
+  `transfer_arrives_at` (battle-start ETA).
 - `world_list_claims_in_progress()` — from `territories` where
   `claim_locked_by is not null`: claiming player id/display_name/home
   coords, target territory coords, `claim_occupation_completes_at`
@@ -88,9 +137,12 @@ cap):
 **History feed** (paginated):
 
 - `world_list_events(p_page integer default 0, p_page_size integer default 10)`
-  — returns rows ordered `created_at desc`, `limit p_page_size offset
-  p_page * p_page_size`, plus a total count capped at 50 (i.e. pagination
-  never exposes more than the most recent 50 events, 5 pages of 10).
+  — returns rows ordered `created_at desc, id desc` (tie-break to guarantee
+  stable ordering), plus a total count **clamped to at most 50**. Both
+  `p_page` and `p_page_size` are validated/clamped server-side (e.g.
+  `p_page_size` clamped to 1-10, `p_page` clamped so `p_page * p_page_size`
+  never exceeds the 50-row window) so no combination of inputs can ever
+  page past the advertised most-recent-50 window into older history.
 
 ## Frontend
 
