@@ -39,6 +39,15 @@ export default function AttacksInTransitList({ attacks, now }: AttacksInTransitL
                   >
                     Území ({attack.target_x}, {attack.target_y})
                   </Link>
+                  {attack.target_owner_display_name && (
+                    <span className="text-zinc-400">
+                      hráče{' '}
+                      <span className="text-zinc-200">
+                        {attack.target_owner_display_name}
+                        {attack.target_owner_is_npc ? ' (NPC)' : ''}
+                      </span>
+                    </span>
+                  )}
                 </div>
                 <span className="text-amber-200">{formatEta(attack.arrives_at, now)}</span>
               </div>

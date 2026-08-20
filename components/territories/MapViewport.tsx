@@ -108,8 +108,10 @@ export interface MapViewportProps {
 function getOwnerLabel(tile: Territory, currentUserId?: string | null) {
   if (!tile.owner_id) return 'Neobsazeno'
   if (currentUserId && tile.owner_id === currentUserId) return 'Tvé území'
-  if (tile.owner_is_npc) return 'NPC říše'
-  return 'Cizí hráč'
+  if (tile.owner_is_npc) {
+    return tile.owner_display_name ? `Vlastník: ${tile.owner_display_name} (NPC)` : 'NPC říše'
+  }
+  return tile.owner_display_name ? `Vlastník: ${tile.owner_display_name}` : 'Cizí hráč'
 }
 
 // A tile's highlight "group": tiles that share the same group key merge
@@ -564,12 +566,12 @@ export default function MapViewport({
                       key={`battle-${edge}`}
                       aria-hidden="true"
                       data-testid={`highlight-battle-${edge}-${x},${y}`}
-                      className={`pointer-events-none absolute z-20 animate-pulse ${HIGHLIGHT_BAR_POSITION[edge]} ${battleHighlight.colorClass}`}
+                      className={`pointer-events-none absolute z-20 animate-battle-blink ${HIGHLIGHT_BAR_POSITION[edge]} ${battleHighlight.colorClass}`}
                     />
                   ))}
                 {structureIcons.length > 0 && (
                   <div
-                    className={`relative z-10 flex flex-row items-center justify-center gap-0.5 rounded-sm border border-black/25 bg-black/25 px-0.5 py-px shadow-sm ${
+                    className={`relative z-10 flex flex-row items-center justify-center gap-0.5 ${
                       isUnderAttack ? 'opacity-40' : ''
                     }`}
                   >

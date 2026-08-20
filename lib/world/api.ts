@@ -20,6 +20,9 @@ export interface AttackInTransitRow {
   target_territory_id: number
   target_x: number
   target_y: number
+  target_owner_id: string | null
+  target_owner_display_name: string | null
+  target_owner_is_npc: boolean
   arrives_at: string
 }
 

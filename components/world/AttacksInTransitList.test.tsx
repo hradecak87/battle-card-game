@@ -15,6 +15,9 @@ describe('AttacksInTransitList', () => {
             target_territory_id: 99,
             target_x: 56,
             target_y: 78,
+            target_owner_id: null,
+            target_owner_display_name: null,
+            target_owner_is_npc: false,
             arrives_at: '2026-08-20T12:14:00.000Z',
           },
         ]}
@@ -28,9 +31,36 @@ describe('AttacksInTransitList', () => {
     expect(screen.getByText('za 14 min')).toBeInTheDocument()
   })
 
+  it('shows the target territory owner name when the target is not empty', () => {
+    render(
+      <AttacksInTransitList
+        attacks={[
+          {
+            movement_id: 'move-2',
+            attacker_id: 'player-npc-1',
+            attacker_display_name: 'NPC Anglie',
+            attacker_home_x: null,
+            attacker_home_y: null,
+            target_territory_id: 1,
+            target_x: 1,
+            target_y: 58,
+            target_owner_id: 'player-2',
+            target_owner_display_name: 'Hráč XY',
+            target_owner_is_npc: false,
+            arrives_at: '2026-08-20T12:14:00.000Z',
+          },
+        ]}
+        now={new Date('2026-08-20T12:00:00.000Z')}
+      />
+    )
+
+    expect(screen.getByText('Hráč XY')).toBeInTheDocument()
+  })
+
   it('shows an empty state when no attacks are in transit', () => {
     render(<AttacksInTransitList attacks={[]} />)
 
     expect(screen.getByText('Žádné útoky na cestě.')).toBeInTheDocument()
   })
 })
+

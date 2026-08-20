@@ -17,6 +17,8 @@ export interface Territory {
   village_rank: string | null
   owner_id: string | null
   owner_is_npc?: boolean
+  /** Owning player's display name, joined by `getViewport` for map tooltips. */
+  owner_display_name?: string | null
   is_home: boolean
   claim_locked_by: string | null
   claim_started_at: string | null

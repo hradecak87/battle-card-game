@@ -72,6 +72,17 @@ describe('MapViewport', () => {
     expect(screen.getByText('Cizí hráč')).toBeInTheDocument()
   })
 
+  it('shows the owner display name when hovering a foreign-owned tile', () => {
+    renderViewport(
+      [makeTerritory({ owner_id: 'other-player', owner_display_name: 'Hráč XY' })],
+      'me'
+    )
+
+    fireEvent.mouseEnter(screen.getByRole('button', { name: 'Území 10,10' }))
+
+    expect(screen.getByText('Vlastník: Hráč XY')).toBeInTheDocument()
+  })
+
   it('shows NPC-owned tiles with an NPC label and badge on hover', () => {
     renderViewport([makeTerritory({ owner_id: 'npc-player', owner_is_npc: true })], 'me')
 

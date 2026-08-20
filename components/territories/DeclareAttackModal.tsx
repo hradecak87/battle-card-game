@@ -300,7 +300,7 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-6" onClick={onClose}>
       <div
         data-testid="declare-attack-modal"
-        className="w-full max-w-3xl rounded-xl border border-zinc-700 bg-zinc-950 p-6"
+        className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-950 p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
