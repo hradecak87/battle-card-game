@@ -11,12 +11,20 @@
 // difficulty } rows to a timestamped JSON file in this directory so the
 // prior state can be inspected/restored if needed.
 //
+// Uses a direct Postgres connection (SUPABASE_DB_URL) for the bulk update
+// step — Supabase's REST `upsert` can't be used here: Postgres validates
+// NOT NULL constraints on the full candidate row before ON CONFLICT
+// resolution even for a partial-column payload, so a plain upsert of just
+// {id, difficulty} fails against territories' NOT NULL x/y columns. A
+// genuine `UPDATE ... FROM UNNEST(...)` has no such problem.
+//
 // NOT run automatically. Requires the user's explicit go-ahead before
 // running against any live project.
 //
 // Run with: npx ts-node scripts/recolor-terrain.ts
 
 import { createClient } from '@supabase/supabase-js'
+import { Client } from 'pg'
 import * as fs from 'fs'
 import * as path from 'path'
 import { MAP_SIZE, generateClusteredDifficultyGrid } from './generate-world'
@@ -48,8 +56,12 @@ async function fetchAllPages<T>(
 async function main() {
   const url = process.env.SUPABASE_URL
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const dbUrl = process.env.SUPABASE_DB_URL
   if (!url || !serviceRoleKey) {
     throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set')
+  }
+  if (!dbUrl) {
+    throw new Error('SUPABASE_DB_URL must be set (direct Postgres connection for the bulk update)')
   }
   const supabase = createClient(url, serviceRoleKey)
 
@@ -85,15 +97,28 @@ async function main() {
   console.log(`Backed up pre-change state (${changes.length} rows) to ${backupPath}`)
   console.log(`${changed.length}/${changes.length} territories will change difficulty`)
 
-  // 4. Batch-update difficulty for every changed row (a single upsert per
-  //    batch — on conflict by primary key `id` it only touches the columns
-  //    we send, leaving every other column on each row untouched).
-  const batchSize = 1000
-  for (let i = 0; i < changed.length; i += batchSize) {
-    const batch = changed.slice(i, i + batchSize).map((c) => ({ id: c.id, difficulty: c.newDifficulty }))
-    const { error } = await supabase.from('territories').upsert(batch, { onConflict: 'id' })
-    if (error) throw error
-    console.log(`Updated ${Math.min(i + batchSize, changed.length)}/${changed.length} territories`)
+  // 4. Bulk-update difficulty for every changed row via a direct Postgres
+  //    connection — one UPDATE...FROM UNNEST per batch, touching only the
+  //    difficulty column and leaving every other column untouched.
+  const pg = new Client({ connectionString: dbUrl })
+  await pg.connect()
+  try {
+    const batchSize = 2000
+    for (let i = 0; i < changed.length; i += batchSize) {
+      const batch = changed.slice(i, i + batchSize)
+      const ids = batch.map((c) => c.id)
+      const difficulties = batch.map((c) => c.newDifficulty)
+      await pg.query(
+        `update territories as t
+         set difficulty = data.difficulty
+         from (select unnest($1::int[]) as id, unnest($2::smallint[]) as difficulty) as data
+         where t.id = data.id`,
+        [ids, difficulties]
+      )
+      console.log(`Updated ${Math.min(i + batchSize, changed.length)}/${changed.length} territories`)
+    }
+  } finally {
+    await pg.end()
   }
 
   // 5. Log the before/after distribution for a quick sanity check.
