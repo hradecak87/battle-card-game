@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import MyCollectionPage from './page'
+import { deckLimit } from '@/lib/players/cardLimit'
 
 const push = jest.fn()
 jest.mock('next/navigation', () => ({
@@ -12,8 +13,12 @@ jest.mock('@/lib/supabase/useSession', () => ({
 }))
 
 const getMyCardInstances = jest.fn()
+const returnCardToPool = jest.fn()
+const withdrawFromDeposit = jest.fn()
 jest.mock('@/lib/territories/api', () => ({
   getMyCardInstances: (...args: unknown[]) => getMyCardInstances(...args),
+  returnCardToPool: (...args: unknown[]) => returnCardToPool(...args),
+  withdrawFromDeposit: (...args: unknown[]) => withdrawFromDeposit(...args),
 }))
 
 import { useSession } from '@/lib/supabase/useSession'
@@ -110,12 +115,24 @@ const fixture = [
     card_templates: boostTemplate(),
     territories: { id: 10, x: 3, y: 4, is_home: true },
   },
+  {
+    instance_id: 'i5',
+    template_id: 'archers-rare-9',
+    owner_id: 'u1',
+    stationed_territory_id: null,
+    status: 'deposit' as const,
+    deposit_expires_at: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+    card_templates: archerTemplate({ id: 'archers-rare-9', name: 'Záložní lučištníci', rank: 'rare' }),
+    territories: null,
+  },
 ]
 
 describe('MyCollectionPage', () => {
   beforeEach(() => {
     push.mockClear()
     getMyCardInstances.mockReset()
+    returnCardToPool.mockReset().mockResolvedValue({ data: null, error: null })
+    withdrawFromDeposit.mockReset().mockResolvedValue({ data: null, error: null })
   })
 
   it('redirects to /login when there is no user', async () => {
@@ -125,7 +142,11 @@ describe('MyCollectionPage', () => {
   })
 
   it('loads and shows all of the current owned cards with their location', async () => {
-    ;(useSession as jest.Mock).mockReturnValue({ user: { id: 'u1' }, player: null, loading: false })
+    ;(useSession as jest.Mock).mockReturnValue({
+      user: { id: 'u1' },
+      player: { id: 'u1', xp: 1250 },
+      loading: false,
+    })
     getMyCardInstances.mockResolvedValue({ data: fixture, error: null })
 
     render(<MyCollectionPage />)
@@ -133,11 +154,15 @@ describe('MyCollectionPage', () => {
     await waitFor(() => expect(screen.getByText(/4\s+z\s+4 karet/)).toBeInTheDocument())
     expect(getMyCardInstances).toHaveBeenCalledWith('u1')
     const locations = screen.getAllByTestId('card-location').map((el) => el.textContent)
-    expect(locations).toEqual(['Domov (3, 4)', 'Území (7, 1)', 'Na cestě', 'Domov (3, 4)'])
+    expect(locations).toEqual(['V depozitu', 'Domov (3, 4)', 'Území (7, 1)', 'Na cestě', 'Domov (3, 4)'])
+    expect(screen.getByText(`Balíček: 4 / ${deckLimit(5)}`)).toBeInTheDocument()
+    expect(screen.getByText(/V depozitu ti čekají karty/)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Depozit' })).toBeInTheDocument()
+    expect(screen.getByText(/Vyprší za/)).toBeInTheDocument()
   })
 
   it('filters by rank', async () => {
-    ;(useSession as jest.Mock).mockReturnValue({ user: { id: 'u1' }, player: null, loading: false })
+    ;(useSession as jest.Mock).mockReturnValue({ user: { id: 'u1' }, player: { id: 'u1', xp: 1250 }, loading: false })
     getMyCardInstances.mockResolvedValue({ data: fixture, error: null })
     const user = userEvent.setup()
 
@@ -149,7 +174,7 @@ describe('MyCollectionPage', () => {
   })
 
   it('filters by unit type', async () => {
-    ;(useSession as jest.Mock).mockReturnValue({ user: { id: 'u1' }, player: null, loading: false })
+    ;(useSession as jest.Mock).mockReturnValue({ user: { id: 'u1' }, player: { id: 'u1', xp: 1250 }, loading: false })
     getMyCardInstances.mockResolvedValue({ data: fixture, error: null })
     const user = userEvent.setup()
 
@@ -161,7 +186,7 @@ describe('MyCollectionPage', () => {
   })
 
   it('filters by location, including the in-transit option', async () => {
-    ;(useSession as jest.Mock).mockReturnValue({ user: { id: 'u1' }, player: null, loading: false })
+    ;(useSession as jest.Mock).mockReturnValue({ user: { id: 'u1' }, player: { id: 'u1', xp: 1250 }, loading: false })
     getMyCardInstances.mockResolvedValue({ data: fixture, error: null })
     const user = userEvent.setup()
 
@@ -173,7 +198,7 @@ describe('MyCollectionPage', () => {
   })
 
   it('filters by search text on the card name', async () => {
-    ;(useSession as jest.Mock).mockReturnValue({ user: { id: 'u1' }, player: null, loading: false })
+    ;(useSession as jest.Mock).mockReturnValue({ user: { id: 'u1' }, player: { id: 'u1', xp: 1250 }, loading: false })
     getMyCardInstances.mockResolvedValue({ data: fixture, error: null })
     const user = userEvent.setup()
 
@@ -185,7 +210,7 @@ describe('MyCollectionPage', () => {
   })
 
   it('shows an empty-state message when the player owns no cards', async () => {
-    ;(useSession as jest.Mock).mockReturnValue({ user: { id: 'u1' }, player: null, loading: false })
+    ;(useSession as jest.Mock).mockReturnValue({ user: { id: 'u1' }, player: { id: 'u1', xp: 0 }, loading: false })
     getMyCardInstances.mockResolvedValue({ data: [], error: null })
 
     render(<MyCollectionPage />)
@@ -194,7 +219,7 @@ describe('MyCollectionPage', () => {
   })
 
   it('opens the zoom modal when an owned card is clicked', async () => {
-    ;(useSession as jest.Mock).mockReturnValue({ user: { id: 'u1' }, player: null, loading: false })
+    ;(useSession as jest.Mock).mockReturnValue({ user: { id: 'u1' }, player: { id: 'u1', xp: 1250 }, loading: false })
     getMyCardInstances.mockResolvedValue({ data: fixture, error: null })
     const user = userEvent.setup()
 
@@ -209,7 +234,7 @@ describe('MyCollectionPage', () => {
   })
 
   it('lets the player filter the collection down to boost cards', async () => {
-    ;(useSession as jest.Mock).mockReturnValue({ user: { id: 'u1' }, player: null, loading: false })
+    ;(useSession as jest.Mock).mockReturnValue({ user: { id: 'u1' }, player: { id: 'u1', xp: 1250 }, loading: false })
     getMyCardInstances.mockResolvedValue({ data: fixture, error: null })
     const user = userEvent.setup()
 
@@ -221,5 +246,60 @@ describe('MyCollectionPage', () => {
     expect(screen.getByText(/1\s+z\s+4 karet/)).toBeInTheDocument()
     expect(screen.getByText('Krysa')).toBeInTheDocument()
     expect(screen.queryByText('Legendární rytíři')).not.toBeInTheDocument()
+  })
+
+  it('shows rank-specific return confirmation copy and calls returnCardToPool', async () => {
+    ;(useSession as jest.Mock).mockReturnValue({ user: { id: 'u1' }, player: { id: 'u1', xp: 1250 }, loading: false })
+    getMyCardInstances.mockResolvedValue({ data: fixture, error: null })
+    const user = userEvent.setup()
+
+    render(<MyCollectionPage />)
+    await waitFor(() => expect(screen.getByText(/4\s+z\s+4 karet/)).toBeInTheDocument())
+
+    await user.click(screen.getAllByRole('button', { name: 'Vrátit do centrální sady' })[0])
+    expect(screen.getByText(/Tato karta zanikne a už se ti nevrátí/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Potvrdit vrácení karty' }))
+    expect(returnCardToPool).toHaveBeenCalledWith('i1')
+
+    await user.click(screen.getAllByRole('button', { name: 'Vrátit do centrální sady' })[1])
+    await user.click(screen.getByRole('button', { name: 'Zrušit vrácení karty' }))
+    await user.click(screen.getAllByRole('button', { name: 'Vrátit do centrální sady' })[1])
+    expect(screen.getByText(/Tato karta se vrátí do oběhu/)).toBeInTheDocument()
+  })
+
+  it('shows and executes the withdraw-from-deposit action when the deck has room', async () => {
+    ;(useSession as jest.Mock).mockReturnValue({ user: { id: 'u1' }, player: { id: 'u1', xp: 1250 }, loading: false })
+    getMyCardInstances.mockResolvedValue({ data: fixture, error: null })
+    const user = userEvent.setup()
+
+    render(<MyCollectionPage />)
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Vyzvednout z depozitu' })).toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: 'Vyzvednout z depozitu' }))
+    expect(withdrawFromDeposit).toHaveBeenCalledWith('i5')
+  })
+
+  it('disables the withdraw button when the deck is already full', async () => {
+    const fullDeckFixture = [
+      ...Array.from({ length: 80 }, (_, index) => ({
+        instance_id: `full-${index}`,
+        template_id: `archers-common-${index}`,
+        owner_id: 'u1',
+        stationed_territory_id: 10,
+        status: 'stationed' as const,
+        card_templates: archerTemplate({ id: `archers-common-${index}`, name: `Lučištník ${index}` }),
+        territories: { id: 10, x: 3, y: 4, is_home: true },
+      })),
+      fixture[4],
+    ]
+
+    ;(useSession as jest.Mock).mockReturnValue({ user: { id: 'u1' }, player: { id: 'u1', xp: 0 }, loading: false })
+    getMyCardInstances.mockResolvedValue({ data: fullDeckFixture, error: null })
+
+    render(<MyCollectionPage />)
+
+    const button = await screen.findByRole('button', { name: 'Vyzvednout z depozitu' })
+    expect(button).toBeDisabled()
   })
 })
