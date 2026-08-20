@@ -14,6 +14,50 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-20l (NPC diplomacy + war-focus implemented in repo; live apply blocked in this worktree by missing DB URL)
+
+Implemented the SQL-only NPC diplomacy / war-focus feature in the
+`feat/npc-diplomacy-behavior` worktree branch:
+
+- Added `supabase/migrations/0049_npc_diplomacy.sql`.
+  - New singleton `npc_diplomacy_state` table.
+  - New `_npc_diplomacy_power(uuid)` helper.
+  - `_diplomacy_propose_peace_core`, `_diplomacy_accept_peace_core`,
+    `_diplomacy_reject_peace_core` extracted from the live human diplomacy
+    RPCs, with the public wrappers reduced to auth-resolving shells.
+  - New hourly `resolve_due_npc_diplomacy()` tick, wired into
+    `resolve_due_movements()`.
+  - New war-focus branch in `resolve_due_npc_actions()` that prioritizes
+    attacking the weakest active war opponent ~80% of the time before
+    falling back to the pre-existing contiguous-expansion behavior.
+- Added `supabase/migrations/0049_npc_diplomacy.verification.sql` as a
+  runnable transaction-wrapped verification script covering:
+  `_npc_diplomacy_power`, human propose/accept/reject regression via the
+  public RPCs, NPC outgoing peace thresholds (0.65 none / 0.55 white /
+  0.35 one-card tribute / 0.15 three-card tribute), NPC incoming
+  tribute-accept + white-peace-reject behavior, same-hour no-op gating,
+  human-vs-human war skipping, and war-focus vs fallback behavior.
+- Fresh authoritative re-checks before editing confirmed:
+  - `resolve_due_npc_actions()` live definition source = `0048`
+  - `resolve_due_movements()` live definition source = `0035`
+  - diplomacy propose/accept/reject live definition source = `0046`
+  - migration slot `0049` was still free in both `git log --all` and the
+    on-disk migration directory
+- Repo validation in this worktree is clean:
+  - `npx jest --runInBand --silent` → **77/77 suites, 533/533 tests**
+  - `npx tsc --noEmit` → clean
+  - `npm run build` → success with temporary placeholder public Supabase
+    env vars (same existing worktree pattern as other feature branches);
+    only the known upstream Supabase-on-Node-20 deprecation warnings were
+    emitted
+
+**Current blocker:** this worktree does **not** contain `.env.local`, and
+`SUPABASE_DB_URL` is not present in the shell environment, so the usual
+direct-`pg` live-apply / live-verification step could not be executed from
+inside the allowed workspace yet. No attempt was made to read credentials
+from the user's main working copy, per the explicit "work only in this
+worktree" instruction.
+
 ## Latest update — 2026-08-20k (Map level clustering — terrain recolor applied live)
 
 Implemented and applied `map-level-clustering` directly (no separate
