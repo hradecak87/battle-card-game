@@ -870,5 +870,19 @@ begin
       and type = 'direct'
       and status = 'pending';
   end if;
+
+  perform _notify(
+    v_offer.initiator_id,
+    'trade_offer_accepted',
+    (
+      select jsonb_build_object(
+        'offer_id', v_offer.id,
+        'other_player_id', v_caller,
+        'other_display_name', p.display_name
+      )
+      from players p
+      where p.id = v_caller
+    )
+  );
 end;
 $$;

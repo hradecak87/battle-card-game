@@ -114,6 +114,16 @@ begin
       v_body
     )
     returning * into v_row;
+
+    perform _notify(
+      p_recipient_id,
+      'dm_message',
+      jsonb_build_object(
+        'conversation_id', v_conversation_id,
+        'other_player_id', v_sender_id,
+        'other_display_name', (select display_name from players where id = v_sender_id)
+      )
+    );
   elsif v_channel_type = 'global' then
     insert into chat_messages (
       sender_id,

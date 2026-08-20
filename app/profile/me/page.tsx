@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase/client'
 import { PlayerProfileCard } from '@/components/players/PlayerProfileCard'
 import { DailyRewardCard } from '@/components/players/DailyRewardCard'
 import BattleHistoryList from '@/components/players/BattleHistoryList'
+import { PushNotificationsButton } from './PushNotificationsButton'
 
 export default function ProfileMePage() {
   const router = useRouter()
@@ -61,6 +62,7 @@ export default function ProfileMePage() {
         </div>
       </nav>
       <PlayerProfileCard player={player} editable onUpdateKingdom={handleUpdateKingdom} />
+      <PushNotificationsButton />
       <DailyRewardCard
         initialStreak={player.daily_reward_streak}
         initialLastClaimAt={player.last_daily_reward_at}

@@ -353,6 +353,32 @@ begin
         on defender_home.owner_id = defender.id
        and defender_home.is_home = true
       where attacker.id = p_caller;
+
+      perform _notify(
+        p_caller,
+        'war_declared',
+        (
+          select jsonb_build_object(
+            'other_player_id', defender.id,
+            'other_display_name', defender.display_name
+          )
+          from players defender
+          where defender.id = target_owner
+        )
+      );
+
+      perform _notify(
+        target_owner,
+        'war_declared',
+        (
+          select jsonb_build_object(
+            'other_player_id', attacker.id,
+            'other_display_name', attacker.display_name
+          )
+          from players attacker
+          where attacker.id = p_caller
+        )
+      );
     end if;
   end if;
 
@@ -375,6 +401,26 @@ begin
   join territories target
     on target.id = target_territory_id
   where p.id = p_caller;
+
+  if target_owner is not null and target_owner <> p_caller and not target_owner_is_npc then
+    perform _notify(
+      target_owner,
+      'attack_incoming',
+      (
+        select jsonb_build_object(
+          'territory_id', target.id,
+          'x', target.x::integer,
+          'y', target.y::integer,
+          'other_player_id', attacker.id,
+          'other_display_name', attacker.display_name
+        )
+        from territories target
+        join players attacker
+          on attacker.id = p_caller
+        where target.id = target_territory_id
+      )
+    );
+  end if;
 
   return movement_id;
 end;

@@ -5,6 +5,7 @@ import { HeartbeatBeacon } from "@/components/players/HeartbeatBeacon";
 import { AuthStatusBar } from "@/components/players/AuthStatusBar";
 import { MainNav } from "@/components/navigation/MainNav";
 import { ChatWidget } from "@/components/chat/ChatWidget";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -33,7 +34,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-950 text-zinc-100`}
       >
         <HeartbeatBeacon />
-        <AuthStatusBar />
+        <div className="relative pr-12">
+          <AuthStatusBar />
+          <div className="absolute inset-y-0 right-4 flex items-center">
+            <NotificationBell />
+          </div>
+        </div>
         <MainNav />
         {children}
         <ChatWidget />

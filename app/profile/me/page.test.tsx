@@ -60,6 +60,7 @@ describe('ProfileMePage', () => {
     expect(screen.getByText(/Tisové luky/)).toBeInTheDocument()
     expect(screen.getByTestId('xp-progress-bar')).toBeInTheDocument()
     expect(screen.getByText(/5 dní/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Povolit oznámení' })).toBeInTheDocument()
     expect(await screen.findByText('Historie bitev')).toBeInTheDocument()
   })
 
@@ -79,4 +80,3 @@ describe('ProfileMePage', () => {
     expect(push).toHaveBeenCalledWith('/onboarding/kingdom')
   })
 })
-

@@ -14,6 +14,146 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-20x (notifications module: all 5 chunks complete)
+
+- **The full notifications module (Chunks 1-5) is now implemented and
+  verified** in the isolated `feature/notifications-module` worktree, on
+  top of the design spec (`docs/superpowers/specs/2026-08-20-notifications-design.md`)
+  and implementation plan (`docs/superpowers/plans/2026-08-20-notifications-module.md`):
+  - **Chunk 1** — DB schema + event wiring (migration `0056_notifications.sql`,
+    renumbered from `0055` to avoid a collision with `main`'s unrelated
+    `0055_claim_info.sql`; applied and verified live against production).
+  - **Chunk 2** — `lib/notifications` client library (types, API wrappers,
+    realtime hook, deep links).
+  - **Chunk 3** — in-app UI (bell + badge, dropdown/full-screen panel,
+    paginated `/notifications` history page).
+  - **Chunk 4** — Web Push (service worker, subscribe/send API routes,
+    opt-in UI on `/profile/me`). VAPID keys + webhook secret generated and
+    reported to the user for their own record (not committed anywhere).
+  - Every chunk was implemented by a background subagent under strict TDD,
+    then independently re-verified by the coordinator (full test suite +
+    `tsc --noEmit` re-run fresh, plus a manual read-through of the
+    security-sensitive files — the webhook auth check, the subscribe
+    route's bearer-token auth, and the `public/sw.js`/`deepLink.ts` parity).
+  - Final state in the worktree: **88 test suites / 574 tests passing**
+    (one pre-existing flaky, unrelated timing test in
+    `app/catalog/page.test.tsx` was confirmed to pass in isolation — not a
+    regression), `tsc --noEmit` clean.
+- **Outstanding manual step before this is live in production** (cannot be
+  done by an agent — requires Supabase dashboard + Vercel access):
+  1. Set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (replace
+     the placeholder `mailto:admin@example.com` with a real contact),
+     `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (same value as `VAPID_PUBLIC_KEY`), and
+     `PUSH_WEBHOOK_SECRET` as Vercel production env vars (values were
+     reported directly to the user in chat, not stored in any repo file).
+  2. In the Supabase dashboard: create a Database Webhook on the
+     `notifications` table, events `INSERT` and `UPDATE`, POST to
+     `https://<deployed-domain>/api/push/send`, with header
+     `x-push-webhook-secret: <PUSH_WEBHOOK_SECRET>`.
+  3. Manual smoke test: enable notifications via the opt-in button on
+     `/profile/me` on an Android/Chrome device, trigger one of the 10
+     notification types, confirm a system push appears and tapping it
+     deep-links correctly.
+- **Next step**: merge `feature/notifications-module` into `main` (squash
+  or merge commit, coordinator's call), then remove the worktree
+  (`git worktree remove .worktrees/notifications-module`) and delete the
+  now-unneeded branch once merged.
+
+## Latest update — 2026-08-20w (notifications chunk 4 implemented in worktree)
+
+- Implemented **Chunk 4** of the notifications module in the isolated
+  `feature/notifications-module` worktree:
+  - installed `web-push` + `@types/web-push`;
+  - generated a real VAPID key pair plus a random `PUSH_WEBHOOK_SECRET`
+    and added them to the worktree's gitignored `.env.local` together with
+    `NEXT_PUBLIC_VAPID_PUBLIC_KEY` and placeholder
+    `VAPID_SUBJECT=mailto:admin@example.com` (**must be replaced with a real
+    contact address in deployed envs**);
+  - added `public/sw.js` with plain-JS `push` and `notificationclick`
+    handlers that mirror `lib/notifications/deepLink.ts` exactly (with
+    cross-file comments marking each other as the sync point);
+  - added `app/api/push/subscribe/route.ts` (authenticated POST, validates
+    `{ endpoint, keys: { p256dh, auth } }`, upserts into
+    `push_subscriptions` on `endpoint`);
+  - added `lib/push/vapid.ts`, `lib/push/sendPush.ts`, and
+    `app/api/push/send/route.ts` (Supabase Database Webhook target using
+    `x-push-webhook-secret`; fetches all subscriptions for the
+    notification's `player_id`, sends via `web-push`, and prunes only the
+    expired `404/410` subscription rows);
+  - added a profile opt-in control
+    `app/profile/me/PushNotificationsButton.tsx`, mounted on `/profile/me`,
+    which requests permission, registers `/sw.js`, subscribes with
+    `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, and POSTs the subscription to
+    `/api/push/subscribe` with the current Supabase access token in an
+    `Authorization: Bearer ...` header for server-side user verification.
+- There were **no existing `app/api/*` routes or webhook handlers** in this
+  branch to mirror for auth/header conventions, so Chunk 4 uses:
+  - browser → `/api/push/subscribe`: `Authorization: Bearer <Supabase access token>`
+    and a Supabase server client with that bearer token for
+    `auth.getUser()`;
+  - Supabase Database Webhook → `/api/push/send`:
+    `x-push-webhook-secret: <PUSH_WEBHOOK_SECRET>`, compared with
+    `crypto.timingSafeEqual`.
+- Added tests:
+  `app/api/push/subscribe/route.test.ts`,
+  `app/api/push/send/route.test.ts`,
+  `app/profile/me/PushNotificationsButton.test.tsx`,
+  `lib/push/vapid.test.ts`,
+  `lib/push/sendPush.test.ts`,
+  plus the `/profile/me` page assertion for the new button.
+- Verification in the worktree:
+  - `npm test -- --runInBand --silent` → **88/88 suites, 574/574 tests pass**
+  - `npx tsc --noEmit` → clean
+- **Still manual / not done by agent (plan steps 9-10):**
+  1. In Supabase Dashboard → Database Webhooks, create a webhook on table
+     `notifications`, events `INSERT` and `UPDATE`, POST target
+     `https://<deployed-domain>/api/push/send`, header
+     `x-push-webhook-secret: <same PUSH_WEBHOOK_SECRET as Vercel env>`.
+  2. In the deployed environment, add the generated VAPID env vars and
+     secret, replace the placeholder VAPID subject with a real contact, then
+     manually smoke-test on a real Web-Push-capable browser/device by
+     enabling notifications and triggering one of the supported event types.
+
+## Latest update — 2026-08-20v (notifications chunk 3 implemented in worktree)
+
+- Implemented **Chunk 3** of the notifications module in the isolated
+  `feature/notifications-module` worktree: added
+  `components/notifications/NotificationBell.tsx`,
+  `components/notifications/NotificationPanel.tsx`, shared
+  `components/notifications/NotificationList.tsx` +
+  `components/notifications/notificationLabel.ts`, and the paginated
+  `/notifications` history page.
+- Mounted the bell in `app/layout.tsx` next to `AuthStatusBar` via the same
+  top-strip area, keeping the bell always visible across the app.
+- **Responsive pattern intentionally follows `components/chat/ChatWidget.tsx`**:
+  mobile-first fullscreen panel via `fixed inset-0`, switching to an anchored
+  desktop dropdown at `md:` (`md:absolute md:right-0 md:top-full ...`).
+  Tests assert both branches by checking those responsive class names rather
+  than simulating viewport width in jsdom.
+- Fixed two follow-up correctness issues during review:
+  1. hoisted `useNotificationsChannel()` state into `NotificationBell` so the
+     badge and panel share one realtime subscription / refresh source;
+  2. guarded `markRead()` / `markAllRead()` success paths so navigation or
+     refresh only happen when the RPC returns without `error`.
+- Added/updated tests:
+  `components/notifications/NotificationBell.test.tsx`,
+  `components/notifications/NotificationPanel.test.tsx`,
+  `app/notifications/page.test.tsx`.
+- Verification in the worktree:
+  - `npm test -- --runInBand --silent` → **82/82 suites, 558/558 tests pass**
+  - `npx tsc --noEmit` → clean
+  - `npm run build` still fails for the **pre-existing env/config issue**
+    already affecting other pages too (`Error: supabaseUrl is required`
+    during prerender, not introduced by Chunk 3; `/exchange`, `/notifications`
+    and many existing routes fail similarly without env vars during build).
+
+## Latest update — 2026-08-20u (notifications chunk 1 implemented in worktree, not applied live)
+
+- Implemented **Chunk 1 (steps 1-5)** of the notifications module plan in the isolated `feature/notifications-module` worktree: new migration `0056_notifications.sql` (renumbered from `0055` to avoid a collision with `main`'s unrelated `0055_claim_info.sql`), manual checklist `0056_notifications.verification.sql`, and `_notify(...)` wiring across the current source-of-truth SQL functions for attacks, war declarations, battle results, territory loss, trade offers, peace offers, level-ups, and DMs. Coordinator reviewed all 3 self-flagged subagent concerns (all false alarms except one flawed `now()`-per-transaction assertion in the verification script, fixed), applied the migration + verification live against production, and confirmed 77/77 test suites still pass in the worktree.
+- **Confirmed current source-of-truth files before editing** via migration grep: `_declare_attack_core` → `0045_diplomacy_war_creation.sql`, `_finalize_battle_base_0025` + `_award_xp` → `0047_wall_structure_card.sql`, `create_trade_offer` / `respond_to_public_offer` / `reject_trade_offer` → `0014_trading_exchange.sql`, `accept_trade_offer` → `0030_wire_card_limit.sql`, `_diplomacy_propose_peace_core` + `resolve_due_movements` → `0050_npc_diplomacy.sql`, `chat_send_message` → `0041_chat_rpcs.sql`.
+- Added `notifications` + `push_subscriptions` schema, RLS policies, bell/panel RPCs, DM-conversation unique index/upsert helper, and 30-day retention piggy-backed onto `resolve_due_movements()` (same lazy-cleanup pattern as other no-cron maintenance in this project).
+- **Important implementation note:** the current `respond_to_public_offer()` body has no accept/reject branch despite earlier plan wording; in the repo as of 2026-08-20 it creates a targeted direct response to the public listing owner, so its `_notify(...)` wiring uses `trade_offer_received` for that owner. Acceptance/rejection notifications still come from `accept_trade_offer()` / `reject_trade_offer()`. Double-check this assumption during live review before applying the migration.
+
 ## Latest update — 2026-08-20t (one-off live data cleanup: 254 over-cap wild garrisons trimmed back to target size)
 
 - **Found while spot-checking 0053/0054**: user asked to check more villages
