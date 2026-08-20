@@ -14,8 +14,10 @@ Spec: `docs/superpowers/specs/2026-08-20-npc-diplomacy-behavior-design.md`
   `0046_diplomacy_rpcs.sql`). SQL functions in this project are frequently
   redefined later and only the highest-numbered file is live — always
   verify before assuming a given file is authoritative.
-- Next migration number is `0049` (`supabase/migrations/0049_npc_diplomacy.sql`
-  + matching `.verification.sql`) — double-check with `git log --all
+- Next migration number is `0049` at plan-writing time, but the final branch
+  file was renumbered to `supabase/migrations/0050_npc_diplomacy.sql`
+  (+ matching `.verification.sql`) after `0049` was claimed on `main` —
+  still double-check with `git log --all
   --oneline -- 'supabase/migrations/0049*'` in case another in-flight
   branch already claimed it.
 - Read the full spec before starting; it has exact SQL snippets for

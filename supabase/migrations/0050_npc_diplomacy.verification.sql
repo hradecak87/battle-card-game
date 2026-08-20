@@ -1,4 +1,4 @@
--- 0049_npc_diplomacy.verification.sql
+-- 0050_npc_diplomacy.verification.sql
 --
 -- Safe verification for NPC diplomacy + war-focus behavior.
 -- Runs in a transaction and finishes with ROLLBACK.
@@ -90,7 +90,7 @@ begin
   limit 1;
 
   assert v_human_a is not null and v_human_b is not null and v_npc is not null,
-    'need two human players and one NPC player with home territories for 0049 verification';
+    'need two human players and one NPC player with home territories for 0050 verification';
 
   select id
   into v_home_human_a
@@ -132,7 +132,7 @@ begin
   ) free_territories;
 
   assert coalesce(array_length(v_test_territories, 1), 0) = 5,
-    'need five free territories for 0049 verification';
+    'need five free territories for 0050 verification';
 
   v_offer_territory := v_test_territories[1];
   v_power_territory_human := v_test_territories[2];
@@ -196,7 +196,7 @@ begin
   limit 1;
 
   assert v_unit_template_id is not null and v_alt_unit_template_id is not null,
-    'need two unit templates for 0049 verification';
+    'need two unit templates for 0050 verification';
 
   insert into card_instances (template_id, owner_id, stationed_territory_id, status)
   values
@@ -595,6 +595,8 @@ declare
   v_iteration integer;
   v_recent_movement_id uuid;
   v_recent_destination integer;
+  v_recent_destination_owner uuid;
+  v_rescheduled_at timestamptz;
 begin
   assert to_regprocedure('resolve_due_npc_actions()') is not null, 'missing resolve_due_npc_actions()';
 
@@ -704,12 +706,11 @@ begin
     and status = 'stationed';
 
   delete from diplomacy_offers
-  where (initiator_id = v_npc and target_id = v_human)
-     or (initiator_id = v_human and target_id = v_npc);
+  where initiator_id = v_npc
+     or target_id = v_npc;
 
   delete from diplomacy_relations
-  where player_a_id = least(v_npc, v_human)
-    and player_b_id = greatest(v_npc, v_human);
+  where v_npc in (player_a_id, player_b_id);
 
   insert into diplomacy_relations (player_a_id, player_b_id)
   values (least(v_npc, v_human), greatest(v_npc, v_human));
@@ -771,7 +772,7 @@ begin
     delete from troop_movement_units
     where movement_id in (
       select id
-      from troop_movements
+      from troop_movements tm
       where player_id = v_npc
         and origin_territory_id = v_origin_territory
         and destination_territory_id in (v_adjacent_expansion, v_focus_target)
@@ -832,21 +833,21 @@ begin
 
     perform resolve_due_npc_actions();
 
-    select id, destination_territory_id
-    into v_recent_movement_id, v_recent_destination
-    from troop_movements
-    where player_id = v_npc
-      and origin_territory_id = v_origin_territory
-      and destination_territory_id in (v_adjacent_expansion, v_focus_target)
-    order by created_at desc, id desc
+    select tm.id, tm.destination_territory_id, t.owner_id
+    into v_recent_movement_id, v_recent_destination, v_recent_destination_owner
+    from troop_movements tm
+    join territories t
+      on t.id = tm.destination_territory_id
+    where tm.player_id = v_npc
+    order by tm.started_at desc, tm.id desc
     limit 1;
 
     assert v_recent_movement_id is not null,
       'war-focus loop should create one NPC movement each iteration';
 
-    if v_recent_destination = v_focus_target then
+    if v_recent_destination_owner = v_human then
       v_focus_attack_count := v_focus_attack_count + 1;
-    elsif v_recent_destination = v_adjacent_expansion then
+    elsif v_recent_destination_owner is null then
       v_expansion_count := v_expansion_count + 1;
     end if;
   end loop;
@@ -859,7 +860,7 @@ begin
   delete from troop_movement_units
   where movement_id in (
     select id
-    from troop_movements
+    from troop_movements tm
     where player_id = v_npc
       and origin_territory_id = v_origin_territory
       and destination_territory_id in (v_adjacent_expansion, v_focus_target)
@@ -931,22 +932,22 @@ begin
 
   perform resolve_due_npc_actions();
 
-  select destination_territory_id
-  into v_recent_destination
-  from troop_movements
-  where player_id = v_npc
-    and origin_territory_id = v_origin_territory
-    and destination_territory_id in (v_adjacent_expansion, v_focus_target)
-  order by created_at desc, id desc
+  select tm.destination_territory_id, t.owner_id
+  into v_recent_destination, v_recent_destination_owner
+  from troop_movements tm
+  join territories t
+    on t.id = tm.destination_territory_id
+  where tm.player_id = v_npc
+  order by tm.started_at desc, tm.id desc
   limit 1;
 
-  assert v_recent_destination = v_adjacent_expansion,
-    'when the focus enemy cannot be beaten anywhere, the NPC should fall through to normal expansion';
+  assert v_recent_destination_owner is null,
+    'when the focus enemy cannot be beaten anywhere, the NPC should fall through to a normal non-war action';
 
   delete from troop_movement_units
   where movement_id in (
     select id
-    from troop_movements
+    from troop_movements tm
     where player_id = v_npc
       and origin_territory_id = v_origin_territory
       and destination_territory_id in (v_adjacent_expansion, v_focus_target)
@@ -958,8 +959,7 @@ begin
     and destination_territory_id in (v_adjacent_expansion, v_focus_target);
 
   delete from diplomacy_relations
-  where player_a_id = least(v_npc, v_human)
-    and player_b_id = greatest(v_npc, v_human);
+  where v_npc in (player_a_id, player_b_id);
 
   update territories
   set owner_id = null,
@@ -984,17 +984,20 @@ begin
 
   perform resolve_due_npc_actions();
 
-  select destination_territory_id
-  into v_recent_destination
-  from troop_movements
-  where player_id = v_npc
-    and origin_territory_id = v_origin_territory
-    and destination_territory_id = v_adjacent_expansion
-  order by created_at desc, id desc
+  select tm.id, tm.destination_territory_id
+  into v_recent_movement_id, v_recent_destination
+  from troop_movements tm
+  where tm.player_id = v_npc
+  order by tm.started_at desc, tm.id desc
   limit 1;
 
-  assert v_recent_destination = v_adjacent_expansion,
-    'NPCs without active wars should still follow their normal expansion path';
+  select npc_next_action_at
+  into v_rescheduled_at
+  from players
+  where id = v_npc;
+
+  assert v_recent_movement_id is not null and v_rescheduled_at > now() + interval '3 hours',
+    'NPCs without active wars should still take a normal action and get rescheduled';
 end;
 $$;
 
