@@ -35,6 +35,8 @@ import {
 import { canUseKingRelocation } from '@/lib/players/king'
 import { levelForXp } from '@/lib/players/leveling'
 import { useSession } from '@/lib/supabase/useSession'
+import { getRelation } from '@/lib/diplomacy/api'
+import type { DiplomacyRelationState } from '@/lib/diplomacy/types'
 
 // Capped below Supabase/PostgREST's default 1000-row response limit
 // (viewSize² must stay under that, confirmed live: a 35×35=1225 request
@@ -89,6 +91,7 @@ function MapPageContent() {
   const [ownerInfoLoading, setOwnerInfoLoading] = useState(false)
   const [ownerInfoError, setOwnerInfoError] = useState<string | null>(null)
   const [incomingAttackInfo, setIncomingAttackInfo] = useState<IncomingAttackInfo | null>(null)
+  const [relationState, setRelationState] = useState<DiplomacyRelationState | null>(null)
   const [homeStatus, setHomeStatus] = useState<'idle' | 'searching' | 'not-found'>('idle')
   const [ownedTerritories, setOwnedTerritories] = useState<MyTerritory[] | null>(null)
   const [structureCardInstances, setStructureCardInstances] = useState<CardInstanceWithTemplate[] | null>(null)
@@ -301,11 +304,16 @@ function MapPageContent() {
     setOwnerInfo(null)
     setOwnerInfoError(null)
     setIncomingAttackInfo(null)
+    setRelationState(null)
     setShowAttackModal(false)
     setShowTransferModal(false)
     const shouldLoadOwnerInfo = Boolean(tile.owner_id && tile.owner_id !== user?.id)
     setOwnerInfoLoading(shouldLoadOwnerInfo)
     if (shouldLoadOwnerInfo && tile.owner_id) {
+      getRelation(tile.owner_id).then(({ data }) => {
+        if (selectionRequestIdRef.current !== requestId) return
+        setRelationState(data ?? null)
+      })
       getPlayerPublicInfo(tile.owner_id).then(({ data, error: playerError }) => {
         if (selectionRequestIdRef.current !== requestId) return
         setOwnerInfoLoading(false)
@@ -472,6 +480,7 @@ function MapPageContent() {
             ownerInfo={ownerInfo}
             ownerInfoLoading={ownerInfoLoading}
             ownerInfoError={ownerInfoError}
+            relationState={relationState}
             incomingAttackInfo={incomingAttackInfo}
             onNavigateToTerritory={(x, y) => {
               handleJump(x, y)

@@ -8,10 +8,12 @@
  */
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { NATIONS } from '@/lib/players/nations'
 import { COATS_OF_ARMS } from '@/lib/players/coats-of-arms'
 import { levelForXp, xpRequiredForLevel } from '@/lib/players/leveling'
 import type { PlayerRow } from '@/lib/supabase/useSession'
+import type { DiplomacyRelationState } from '@/lib/diplomacy/types'
 
 const ONLINE_THRESHOLD_MS = 2 * 60 * 1000
 
@@ -19,9 +21,15 @@ export interface PlayerProfileCardProps {
   player: PlayerRow
   editable?: boolean
   onUpdateKingdom?: (kingdomName: string, coatOfArmsId: string) => Promise<{ error: string | null }>
+  relationState?: DiplomacyRelationState | null
 }
 
-export function PlayerProfileCard({ player, editable = false, onUpdateKingdom }: PlayerProfileCardProps) {
+export function PlayerProfileCard({
+  player,
+  editable = false,
+  onUpdateKingdom,
+  relationState = null,
+}: PlayerProfileCardProps) {
   const [editing, setEditing] = useState(false)
   const [kingdomName, setKingdomName] = useState(player.kingdom_name ?? '')
   const [coatOfArmsId, setCoatOfArmsId] = useState(player.coat_of_arms_id ?? '')
@@ -79,6 +87,15 @@ export function PlayerProfileCard({ player, editable = false, onUpdateKingdom }:
               </span>
             )}
           </p>
+          {relationState === 'war' && (
+            <Link
+              href="/diplomacy"
+              data-testid="war-badge"
+              className="mt-2 inline-flex rounded-full border border-red-500/60 bg-red-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-red-200"
+            >
+              ⚔️ Válka
+            </Link>
+          )}
         </div>
       </div>
 

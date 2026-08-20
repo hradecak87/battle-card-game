@@ -5,11 +5,16 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
 import { PlayerProfileCard } from '@/components/players/PlayerProfileCard'
 import type { PlayerRow } from '@/lib/supabase/useSession'
+import { useSession } from '@/lib/supabase/useSession'
+import { getRelation } from '@/lib/diplomacy/api'
+import type { DiplomacyRelationState } from '@/lib/diplomacy/types'
 
 export default function ProfilePage({ params }: { params: { id: string } }) {
+  const { user } = useSession()
   const [player, setPlayer] = useState<PlayerRow | null>(null)
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [relationState, setRelationState] = useState<DiplomacyRelationState | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -31,6 +36,23 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
       cancelled = true
     }
   }, [params.id])
+
+  useEffect(() => {
+    if (!user?.id || user.id === params.id) {
+      setRelationState(null)
+      return
+    }
+
+    let cancelled = false
+    getRelation(params.id).then(({ data }) => {
+      if (cancelled) return
+      setRelationState(data ?? null)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [params.id, user?.id])
 
   if (loading) {
     return (
@@ -55,7 +77,7 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
           ← Domů
         </Link>
       </div>
-      <PlayerProfileCard player={player} />
+      <PlayerProfileCard player={player} relationState={relationState} />
     </main>
   )
 }

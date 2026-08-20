@@ -59,6 +59,12 @@ export function formatWorldEventText(event: WorldEventRow) {
       return `${asString(payload.player_display_name) ?? 'Někdo'} dosáhl levelu ${asNumber(payload.new_level) ?? '?'}`
     case 'player_joined':
       return `${asString(payload.player_display_name) ?? 'Někdo'} se připojil do hry`
+    case 'war_declared':
+      return `${asString(payload.attacker_display_name) ?? 'Někdo'} vyhlásil válku hráči ${asString(payload.defender_display_name) ?? 'neznámý hráč'}`
+    case 'peace_signed':
+      return `${asString(payload.player_a_display_name) ?? 'Někdo'} a ${asString(payload.player_b_display_name) ?? 'někdo'} uzavřeli ${
+        payload.had_tribute ? 'mír za tribut' : 'bílý mír'
+      }`
     default:
       return 'Ve světě se stalo něco nového.'
   }
@@ -202,6 +208,39 @@ function renderEventText(event: WorldEventRow): ReactNode {
             payload.player_home_y
           )}{' '}
           se připojil do hry
+        </>
+      )
+    case 'war_declared':
+      return (
+        <>
+          {mapLink(
+            asString(payload.attacker_display_name) ?? 'Někdo',
+            payload.attacker_home_x,
+            payload.attacker_home_y
+          )}{' '}
+          vyhlásil válku hráči{' '}
+          {mapLink(
+            asString(payload.defender_display_name) ?? 'neznámý hráč',
+            payload.defender_home_x,
+            payload.defender_home_y
+          )}
+        </>
+      )
+    case 'peace_signed':
+      return (
+        <>
+          {mapLink(
+            asString(payload.player_a_display_name) ?? 'Někdo',
+            payload.player_a_home_x,
+            payload.player_a_home_y
+          )}{' '}
+          a{' '}
+          {mapLink(
+            asString(payload.player_b_display_name) ?? 'někdo',
+            payload.player_b_home_x,
+            payload.player_b_home_y
+          )}{' '}
+          uzavřeli {payload.had_tribute ? 'mír za tribut' : 'bílý mír'}
         </>
       )
     default:
