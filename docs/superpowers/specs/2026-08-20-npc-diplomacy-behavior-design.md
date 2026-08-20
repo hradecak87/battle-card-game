@@ -63,8 +63,17 @@ as $$
   ) e
   where ci.owner_id = p_player_id
     and ci.status = 'stationed'
+    and ci.stationed_territory_id is not null
 $$;
 ```
+
+Only `authenticated`/`anon`/`public` execute grants are revoked explicitly on
+every new function below (`_npc_diplomacy_power`, `_diplomacy_*_core`,
+`resolve_due_npc_diplomacy`) — Postgres defaults new function EXECUTE grants
+to `PUBLIC`, so each `create or replace function` in the migration is
+followed by an explicit `revoke execute on function ... from public, anon,
+authenticated;`, matching the pattern already used for `_declare_attack_core`
+and friends.
 
 This is a simple, cheap, whole-army metric — deliberately not the
 per-territory `_territory_effective_unit_power` used for attack-eligibility
@@ -185,9 +194,11 @@ the whole tick.
 
 ### Step B — propose peace for active wars
 
-For every active war row in `diplomacy_relations` where at least one side is
-an NPC and the other side is a human (this is every war row today, since
-NPC-vs-NPC wars can't exist):
+For every active war row in `diplomacy_relations` where exactly one side is
+an NPC (`players.is_npc = true`) and the other side is a human
+(`is_npc = false`) — explicitly filtered this way rather than assumed,
+since human-vs-human war rows also exist in `diplomacy_relations` today and
+must be skipped here:
 
 ```
 skip if the NPC already has a pending outgoing offer to that opponent
@@ -198,7 +209,7 @@ skip if the NPC already has a pending outgoing offer to that opponent
 ratio := _npc_diplomacy_power(npc_id) / nullif(_npc_diplomacy_power(opponent_id), 0)
 lost_recently := exists (
   select 1 from world_events
-  where event_type = 'battle_won'
+  where event_type in ('battle_won', 'battle_surrendered')
     and payload->>'loser_id' = npc_id::text
     and payload->>'winner_id' = opponent_id::text
     and created_at > now() - interval '24 hours'
@@ -212,8 +223,17 @@ if ratio < 0.6 or lost_recently:
       else 1
     end
     offered_card_ids := <card_count weakest currently-stationed unit cards
-                          owned by the NPC, ordered by rank asc then by
-                          (str+lng+def+hp) asc, id asc for determinism>
+                          owned by the NPC, excluding any card whose
+                          stationed territory has an unresolved battle or a
+                          battle lock (same constraint
+                          `diplomacy_validate_cards` already enforces — must
+                          pre-filter here or `_diplomacy_propose_peace_core`
+                          will reject the whole proposal), ordered by a
+                          rank-strength `case` expression
+                          (`common`=1, `uncommon`=2, `rare`=3, `epic`=4,
+                          `legend`=5) ascending, then by
+                          `(str+lng+def+hp)` ascending, then `id` ascending
+                          for determinism>
     perform _diplomacy_propose_peace_core(npc_id, opponent_id, 'tribute_peace', offered_card_ids, null)
   else:
     perform _diplomacy_propose_peace_core(npc_id, opponent_id, 'white_peace', '{}', null)
