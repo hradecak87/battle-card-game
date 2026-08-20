@@ -14,6 +14,52 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-20k (Map level clustering — terrain recolor applied live)
+
+Implemented and applied `map-level-clustering` directly (no separate
+worktree/background-agent dispatch — bounded, self-contained task).
+
+- Spec: `docs/superpowers/specs/2026-08-20-map-level-clustering-design.md`.
+- New `generateClusteredDifficultyGrid(width, height, rand)` in
+  `scripts/generate-world.ts`: pure, seedable-RNG blob/flood-fill algorithm.
+  Forest(2)/desert(4)/mountain(5) grow as large irregular 8-directional
+  blobs (target size ~15-180 tiles) until each hits its target % of the
+  map; water(3) grows as small pond-sized blobs (5-15 tiles) with a
+  compact-growth radius cap and a seed min-gap check (mostly separate
+  ponds, occasional merges accepted — tuning the full percentage split
+  turned out to be mutually exclusive with a hard zero-merge guarantee on
+  the full 65,536-tile map); remaining tiles default to grass(1). Order:
+  forest → desert → mountain → water → grass fills the rest.
+- 5 new unit tests in `scripts/generate-world.test.ts` covering value
+  range, % split tolerance, forest/desert/mountain forming genuinely large
+  contiguous regions, water staying pond-sized (median well below
+  forest's), and determinism.
+- New one-time script `scripts/recolor-terrain.ts` — "Option B" per user's
+  explicit choice: non-destructive in-place recolor of the already-live
+  256×256 map's `territories.difficulty` column only (ownership,
+  structures, stationed cards, battles, troop movements all untouched,
+  including the 22 already-owned/home territories). Backs up full
+  before/after state to a gitignored timestamped JSON before writing.
+  User explicitly decided NOT to resync NPC garrison sizes/ranks on wild
+  structure tiles to the new difficulty (accepted minor mismatch).
+- **Gotcha hit and fixed**: Supabase's REST `upsert` validates NOT NULL
+  constraints on the *full candidate row* before ON CONFLICT resolution —
+  so a partial `{id, difficulty}` payload fails against `territories`'
+  NOT NULL `x`/`y` columns even though it's logically an UPDATE. Fixed by
+  connecting directly via `pg` (`SUPABASE_DB_URL`, already in `.env.local`)
+  and doing a genuine `UPDATE ... FROM UNNEST(...)` bulk update per batch.
+  Added `@types/pg` dev dependency.
+- **Applied live**: 49,367/65,536 territories recolored (16,169 unchanged
+  by chance). Verified final distribution 30/30/20/15/5% matches design
+  targets exactly, and that ownership (22), structures (1,569), and
+  stationed cards (13,563) counts are all unchanged post-recolor.
+- Approved via a rendered 256×256 preview image (matplotlib, not
+  committed — same pattern as the earlier 50×50 prototype) before
+  applying to the live DB.
+- Verification: 77/77 suites, 533/533 tests, `tsc --noEmit` clean,
+  `npm run build` succeeded. Committed as `9078c14` (feature) and
+  `540e34b` (upsert→pg fix), pushed to `origin/main`.
+
 ## Latest update — 2026-08-20i (Hradby / Walls feature, repo-complete; live apply blocked by missing DB URL in worktree)
 
 Implemented the full Hradby/Walls feature in the `feat/hradby-walls`
