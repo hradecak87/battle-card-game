@@ -172,6 +172,7 @@ set search_path = public
 as $$
 declare
   v_instance_id uuid;
+  v_territory_id integer;
 begin
   perform admin_require_admin();
 
@@ -188,8 +189,17 @@ begin
     raise exception 'territory % not found', p_territory_id;
   end if;
 
+  -- Default to the player's home territory when no target is given, so the
+  -- granted card is immediately usable instead of floating unstationed.
+  v_territory_id := p_territory_id;
+  if v_territory_id is null then
+    select id into v_territory_id
+    from territories
+    where owner_id = p_player_id and is_home;
+  end if;
+
   insert into card_instances (template_id, owner_id, stationed_territory_id, status)
-  values (p_template_id, p_player_id, p_territory_id, 'stationed')
+  values (p_template_id, p_player_id, v_territory_id, 'stationed')
   returning instance_id into v_instance_id;
 
   return v_instance_id;

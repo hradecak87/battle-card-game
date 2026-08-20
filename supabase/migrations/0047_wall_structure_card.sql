@@ -167,6 +167,16 @@ begin
 end;
 $$;
 
+-- The signature of _compute_effective_stats/_compute_battle_effective_stats
+-- changed here (added p_wall_rank). Postgres treats a different parameter
+-- list as a brand-new overload rather than a replacement, so the pre-wall
+-- 6/9-param versions must be dropped explicitly -- otherwise both overloads
+-- coexist and any caller still invoking the old arg count becomes an
+-- "is not unique" ambiguous-call error once the new default-valued overload
+-- can also match that same arg count.
+drop function if exists _compute_effective_stats(jsonb, text, nation_id, boolean, text, text);
+drop function if exists _compute_battle_effective_stats(uuid, text, integer, jsonb, text, nation_id, boolean, text, text);
+
 create or replace function _compute_effective_stats(
   p_base_stats jsonb,
   p_rank text,
@@ -400,7 +410,7 @@ begin
   select nation into v_atk_nation from players where id = v_atk_owner;
 
   select * into v_atk_eff from _compute_effective_stats(
-    v_atk_base, v_atk_rank, v_atk_nation, false, null, null);
+    v_atk_base, v_atk_rank, v_atk_nation, false, null, null, null);
 
   for v_candidate in
     select ci.instance_id, ct.rank, ct.base_stats

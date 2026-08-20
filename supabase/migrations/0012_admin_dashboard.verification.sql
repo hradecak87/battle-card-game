@@ -83,14 +83,17 @@ begin
 
   v_instance_id := admin_grant_card(auth.uid(), v_template_id, null);
 
+  -- 2026-08-20: admin_grant_card() now defaults to the caller's home
+  -- territory when p_territory_id is null (see 0051_admin_grant_card_home_default.sql),
+  -- so the granted card is immediately usable instead of floating unstationed.
   assert exists (
     select 1
     from card_instances
     where instance_id = v_instance_id
       and owner_id = auth.uid()
       and template_id = v_template_id
-      and stationed_territory_id is null
-  ), 'Expected newly granted card instance to exist';
+      and stationed_territory_id = (select id from territories where owner_id = auth.uid() and is_home)
+  ), 'Expected newly granted card instance to be stationed at the caller''s home territory';
 
   perform admin_remove_card(v_instance_id);
 
