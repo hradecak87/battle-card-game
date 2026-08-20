@@ -14,6 +14,51 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-20x (notifications module: all 5 chunks complete)
+
+- **The full notifications module (Chunks 1-5) is now implemented and
+  verified** in the isolated `feature/notifications-module` worktree, on
+  top of the design spec (`docs/superpowers/specs/2026-08-20-notifications-design.md`)
+  and implementation plan (`docs/superpowers/plans/2026-08-20-notifications-module.md`):
+  - **Chunk 1** — DB schema + event wiring (migration `0056_notifications.sql`,
+    renumbered from `0055` to avoid a collision with `main`'s unrelated
+    `0055_claim_info.sql`; applied and verified live against production).
+  - **Chunk 2** — `lib/notifications` client library (types, API wrappers,
+    realtime hook, deep links).
+  - **Chunk 3** — in-app UI (bell + badge, dropdown/full-screen panel,
+    paginated `/notifications` history page).
+  - **Chunk 4** — Web Push (service worker, subscribe/send API routes,
+    opt-in UI on `/profile/me`). VAPID keys + webhook secret generated and
+    reported to the user for their own record (not committed anywhere).
+  - Every chunk was implemented by a background subagent under strict TDD,
+    then independently re-verified by the coordinator (full test suite +
+    `tsc --noEmit` re-run fresh, plus a manual read-through of the
+    security-sensitive files — the webhook auth check, the subscribe
+    route's bearer-token auth, and the `public/sw.js`/`deepLink.ts` parity).
+  - Final state in the worktree: **88 test suites / 574 tests passing**
+    (one pre-existing flaky, unrelated timing test in
+    `app/catalog/page.test.tsx` was confirmed to pass in isolation — not a
+    regression), `tsc --noEmit` clean.
+- **Outstanding manual step before this is live in production** (cannot be
+  done by an agent — requires Supabase dashboard + Vercel access):
+  1. Set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (replace
+     the placeholder `mailto:admin@example.com` with a real contact),
+     `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (same value as `VAPID_PUBLIC_KEY`), and
+     `PUSH_WEBHOOK_SECRET` as Vercel production env vars (values were
+     reported directly to the user in chat, not stored in any repo file).
+  2. In the Supabase dashboard: create a Database Webhook on the
+     `notifications` table, events `INSERT` and `UPDATE`, POST to
+     `https://<deployed-domain>/api/push/send`, with header
+     `x-push-webhook-secret: <PUSH_WEBHOOK_SECRET>`.
+  3. Manual smoke test: enable notifications via the opt-in button on
+     `/profile/me` on an Android/Chrome device, trigger one of the 10
+     notification types, confirm a system push appears and tapping it
+     deep-links correctly.
+- **Next step**: merge `feature/notifications-module` into `main` (squash
+  or merge commit, coordinator's call), then remove the worktree
+  (`git worktree remove .worktrees/notifications-module`) and delete the
+  now-unneeded branch once merged.
+
 ## Latest update — 2026-08-20w (notifications chunk 4 implemented in worktree)
 
 - Implemented **Chunk 4** of the notifications module in the isolated
