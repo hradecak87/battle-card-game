@@ -14,6 +14,45 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-20i (NPC contiguous expansion, live in 0048)
+
+Implemented the adjacency-first NPC kingdom target-sourcing change in the
+`feat/npc-contiguous-expansion` worktree/branch.
+
+- Confirmed fresh before editing that the latest on-disk definition of
+  `resolve_due_npc_actions()` was still
+  `supabase/migrations/0027_npc_kingdoms.sql`.
+- Reserved **0048** for this worktree even though `0047` is absent on this
+  branch, because the separate in-flight Hradby worktree is already using
+  `0047` and this avoids a likely merge-time migration-number collision.
+- Added a pure TS mirror helper
+  `lib/npc/kingdoms.ts::shouldUseAdjacentTier(hasAdjacentCandidates, rand)`
+  plus unit coverage for the `0.90` boundary in
+  `lib/npc/kingdoms.test.ts`.
+- Added live migration
+  `supabase/migrations/0048_npc_contiguous_expansion.sql`:
+  - new Tier A direct-neighbor candidate sourcing for NPC expansion and
+    attack target selection
+  - unchanged 90/10 adjacent-vs-fallback tier gate and unchanged 70/30
+    expand-vs-attack weighting
+  - unchanged reuse of `_start_claim_core`, `_declare_attack_core`, and
+    `_territory_effective_unit_power`
+  - unchanged legacy 200-row sampled Tier B fallback for non-adjacent
+    expansion/attack opportunities
+- Added
+  `supabase/migrations/0048_npc_contiguous_expansion.verification.sql`
+  with manual verification steps for adjacent preference, boxed-in fallback,
+  and attack-threshold regression checks.
+- Applied `0048_npc_contiguous_expansion.sql` directly to the live Supabase
+  DB via a scratch Node.js + `pg` script and confirmed the live
+  `pg_get_functiondef('resolve_due_npc_actions'::regproc)` output contains
+  the new adjacent-tier branch (`v_tier_roll < 0.9`).
+- Final verification in the worktree:
+  - `npx jest --runInBand --silent` -> **77/77 suites, 510/510 tests**
+  - `npx tsc --noEmit` -> **clean**
+  - `npm run build` -> **success** (existing upstream Next/Supabase Node 20
+    deprecation warnings only; build completed successfully)
+
 ## Latest update — 2026-08-20h (diplomacy: wars, peace offers, /diplomacy, live in 0044-0046)
 
 Implemented the full diplomacy feature in the `feat/diplomacy`

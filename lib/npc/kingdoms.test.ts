@@ -2,6 +2,7 @@ import {
   canNpcAttackTarget,
   chooseNpcAction,
   scheduleNpcNextActionAt,
+  shouldUseAdjacentTier,
   selectNearestOriginTerritory,
 } from './kingdoms'
 
@@ -32,6 +33,19 @@ describe('canNpcAttackTarget', () => {
   it('requires the attacker to be meaningfully stronger than the defender', () => {
     expect(canNpcAttackTarget({ availablePower: 120, defenderPower: 100 })).toBe(true)
     expect(canNpcAttackTarget({ availablePower: 119, defenderPower: 100 })).toBe(false)
+  })
+})
+
+describe('shouldUseAdjacentTier', () => {
+  it('falls back to map-wide search when there are no adjacent candidates', () => {
+    expect(shouldUseAdjacentTier(false, 0)).toBe(false)
+    expect(shouldUseAdjacentTier(false, 0.89)).toBe(false)
+  })
+
+  it('uses the adjacent tier only below the 90% boundary when candidates exist', () => {
+    expect(shouldUseAdjacentTier(true, 0)).toBe(true)
+    expect(shouldUseAdjacentTier(true, 0.89)).toBe(true)
+    expect(shouldUseAdjacentTier(true, 0.9)).toBe(false)
   })
 })
 

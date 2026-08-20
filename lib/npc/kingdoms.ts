@@ -41,6 +41,14 @@ export function canNpcAttackTarget({ availablePower, defenderPower }: NpcAttackT
   return availablePower >= defenderPower * NPC_ATTACK_POWER_RATIO
 }
 
+/**
+ * TS mirror of the adjacency-first tier gate from
+ * docs/superpowers/specs/2026-08-20-npc-contiguous-expansion-design.md.
+ */
+export function shouldUseAdjacentTier(hasAdjacentCandidates: boolean, rand: number): boolean {
+  return hasAdjacentCandidates && rand < 0.9
+}
+
 export function selectNearestOriginTerritory<T extends NpcOwnedTerritoryRef>(
   origins: T[],
   target: NpcTargetCoords

@@ -1,0 +1,43 @@
+-- 0048_npc_contiguous_expansion.verification.sql
+--
+-- Manual / local-only verification checklist for adjacency-first NPC
+-- expansion/attack sourcing. Do NOT run against the live project
+-- automatically.
+
+-- 1. Confirm the live function definition includes the new adjacent-tier gate
+-- select pg_get_functiondef('resolve_due_npc_actions'::regproc);
+-- -> contains v_tier_roll, adjacent-origin neighbor queries, and the
+--    v_tier_roll < 0.9 branch before the legacy 200-row sampled fallback.
+
+-- 2. Adjacent-expansion preference sanity check
+-- -- In a disposable local DB or within a transaction you plan to rollback:
+-- -- a) Seed an NPC with one owned territory that has stationed unit cards.
+-- -- b) Leave one directly adjacent unclaimed/eligible territory free.
+-- -- c) Leave one distant unclaimed/eligible territory free.
+-- -- d) Repeatedly set npc_next_action_at into the past and call:
+-- --    select resolve_due_movements();
+-- -- e) Track which territory gets claimed first across many resets.
+-- -- -> the directly adjacent territory should be selected far more often
+-- --    than the distant territory (roughly 90% when Tier A is available).
+
+-- 3. Boxed-in fallback sanity check
+-- -- Seed an NPC whose directly adjacent neighbors are all invalid
+-- -- (owned, battle-locked, or otherwise ineligible), but ensure there is at
+-- -- least one valid distant map-wide expansion or attack candidate.
+-- -- Then:
+-- update players
+-- set npc_next_action_at = now() - interval '1 minute'
+-- where id = :boxed_in_npc_player_id;
+-- select resolve_due_movements();
+-- select npc_next_action_at
+-- from players
+-- where id = :boxed_in_npc_player_id;
+-- -> the NPC still performs at most one fallback Tier B action and gets
+--    rescheduled 4-12 hours ahead instead of idling forever.
+
+-- 4. Attack threshold regression
+-- -- Seed one directly adjacent hostile territory whose defender power is
+-- -- below the NPC's adjacent-origin power * 1.2, and one above it.
+-- -- Re-run resolve_due_movements() after resetting npc_next_action_at.
+-- -- -> only the weaker adjacent defender is eligible for Tier A attack
+-- --    sourcing; battle resolution remains unchanged.
