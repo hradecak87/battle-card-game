@@ -197,6 +197,20 @@ function getStructureIconSize(viewSize: number, cellPx: number | null) {
   return Math.max(16, Math.round(52 - viewSize * 1.1))
 }
 
+// The 1px-wide grid line between tiles used to be a fixed Tailwind `border`
+// (always exactly 1px) regardless of zoom. At the most zoomed-out level
+// (49x49 tiles, tiny cells) that reads as a comparatively thick, distracting
+// grid; at the most zoomed-in level (5x5, large cells) 1px is barely
+// noticeable and fine as-is. Scales the border width down toward a thin
+// 0.5px floor as cells shrink, same measured-cellPx-first / viewSize-
+// fallback pattern as the icon sizing helpers above.
+function getGridBorderWidth(viewSize: number, cellPx: number | null) {
+  if (cellPx && cellPx > 0) {
+    return Math.max(0.5, Math.min(1, cellPx / 30))
+  }
+  return Math.max(0.5, Math.min(1, 1.15 - viewSize * 0.015))
+}
+
 /**
  * Pannable grid viewport (design spec §10): arrow buttons AND click-drag
  * panning, plus a coordinate-jump input. Renders whichever `territories`
@@ -326,6 +340,7 @@ export default function MapViewport({
 
   const iconStyle = { fontSize: getIconFontSize(viewSize, cellPx) }
   const structureIconBaseSize = getStructureIconSize(viewSize, cellPx)
+  const gridBorderStyle = { borderWidth: `${getGridBorderWidth(viewSize, cellPx)}px` }
   const visualDragOffset = dragOffset
     ? {
         x: clampVisualDragOffset(dragOffset.x, cellPx),
@@ -573,7 +588,8 @@ export default function MapViewport({
                 onMouseLeave={() => setHoveredTile((current) => (current?.x === x && current?.y === y ? null : current))}
                 data-owned-by-me={isOwnedByMe ? 'true' : 'false'}
                 data-under-attack={isUnderAttack ? 'true' : 'false'}
-                className={`relative terrain-tile aspect-square min-w-0 min-h-0 border border-zinc-800 flex flex-col items-center justify-center gap-0.5 overflow-visible ${terrainClass}`}
+                style={gridBorderStyle}
+                className={`relative terrain-tile aspect-square min-w-0 min-h-0 border-solid border-zinc-800 flex flex-col items-center justify-center gap-0.5 overflow-visible ${terrainClass}`}
               >
                 {tileHighlight &&
                   perimeterEdges.map((edge) => (
