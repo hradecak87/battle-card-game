@@ -8,6 +8,7 @@ import {
   getCardInstancesAtTerritory,
   getMyHomeTerritory,
   getIncomingAttackInfo,
+  getClaimInfo,
   getPlayerPublicInfo,
   getMyTerritories,
   getActiveBattleForTerritory,
@@ -21,6 +22,7 @@ import {
   MyTerritory,
   Territory,
   IncomingAttackInfo,
+  ClaimInfo,
 } from '@/lib/territories/api'
 import MapViewport from '@/components/territories/MapViewport'
 import GarrisonModal from '@/components/territories/GarrisonModal'
@@ -95,6 +97,7 @@ function MapPageContent() {
   const [ownerInfoLoading, setOwnerInfoLoading] = useState(false)
   const [ownerInfoError, setOwnerInfoError] = useState<string | null>(null)
   const [incomingAttackInfo, setIncomingAttackInfo] = useState<IncomingAttackInfo | null>(null)
+  const [claimInfo, setClaimInfo] = useState<ClaimInfo | null>(null)
   const [relationState, setRelationState] = useState<DiplomacyRelationState | null>(null)
   const [homeStatus, setHomeStatus] = useState<'idle' | 'searching' | 'not-found'>('idle')
   const [ownedTerritories, setOwnedTerritories] = useState<MyTerritory[] | null>(null)
@@ -308,6 +311,7 @@ function MapPageContent() {
     setOwnerInfo(null)
     setOwnerInfoError(null)
     setIncomingAttackInfo(null)
+    setClaimInfo(null)
     setRelationState(null)
     setShowAttackModal(false)
     setShowTransferModal(false)
@@ -342,6 +346,16 @@ function MapPageContent() {
       getIncomingAttackInfo(tile.id).then(({ data }) => {
         if (selectionRequestIdRef.current !== requestId) return
         setIncomingAttackInfo(data ?? null)
+      })
+    }
+    if (tile.claim_locked_by) {
+      // claim_locked_by only holds the raw claimant player id — fetch
+      // their identity + home coords separately (mirrors the
+      // battle_locked_by/getIncomingAttackInfo case just above) so the
+      // modal can show *who* is claiming and link through to their home.
+      getClaimInfo(tile.id).then(({ data }) => {
+        if (selectionRequestIdRef.current !== requestId) return
+        setClaimInfo(data ?? null)
       })
     }
     const { data, error: rpcError } = await getCardInstancesAtTerritory(tile.id)
@@ -486,6 +500,7 @@ function MapPageContent() {
             ownerInfoError={ownerInfoError}
             relationState={relationState}
             incomingAttackInfo={incomingAttackInfo}
+            claimInfo={claimInfo}
             onNavigateToTerritory={(x, y) => {
               handleJump(x, y)
               setSelectedTile(null)

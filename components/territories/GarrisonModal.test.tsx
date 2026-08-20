@@ -274,7 +274,42 @@ describe('GarrisonModal', () => {
       />
     )
 
-    expect(screen.getByText(/Probíhá zábor tohoto území — dokončí se/)).toBeInTheDocument()
+    expect(screen.getByText(/Probíhá zábor tohoto území/)).toBeInTheDocument()
+    expect(screen.getByText(/neznámý hráč/)).toBeInTheDocument()
+    expect(screen.getByText(/dokončí se/)).toBeInTheDocument()
+  })
+
+  it('shows the claimant name and a link to their home when claimInfo is available', () => {
+    const completesAt = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString()
+    const onNavigateToTerritory = jest.fn()
+    render(
+      <GarrisonModal
+        territory={{
+          ...baseTerritory,
+          owner_id: null,
+          claim_locked_by: 'attacker-1',
+          claim_occupation_completes_at: completesAt,
+        }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        claimInfo={{
+          claimant_id: 'attacker-1',
+          claimant_display_name: 'Attacker Name',
+          claimant_kingdom_name: 'Attackerland',
+          claimant_is_npc: false,
+          claimant_home_x: 12,
+          claimant_home_y: 34,
+        }}
+        onNavigateToTerritory={onNavigateToTerritory}
+      />
+    )
+
+    expect(screen.getByText(/Attacker Name/)).toBeInTheDocument()
+    const homeButton = screen.getByRole('button', { name: /Domov útočníka \(12, 34\)/ })
+    fireEvent.click(homeButton)
+    expect(onNavigateToTerritory).toHaveBeenCalledWith(12, 34)
   })
 
   it('displays the territory name prominently when set', () => {

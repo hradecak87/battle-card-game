@@ -10,7 +10,7 @@ import { BoostCardTemplate, Rank, UnitType, UnitCardTemplate } from '@/lib/cards
 import { NATIONS } from '@/lib/players/nations'
 import { formatEta } from '@/lib/time/formatEta'
 import { MaskedBoostSummaryTile, VisibleBoostCardTile } from '@/components/cards/BoostCardTile'
-import { IncomingAttackInfo } from '@/lib/territories/api'
+import { IncomingAttackInfo, ClaimInfo } from '@/lib/territories/api'
 import type { DiplomacyRelationState } from '@/lib/diplomacy/types'
 import Link from 'next/link'
 
@@ -45,6 +45,13 @@ export interface GarrisonModalProps {
    * this tile navigates straight to the battle screen instead).
    */
   incomingAttackInfo?: IncomingAttackInfo | null
+  /**
+   * Identity + home coords of the player currently claiming this empty
+   * territory, if any (fetched separately via `getClaimInfo` since
+   * `territory.claim_locked_by` only holds the raw player id). Only
+   * relevant when `territory.claim_locked_by` is set.
+   */
+  claimInfo?: ClaimInfo | null
   /** Called to pan the map to the given coordinates (e.g. attacker's home) and close this modal. */
   onNavigateToTerritory?: (x: number, y: number) => void
   /** Called when the owner saves a new name (or an empty string to clear). */
@@ -126,6 +133,7 @@ export default function GarrisonModal({
   ownerInfoError,
   relationState,
   incomingAttackInfo,
+  claimInfo,
   onNavigateToTerritory,
   onRename,
   structureCardOptions,
@@ -614,8 +622,25 @@ export default function GarrisonModal({
         {error && <p className="text-red-400 text-sm">{error}</p>}
 
         {territory.claim_locked_by && territory.claim_occupation_completes_at && (
-          <p className="mb-3 text-sm text-amber-400">
-            🚩 Probíhá zábor tohoto území — dokončí se {formatEta(territory.claim_occupation_completes_at)}
+          <p className="mb-3 flex flex-wrap items-center gap-1 text-sm text-amber-400">
+            <span>
+              🚩 Probíhá zábor tohoto území od {claimInfo?.claimant_display_name ?? 'neznámý hráč'} — dokončí se{' '}
+              {formatEta(territory.claim_occupation_completes_at)}
+            </span>
+            {claimInfo?.claimant_home_x !== undefined &&
+              claimInfo?.claimant_home_x !== null &&
+              claimInfo?.claimant_home_y !== null &&
+              onNavigateToTerritory && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    onNavigateToTerritory(claimInfo.claimant_home_x as number, claimInfo.claimant_home_y as number)
+                  }
+                  className="rounded border border-amber-700 px-1.5 py-0.5 text-[11px] text-amber-300 hover:bg-amber-900/40"
+                >
+                  🏠 Domov útočníka ({claimInfo.claimant_home_x}, {claimInfo.claimant_home_y})
+                </button>
+              )}
           </p>
         )}
 

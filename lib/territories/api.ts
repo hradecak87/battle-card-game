@@ -276,6 +276,32 @@ export async function getIncomingAttackInfo(territoryId: number) {
   return { data: rows[0] ?? null, error: null }
 }
 
+export interface ClaimInfo {
+  claimant_id: string
+  claimant_display_name: string | null
+  claimant_kingdom_name: string | null
+  claimant_is_npc: boolean
+  claimant_home_x: number | null
+  claimant_home_y: number | null
+}
+
+/**
+ * Details of the player currently claiming an empty territory (migration
+ * 0055) — `claim_locked_by` on the territory row already identifies *who*,
+ * but not their display name or home coordinates, so GarrisonModal could
+ * only show a bare "zábor probíhá" countdown with no way to see or
+ * navigate to the claimant, unlike the analogous battle case
+ * (`getIncomingAttackInfo` above).
+ */
+export async function getClaimInfo(territoryId: number) {
+  const { data, error } = await supabase.rpc('get_claim_info', {
+    p_territory_id: territoryId,
+  })
+  if (error) return { data: null, error }
+  const rows = (data ?? []) as ClaimInfo[]
+  return { data: rows[0] ?? null, error: null }
+}
+
 export interface IncomingAttackOnMyTerritory {
   movement_id: string
   territory_id: number
