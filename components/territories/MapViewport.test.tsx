@@ -202,6 +202,14 @@ describe('MapViewport', () => {
     expect(battleIcon.className).toContain('absolute')
   })
 
+  it('shows a yellow blinking border on a tile currently being claimed', () => {
+    renderViewport([makeTerritory({ claim_locked_by: 'claimer-1' })], 'me')
+
+    const claimBorder = screen.getByTestId('highlight-claim-top-10,10')
+    expect(claimBorder.className).toContain('animate-battle-blink')
+    expect(claimBorder.className).toContain('bg-yellow-400')
+  })
+
   it('renders a wall icon for wall-only territories without castle or village icons', () => {
     renderViewport([makeTerritory({ wall_rank: 'rare' })], 'me')
 

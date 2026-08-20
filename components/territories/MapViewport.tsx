@@ -43,10 +43,11 @@ type HighlightColor = 'sky' | 'red' | 'foreign' | 'npc'
 // top of the parent's own border by normal stacking order, is independent
 // per side (no mitring with the other three sides), and is sized to
 // exactly 1px so it just replaces the grid line's color at that spot.
-const HIGHLIGHT_BAR_COLOR: Record<Exclude<HighlightColor, 'foreign'>, string> = {
+const HIGHLIGHT_BAR_COLOR: Record<Exclude<HighlightColor, 'foreign'> | 'yellow', string> = {
   sky: 'bg-sky-400',
   red: 'bg-red-500',
   npc: 'bg-fuchsia-400',
+  yellow: 'bg-yellow-400',
 }
 
 // Distinct, easily-told-apart colors for other players' territory outlines
@@ -176,6 +177,16 @@ function getHighlightInfo(
 function getBattleHighlightInfo(t: Territory | undefined): { key: string; colorClass: string } | null {
   if (!t?.battle_locked_by) return null
   return { key: `battle:${t.battle_locked_by}`, colorClass: HIGHLIGHT_BAR_COLOR.red }
+}
+
+// Same pulsing-bar treatment as battle, but yellow, for a territory
+// currently being claimed (empty-land occupation in progress) — mirrors
+// getBattleHighlightInfo exactly. Mutually exclusive with battleHighlight
+// in practice (a tile can't be both mid-claim and mid-battle), so sharing
+// the same z-layer/animation is safe.
+function getClaimHighlightInfo(t: Territory | undefined): { key: string; colorClass: string } | null {
+  if (!t?.claim_locked_by) return null
+  return { key: `claim:${t.claim_locked_by}`, colorClass: HIGHLIGHT_BAR_COLOR.yellow }
 }
 
 function clamp(value: number) {
@@ -532,6 +543,7 @@ export default function MapViewport({
 
             const tileHighlight = getHighlightInfo(tile, currentUserId)
             const battleHighlight = getBattleHighlightInfo(tile)
+            const claimHighlight = getClaimHighlightInfo(tile)
 
             const matchingHighlight = (neighbor?: Territory) => {
               if (!tileHighlight) return false
@@ -545,6 +557,12 @@ export default function MapViewport({
               return neighborBattleHighlight?.key === battleHighlight.key
             }
 
+            const matchingClaimHighlight = (neighbor?: Territory) => {
+              if (!claimHighlight) return false
+              const neighborClaimHighlight = getClaimHighlightInfo(neighbor)
+              return neighborClaimHighlight?.key === claimHighlight.key
+            }
+
             const perimeterEdges = tileHighlight
               ? (['top', 'right', 'bottom', 'left'] as const).filter(
                   (edge) => !matchingHighlight(neighbors[edge])
@@ -554,6 +572,12 @@ export default function MapViewport({
             const battlePerimeterEdges = battleHighlight
               ? (['top', 'right', 'bottom', 'left'] as const).filter(
                   (edge) => !matchingBattleHighlight(neighbors[edge])
+                )
+              : []
+
+            const claimPerimeterEdges = claimHighlight
+              ? (['top', 'right', 'bottom', 'left'] as const).filter(
+                  (edge) => !matchingClaimHighlight(neighbors[edge])
                 )
               : []
 
@@ -657,6 +681,15 @@ export default function MapViewport({
                       aria-hidden="true"
                       data-testid={`highlight-battle-${edge}-${x},${y}`}
                       className={`pointer-events-none absolute z-20 animate-battle-blink ${HIGHLIGHT_BAR_POSITION[edge]} ${battleHighlight.colorClass}`}
+                    />
+                  ))}
+                {claimHighlight &&
+                  claimPerimeterEdges.map((edge) => (
+                    <span
+                      key={`claim-${edge}`}
+                      aria-hidden="true"
+                      data-testid={`highlight-claim-${edge}-${x},${y}`}
+                      className={`pointer-events-none absolute z-20 animate-battle-blink ${HIGHLIGHT_BAR_POSITION[edge]} ${claimHighlight.colorClass}`}
                     />
                   ))}
                 {structureIcons.length > 0 && (
