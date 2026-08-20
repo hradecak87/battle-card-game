@@ -48,12 +48,8 @@ export function useSession(): SessionState {
         if (!cancelled) setPlayer(null)
         return
       }
-      const { data } = await supabase
-        .from('players')
-        .select('*')
-        .eq('id', currentUser.id)
-        .single()
-      if (!cancelled) setPlayer((data as PlayerRow) ?? null)
+      const { data } = await supabase.rpc('get_my_player_profile')
+      if (!cancelled) setPlayer(((data as PlayerRow[] | null) ?? [])[0] ?? null)
     }
 
     supabase.auth.getSession().then(({ data }) => {

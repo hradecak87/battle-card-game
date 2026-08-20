@@ -1,11 +1,14 @@
 import {
   declareAttack,
   getCardInstancesAtTerritory,
+  getMyCardInstances,
   getPlayerPublicInfo,
   getMyStructureCardInstances,
   getMyTerritories,
   relocateHome,
   renameTerritory,
+  returnCardToPool,
+  withdrawFromDeposit,
 } from './api'
 
 const single = jest.fn()
@@ -112,6 +115,20 @@ describe('getCardInstancesAtTerritory', () => {
     rpc.mockReset()
   })
 
+  describe('getMyCardInstances', () => {
+    beforeEach(() => {
+      rpc.mockReset()
+    })
+
+    it('loads owned cards through the deposit-aware RPC', async () => {
+      rpc.mockResolvedValue({ data: [], error: null })
+
+      await getMyCardInstances('player-1')
+
+      expect(rpc).toHaveBeenCalledWith('get_my_card_instances')
+    })
+  })
+
   it('uses the visibility-aware territory card RPC', async () => {
     rpc.mockResolvedValue({ data: [], error: null })
     await getCardInstancesAtTerritory(55)
@@ -174,5 +191,27 @@ describe('getMyStructureCardInstances', () => {
     expect(from).toHaveBeenCalledWith('card_instances')
     expect(eq).toHaveBeenCalledWith('owner_id', 'player-1')
     expect(inFn).toHaveBeenCalledWith('card_templates.category', ['castle', 'village'])
+  })
+})
+
+describe('deposit RPC wrappers', () => {
+  beforeEach(() => {
+    rpc.mockReset()
+  })
+
+  it('calls return_card_to_pool with the selected card instance id', async () => {
+    rpc.mockResolvedValue({ data: null, error: null })
+
+    await returnCardToPool('card-1')
+
+    expect(rpc).toHaveBeenCalledWith('return_card_to_pool', { p_instance_id: 'card-1' })
+  })
+
+  it('calls withdraw_from_deposit with the selected card instance id', async () => {
+    rpc.mockResolvedValue({ data: null, error: null })
+
+    await withdrawFromDeposit('card-2')
+
+    expect(rpc).toHaveBeenCalledWith('withdraw_from_deposit', { p_instance_id: 'card-2' })
   })
 })
