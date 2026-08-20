@@ -279,7 +279,7 @@ rescheduling at the end of the loop are all unchanged.
 ## Testing
 
 - SQL: extend/add `.verification.sql` files (following the project's
-  existing convention, e.g. `0049_npc_diplomacy.verification.sql`) covering:
+  existing convention, e.g. `0050_npc_diplomacy.verification.sql`) covering:
   `_npc_diplomacy_power` returns 0 for a player with no stationed units and
   correctly sums a small fixture army; the `_core` refactor doesn't change
   behavior for a normal human propose/accept/reject flow (regression); an
@@ -301,7 +301,7 @@ rescheduling at the end of the loop are all unchanged.
 
 ## Rollout
 
-- New migration file(s), e.g. `0049_npc_diplomacy.sql` (+ matching
+- New migration file(s), e.g. `0050_npc_diplomacy.sql` (+ matching
   `.verification.sql`), following the existing migration-numbering
   convention.
 - Applied the same way as prior migrations in this project (Supabase CLI /

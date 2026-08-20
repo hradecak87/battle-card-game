@@ -14,7 +14,7 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
-## Latest update — 2026-08-20m (Terrain texture variants — shipped)
+## Latest update — 2026-08-20n (Terrain texture variants — shipped)
 
 Implemented and shipped `terrain-texture-variants` directly (small,
 self-contained task, no worktree/agent needed).
@@ -73,6 +73,62 @@ self-contained task).
 - 210/210 relevant tests, `tsc`, `npm run build` all green with zero test
   file changes needed. Committed as `878a4cf`. **Not yet pushed** —
   pending user confirmation (bundle with the texture-variant push above).
+
+## Latest update — 2026-08-20m (NPC diplomacy + war-focus implemented live in 0050)
+
+Implemented the SQL-only NPC diplomacy / war-focus feature in the
+`feat/npc-diplomacy-behavior` worktree branch:
+
+- Added `supabase/migrations/0050_npc_diplomacy.sql`.
+  - New singleton `npc_diplomacy_state` table.
+  - New `_npc_diplomacy_power(uuid)` helper.
+  - `_diplomacy_propose_peace_core`, `_diplomacy_accept_peace_core`,
+    `_diplomacy_reject_peace_core` extracted from the live human diplomacy
+    RPCs, with the public wrappers reduced to auth-resolving shells.
+  - New hourly `resolve_due_npc_diplomacy()` tick, wired into
+    `resolve_due_movements()`.
+  - New war-focus branch in `resolve_due_npc_actions()` that prioritizes
+    attacking the weakest active war opponent ~80% of the time before
+    falling back to the pre-existing contiguous-expansion behavior.
+- Added `supabase/migrations/0050_npc_diplomacy.verification.sql` as a
+  runnable transaction-wrapped verification script covering:
+  `_npc_diplomacy_power`, human propose/accept/reject regression via the
+  public RPCs, NPC outgoing peace thresholds (0.65 none / 0.55 white /
+  0.35 one-card tribute / 0.15 three-card tribute), NPC incoming
+  tribute-accept + white-peace-reject behavior, same-hour no-op gating,
+  human-vs-human war skipping, and war-focus vs fallback behavior.
+- Fresh authoritative re-checks before editing confirmed:
+  - `resolve_due_npc_actions()` live definition source = `0048`
+  - `resolve_due_movements()` live definition source = `0035`
+  - diplomacy propose/accept/reject live definition source = `0046`
+  - migration slot `0049` was initially free, but the final branch was
+    renumbered to **0050** after `0049_map_viewport_json.sql` landed on
+    `main` and took the number before this feature was applied live
+- Repo validation in this worktree is clean:
+  - `npx jest --runInBand --silent` → **77/77 suites, 533/533 tests**
+  - `npx tsc --noEmit` → clean
+  - `npm run build` → success with temporary placeholder public Supabase
+    env vars (same existing worktree pattern as other feature branches);
+    only the known upstream Supabase-on-Node-20 deprecation warnings were
+    emitted
+- Live DB apply / verification:
+  - `.env.local` was later copied into this worktree, allowing the usual
+    one-off Node + `pg` + `SUPABASE_DB_URL` path directly from the allowed
+    workspace.
+  - Applied `0050_npc_diplomacy.sql` successfully to the live Supabase DB.
+  - Ran `0050_npc_diplomacy.verification.sql` successfully against the live
+    DB after one verification-script fix discovered only at runtime: the
+    war-focus verification initially queried a nonexistent
+    `troop_movements.created_at` column and over-assumed one exact target
+    destination; fixed the script to use `started_at`, isolate the NPC's
+    active war relations, and classify the latest created movement more
+    robustly. Re-ran live verification cleanly afterward.
+  - Post-apply sanity query confirmed live presence of
+    `resolve_due_npc_diplomacy()` and `_npc_diplomacy_power(uuid)`.
+- Committed on `feat/npc-diplomacy-behavior` as `7516af4` (initial) and
+  `59a69df` (renumber to 0050 + live apply/verify), merged into `main`
+  after independent re-verification (533/533 tests, live DB function
+  presence confirmed).
 
 ## Latest update — 2026-08-20k (Map level clustering — terrain recolor applied live)
 
