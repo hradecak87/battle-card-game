@@ -374,6 +374,18 @@ export default function MapViewport({
   const iconStyle = { fontSize: getIconFontSize(viewSize, cellPx) }
   const structureIconBaseSize = getStructureIconSize(viewSize, cellPx)
   const gridBorderStyle = { borderColor: `rgba(0, 0, 0, ${getGridBorderAlpha(viewSize, cellPx)})` }
+  // At fractional browser zoom (e.g. 90%/110%, not our own map zoom
+  // levels), CSS Grid's `1fr` columns often don't divide the container
+  // width into whole device pixels, so adjacent tiles' backgrounds don't
+  // align perfectly at their shared edge and the browser blends/antialiases
+  // a hairline seam of the neighboring texture's color through (most
+  // visible as a light-green sliver between forest and grass). Confirmed:
+  // disappears entirely at exactly 100% browser zoom, worse the smaller
+  // each cell is (max zoom-out). A small negative margin makes every tile
+  // slightly overlap its neighbors instead of exactly abutting them, so
+  // there's no longer a hairline gap for that rounding error to show
+  // through, regardless of the exact fractional zoom percentage.
+  const tileOverlapStyle = { ...gridBorderStyle, margin: '-0.75px' }
   const visualDragOffset = dragOffset
     ? {
         x: clampVisualDragOffset(dragOffset.x, cellPx),
@@ -623,7 +635,7 @@ export default function MapViewport({
                 onMouseLeave={() => setHoveredTile((current) => (current?.x === x && current?.y === y ? null : current))}
                 data-owned-by-me={isOwnedByMe ? 'true' : 'false'}
                 data-under-attack={isUnderAttack ? 'true' : 'false'}
-                style={gridBorderStyle}
+                style={tileOverlapStyle}
                 className={`relative terrain-tile aspect-square min-w-0 min-h-0 border-r border-b flex flex-col items-center justify-center gap-0.5 overflow-visible ${terrainClass}`}
               >
                 {tileHighlight &&
