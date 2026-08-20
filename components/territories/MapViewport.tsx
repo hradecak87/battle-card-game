@@ -16,10 +16,11 @@ import {
 // alongside the original terrain-N.jpg) so a large contiguous terrain
 // cluster (forest, water, etc. — see the map-level-clustering feature)
 // doesn't read as an obviously tiled, repeating single image. The variant
-// is picked deterministically from the tile's own id via `pickVariant`
-// (same helper/pattern already used for castle/village icon variants), so
-// a given tile always shows the same texture across re-renders/pans
-// instead of flickering between variants.
+// is picked deterministically from the tile's own x/y coordinates via
+// `hashCoordToIndex` (see below — NOT the simpler string-hash `pickVariant`
+// pattern used for castle/village icons, which visibly striped here since
+// tile ids increment sequentially), so a given tile always shows the same
+// texture across re-renders/pans instead of flickering between variants.
 const DIFFICULTY_TERRAIN_VARIANTS: Record<1 | 2 | 3 | 4 | 5, readonly string[]> = {
   1: ['terrain-difficulty-1', 'terrain-difficulty-1-b', 'terrain-difficulty-1-c'],
   2: ['terrain-difficulty-2', 'terrain-difficulty-2-b', 'terrain-difficulty-2-c'],
@@ -77,6 +78,26 @@ function hashStringToIndex(value: string, modulo: number) {
 
 function getForeignOwnerColorClass(ownerId: string) {
   return FOREIGN_OWNER_COLORS[hashStringToIndex(ownerId, FOREIGN_OWNER_COLORS.length)]
+}
+
+// Terrain variants used to be picked via `pickVariant('terrain:' + tile.id, ...)`,
+// but `tile.id` is a DB row id assigned in scanline (roughly x-major or
+// y-major) order, so neighboring tiles have consecutive ids. The simple
+// polynomial `hashStringToIndex` above doesn't avalanche well on strings
+// that only differ by their trailing digits (e.g. "terrain:1041" vs
+// "terrain:1042"), so consecutive ids mod 3 drifted in long visible runs —
+// reading as diagonal/horizontal stripes of the same texture variant once
+// zoomed out enough to see many tiles at once. This 2D integer hash mixes
+// the tile's actual x/y coordinates (not a sequential id) through a
+// multiply-xor-shift avalanche (same family as Murmur3's finalizer), so
+// adjacent tiles get uncorrelated variant picks with no visible pattern,
+// while still being fully deterministic for a given coordinate.
+function hashCoordToIndex(x: number, y: number, modulo: number) {
+  let h = (x * 0x1f1f1f1f) ^ y
+  h = Math.imul(h ^ (h >>> 16), 0x45d9f3b)
+  h = Math.imul(h ^ (h >>> 16), 0x45d9f3b)
+  h = (h ^ (h >>> 16)) >>> 0
+  return h % modulo
 }
 
 // Each tile draws its own border, so the boundary between two tiles is
@@ -197,18 +218,21 @@ function getStructureIconSize(viewSize: number, cellPx: number | null) {
   return Math.max(16, Math.round(52 - viewSize * 1.1))
 }
 
-// The 1px-wide grid line between tiles used to be a fixed Tailwind `border`
-// (always exactly 1px) regardless of zoom. At the most zoomed-out level
-// (49x49 tiles, tiny cells) that reads as a comparatively thick, distracting
-// grid; at the most zoomed-in level (5x5, large cells) 1px is barely
-// noticeable and fine as-is. Scales the border width down toward a thin
-// 0.5px floor as cells shrink, same measured-cellPx-first / viewSize-
-// fallback pattern as the icon sizing helpers above.
-function getGridBorderWidth(viewSize: number, cellPx: number | null) {
+// The grid line between tiles used to be a fixed Tailwind `border` (always
+// exactly 1px, full-opacity zinc-800) regardless of zoom. At the most
+// zoomed-out level (49x49 tiles, tiny cells) that reads as a comparatively
+// thick, distracting grid; at the most zoomed-in level (5x5, large cells)
+// it's barely noticeable and fine as-is. A first attempt scaled the
+// border-*width* down toward 0.5px, but browsers commonly snap/round
+// sub-1px border widths back up to a full device pixel, so it rendered
+// identically to before. Fading the border *color's opacity* instead is
+// reliable — alpha blending isn't snapped to device pixels — so the line
+// gets visually fainter (not necessarily narrower) as cells shrink.
+function getGridBorderAlpha(viewSize: number, cellPx: number | null) {
   if (cellPx && cellPx > 0) {
-    return Math.max(0.5, Math.min(1, cellPx / 30))
+    return Math.max(0.2, Math.min(0.95, cellPx / 30))
   }
-  return Math.max(0.5, Math.min(1, 1.15 - viewSize * 0.015))
+  return Math.max(0.2, Math.min(0.95, 1.1 - viewSize * 0.017))
 }
 
 /**
@@ -340,7 +364,7 @@ export default function MapViewport({
 
   const iconStyle = { fontSize: getIconFontSize(viewSize, cellPx) }
   const structureIconBaseSize = getStructureIconSize(viewSize, cellPx)
-  const gridBorderStyle = { borderWidth: `${getGridBorderWidth(viewSize, cellPx)}px` }
+  const gridBorderStyle = { borderColor: `rgba(39, 39, 42, ${getGridBorderAlpha(viewSize, cellPx)})` }
   const visualDragOffset = dragOffset
     ? {
         x: clampVisualDragOffset(dragOffset.x, cellPx),
@@ -455,8 +479,9 @@ export default function MapViewport({
             const y = y1 + row
             const isVoid = !isWithinBounds(x, y)
             const tile = byCoord.get(`${x},${y}`)
-            const terrainClass = tile
-              ? pickVariant(`terrain:${tile.id}`, DIFFICULTY_TERRAIN_VARIANTS[tile.difficulty])
+            const terrainVariants = tile ? DIFFICULTY_TERRAIN_VARIANTS[tile.difficulty] : null
+            const terrainClass = tile && terrainVariants
+              ? terrainVariants[hashCoordToIndex(x, y, terrainVariants.length)]
               : 'bg-zinc-900'
             const isHovered = hoveredTile?.x === x && hoveredTile?.y === y
             const isOwnedByMe = Boolean(tile?.owner_id && currentUserId && tile.owner_id === currentUserId)
@@ -589,7 +614,7 @@ export default function MapViewport({
                 data-owned-by-me={isOwnedByMe ? 'true' : 'false'}
                 data-under-attack={isUnderAttack ? 'true' : 'false'}
                 style={gridBorderStyle}
-                className={`relative terrain-tile aspect-square min-w-0 min-h-0 border-solid border-zinc-800 flex flex-col items-center justify-center gap-0.5 overflow-visible ${terrainClass}`}
+                className={`relative terrain-tile aspect-square min-w-0 min-h-0 border flex flex-col items-center justify-center gap-0.5 overflow-visible ${terrainClass}`}
               >
                 {tileHighlight &&
                   perimeterEdges.map((edge) => (
