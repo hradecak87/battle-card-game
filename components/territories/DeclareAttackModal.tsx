@@ -302,10 +302,10 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-6" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-2 sm:p-6" onClick={onClose}>
       <div
         data-testid="declare-attack-modal"
-        className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-950 p-6"
+        className="w-full max-w-3xl max-h-[97vh] overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-950 p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -373,7 +373,7 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
                   <span className="text-xs text-zinc-400">▼</span>
                 </button>
                 {originPickerOpen && myTerritories && (
-                  <div className="absolute z-10 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-950 p-2 shadow-2xl">
+                  <div className="absolute z-10 mt-2 max-h-96 w-full overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-950 p-2 shadow-2xl">
                     <div className="flex flex-col gap-1">
                       {myTerritories.map((origin) => {
                         const checked = selectedOriginTerritoryIds.includes(origin.id)
@@ -461,7 +461,7 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
                   {originInstances !== null && originInstances !== undefined && originInstances.length > 0 && (
                     <fieldset className="flex flex-col gap-2">
                       <legend className="text-sm text-zinc-400">Vyber vojska k útoku</legend>
-                      <div className="grid max-h-64 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4">
+                      <div className="grid max-h-96 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4">
                         {originInstances.map((instance) => {
                           const unitTemplate = instance.card_templates ? toUnitTemplate(instance.card_templates) : null
                           if (!unitTemplate) return null
