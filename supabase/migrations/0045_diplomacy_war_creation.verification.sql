@@ -1,4 +1,4 @@
--- 0044_diplomacy_war_creation.verification.sql
+-- 0045_diplomacy_war_creation.verification.sql
 --
 -- Safe verification for diplomacy war creation wiring.
 -- Runs in a transaction and finishes with ROLLBACK.

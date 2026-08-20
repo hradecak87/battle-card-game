@@ -14,20 +14,28 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
-## Latest update — 2026-08-20h (diplomacy: wars, peace offers, /diplomacy, live in 0043-0045)
+## Latest update — 2026-08-20h (diplomacy: wars, peace offers, /diplomacy, live in 0044-0046)
 
 Implemented the full diplomacy feature in the `feat/diplomacy`
 worktree/branch.
 
+**Renumbered at merge time**: the agent originally used 0043-0045, but an
+unrelated quick-fix batch (map/world UX polish) landed directly on `main`
+as `0043_target_owner_visibility.sql` first. Renamed diplomacy's migration
+files to 0044-0046 before merging (files only — the live DB objects, all
+new tables/functions with no name overlap, were unaffected and needed no
+re-apply).
+
 - New live migrations, applied directly to Supabase and verified:
-  - `supabase/migrations/0043_diplomacy.sql`
-  - `supabase/migrations/0043_diplomacy.verification.sql`
-  - `supabase/migrations/0044_diplomacy_war_creation.sql`
-  - `supabase/migrations/0044_diplomacy_war_creation.verification.sql`
-  - `supabase/migrations/0045_diplomacy_rpcs.sql`
-  - `supabase/migrations/0045_diplomacy_rpcs.verification.sql`
+  - `supabase/migrations/0044_diplomacy.sql`
+  - `supabase/migrations/0044_diplomacy.verification.sql`
+  - `supabase/migrations/0045_diplomacy_war_creation.sql`
+  - `supabase/migrations/0045_diplomacy_war_creation.verification.sql`
+  - `supabase/migrations/0046_diplomacy_rpcs.sql`
+  - `supabase/migrations/0046_diplomacy_rpcs.verification.sql`
 - Fresh live-codebase verification before implementation found:
-  - diplomacy had to start at migration range **0043-0045**
+  - diplomacy had to start at migration range **0043-0045** (later
+    renumbered to 0044-0046, see note above)
   - the practical canonical `declare_attack` logic lives in
     `_declare_attack_core(uuid, integer, jsonb, uuid)`, with the latest
     on-disk/live redefinition coming from
@@ -64,7 +72,7 @@ worktree/branch.
   - `/diplomacy` uses the existing visibility-aware polling hook with a
     **12s** refresh interval.
 - Plan deviation:
-  - Added `diplomacy_list_offers()` in `0045_diplomacy_rpcs.sql` even
+  - Added `diplomacy_list_offers()` in `0046_diplomacy_rpcs.sql` even
     though the original chunk list only named the other RPCs; the page/UI
     needs a dedicated typed list endpoint and this kept the client aligned
     with the existing RPC-wrapper pattern.

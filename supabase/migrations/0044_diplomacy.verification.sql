@@ -1,4 +1,4 @@
--- 0043_diplomacy.verification.sql
+-- 0044_diplomacy.verification.sql
 --
 -- Safe verification for diplomacy schema/RLS.
 -- Runs in a transaction and finishes with ROLLBACK.

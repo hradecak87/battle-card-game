@@ -1,4 +1,4 @@
--- 0045_diplomacy_rpcs.verification.sql
+-- 0046_diplomacy_rpcs.verification.sql
 --
 -- Safe verification for diplomacy RPCs.
 -- Runs in a transaction and finishes with ROLLBACK.
