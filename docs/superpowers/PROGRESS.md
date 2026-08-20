@@ -14,6 +14,25 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-20 (card-art batch 6: karty9-13 sheets, 125 template ids)
+
+Replaced/added card art for 125 template ids from 5 new source sheets
+(`karty9.png`–`karty13.png`, untracked, not committed — same convention as
+prior batches). Unlike the karty5-8 batch, the user confirmed these sheets
+use an **exact uniform 5×5 grid**, so the existing
+`scripts/crop-card-sheet.py` (gutter-detection within a fixed grid, no
+gap-aware content analysis needed) worked directly with no algorithm
+changes.
+
+- Name+unitType → template id resolution via `lib/cards/catalog-data.json`
+  — all 125 names across the 5 sheets resolved cleanly with zero
+  missing/ambiguous entries.
+- Cropped into a scratch dir first, visually verified via alpha-composited
+  contact sheets (all 5 sheets checked, no clipped/bled edges), then copied
+  into `public/cards/units/{id}.png`.
+- Scratch script/diagnostics lived in `tmp_diag/` (deleted after use, not
+  committed). Source sheets left untracked per existing convention.
+
 ## Latest update — 2026-08-19i (card-art batch 5: karty5-8 sheets, 99 template ids)
 
 Replaced/added card art for 99 template ids from 4 new source sheets
