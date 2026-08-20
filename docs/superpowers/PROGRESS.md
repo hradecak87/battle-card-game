@@ -14,6 +14,51 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-20i (Hradby / Walls feature, repo-complete; live apply blocked by missing DB URL in worktree)
+
+Implemented the full Hradby/Walls feature in the `feat/hradby-walls`
+worktree/branch, following the approved spec/plan top-to-bottom.
+
+- New migration files prepared for the next free slot:
+  - `supabase/migrations/0047_wall_structure_card.sql`
+  - `supabase/migrations/0047_wall_structure_card.verification.sql`
+- Backend/schema/combat:
+  - Added `territories.wall_rank` plus the DB-level mutual-exclusion check
+    so `wall_rank` cannot coexist with `castle_rank` / `village_rank`.
+  - Added the 5 `wall-*` structure templates and wired wall rewards into
+    the same reward channels as existing structures (but not starter-kit
+    onboarding inventory).
+  - Updated `build_structure()` to enforce Walls XOR Castle/Village at the
+    RPC layer too.
+  - Updated TypeScript combat math (`lib/territories/structureBonus.ts`,
+    `lib/battles/effectiveStats.ts`, `lib/battles/armyStrength.ts`) and the
+    SQL mirror helpers/functions so walls grant both defense and defender
+    ranged bonus, with parity tests covering the duplicated formulas.
+- Frontend/UI:
+  - Added `wall_rank` / `'wall'` typing through territory + structure-card
+    APIs.
+  - Added the new wall map icon asset (`public/icons/structures/wall.png`)
+    and `WallIcon` rendering on the map.
+  - Extended `GarrisonModal`, `TerritoryDetailPanel`, and
+    `DeclareAttackModal` to show/build/preview walls and to hide
+    Castle/Village build actions when a territory already has walls.
+  - Added an illustrated wall card tile on `/collection` while leaving
+    Castle/Village on the existing plain fallback tile.
+  - Updated `scripts/seed-card-templates.ts` for non-production
+    documentation/local parity.
+- Verification in the worktree:
+  - `npx jest --runInBand` -> **77/77 suites, 523/523 tests**
+  - `npx tsc --noEmit` -> clean
+  - `npm run build` -> succeeds when `NEXT_PUBLIC_SUPABASE_URL` and
+    `NEXT_PUBLIC_SUPABASE_ANON_KEY` are provided in the environment (the
+    worktree currently has no `.env.local`, so a placeholder public URL/key
+    was exported just for build-time prerendering)
+- Live-DB note:
+  - The repo-side migration + verification SQL are ready, but this
+    worktree/session currently has **no `.env.local` and no
+    `SUPABASE_DB_URL` in the environment**, so the established temp-`pg`
+    live-apply step could not be executed from this worktree yet.
+
 ## Latest update — 2026-08-20h (diplomacy: wars, peace offers, /diplomacy, live in 0044-0046)
 
 Implemented the full diplomacy feature in the `feat/diplomacy`
