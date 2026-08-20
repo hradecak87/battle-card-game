@@ -1,5 +1,6 @@
 import type { NotificationRow } from './types'
 
+// Keep public/sw.js in sync with this switch: the service worker cannot import TS modules.
 function hasMapCoordinates(payload: unknown): payload is { x: number; y: number } {
   return (
     typeof payload === 'object' &&
