@@ -14,6 +14,26 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-20d (bugfix: admin dashboard "structure of query does not match function result type")
+
+**Root cause**: `admin_list_active_battles()` and `admin_list_player_cards()`
+(from `0012_admin_dashboard.sql`) declare `territory_x`/`territory_y` as
+`integer` in their `RETURNS TABLE`, but `territories.x`/`.y` are `smallint`
+(since the table's creation in `0002_territories.sql`). PL/pgSQL's
+`return query` requires an exact/binary-coercible type match — smallint to
+integer is an implicit but not binary-coercible cast, so both RPCs always
+raised `structure of query does not match function result type` whenever
+called. This is a long-standing bug, not something the recent card-limit
+work introduced.
+
+- Added `supabase/migrations/0032_fix_admin_territory_xy_cast.sql`,
+  redefining both functions with an explicit `t.x::integer, t.y::integer`
+  cast.
+- Applied live to Supabase and verified via direct RPC calls (impersonating
+  an admin player through `request.jwt.claim.sub`): both RPCs now return
+  rows successfully.
+- Full test suite (58/58, 442/442) and `tsc --noEmit` still pass.
+
 ## Latest update — 2026-08-20c (bugfix: illustrated-art registry was stale for 3 batches)
 
 **Root cause found**: `lib/cards/illustrated-art.ts` keeps a manually
