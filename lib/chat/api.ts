@@ -5,16 +5,11 @@ import type {
   ChatListedMessage,
   ChatSendMessageResult,
 } from './types'
-
+export { isValidMessageBody } from './validation'
 export interface SendMessageInput {
   channelType: ChatChannelType
   recipientId?: string | null
   body: string
-}
-
-export function isValidMessageBody(body: string) {
-  const trimmed = body.trim()
-  return trimmed.length >= 1 && trimmed.length <= 500
 }
 
 export async function sendMessage(input: SendMessageInput) {
