@@ -14,6 +14,56 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-20p (NPC garrison rank rebalance after map re-clustering, applied live)
+
+Follow-up to 2026-08-20k's explicit decision NOT to resync NPC garrisons at
+that time. User later noticed wild villages/castles whose `difficulty`
+changed during re-clustering still had garrison card ranks matching their
+*old* difficulty (e.g. a tile that used to be difficulty 5 with rare cards
+could now be difficulty 1). User asked to fix it, confirming they want
+*NPC-owned* garrisons rebalanced, not existing players' cards touched.
+
+- Ran the existing `scripts/backfill-npc-garrisons.ts` one-off script
+  against the live DB. **First run failed partway** (`23503` foreign-key
+  violation: `battle_rounds_defender_card_instance_id_fkey`) — the script's
+  original design hard-deleted every existing NPC garrison `card_instances`
+  row before re-inserting fresh ones, but some old NPC garrison instances
+  are referenced by historical `battle_rounds` rows via a plain (RESTRICT)
+  foreign key. Unit card instances are never hard-deleted anywhere else in
+  the app's normal game logic either (battles only ever change `owner_id`,
+  never remove the row) — this script was the only place attempting it.
+  ~7,500 rows got deleted before the batch that hit a referenced row
+  errored out, leaving some structure tiles with an empty or partial
+  garrison (verified via live query: NPC-owned stationed instance count
+  dropped from 13,399 to 5,899).
+- **Fixed** (`66b6013`): rewrote the script to re-roll each *existing*
+  instance's `template_id` in place (same `instance_id`, freshly-rolled
+  rank matching the tile's current `difficulty`) instead of deleting it —
+  this can never hit the FK since the row is never removed — and only
+  `INSERT`s new rows to top any under-sized tile up to its target garrison
+  size (never deletes to shrink an over-sized one; a few tiles may end up
+  with slightly more troops than the ideal target, an accepted minor
+  deviation given the FK constraint can't be safely worked around for
+  shrinking).
+- **Re-ran successfully against live DB**: re-rolled 5,899 existing
+  instances + minted 9,061 new ones across all 1,567 unclaimed
+  castle/village tiles (14,960 total NPC-owned stationed instances now).
+  Verified rank distribution now correctly tracks each tile's difficulty
+  (e.g. difficulty 5 dominated by `rare`, difficulty 1 almost entirely
+  `common` — matches `GARRISON_RANK_WEIGHTS` in `generate-world.ts`).
+  Pre-change state backed up to a gitignored timestamped JSON (both the
+  failed first run and the successful second run each wrote their own
+  backup file in `scripts/`).
+- Scope: only touches `owner_id IS NULL` territories and `owner_id IS NULL`
+  card instances — no player-owned territory, garrison, or card was
+  touched (confirmed: this was never in scope, since a player-owned
+  village's garrison consists of the player's own cards, not NPC-seeded
+  ones).
+- Verification: `npx tsc --noEmit` clean, `npx jest
+  scripts/generate-world.test.ts` 18/18 pass. Committed as `66b6013`
+  (script fix only — no schema/migration change needed), pushed to
+  `origin/main`.
+
 ## Latest update — 2026-08-20o (Map grid line rendering bugs — 3 fixes, confirmed working)
 
 Follow-up polish after the zoom-widening/texture-variant work above,
