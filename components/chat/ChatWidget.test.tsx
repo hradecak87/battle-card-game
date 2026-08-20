@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { ChatWidget } from './ChatWidget'
 
 const listConversations = jest.fn()
+const listDirectMessagePlayers = jest.fn()
 
 jest.mock('@/lib/supabase/useSession', () => ({
   useSession: jest.fn(),
@@ -10,6 +11,7 @@ jest.mock('@/lib/supabase/useSession', () => ({
 
 jest.mock('@/lib/chat/api', () => ({
   listConversations: (...args: unknown[]) => listConversations(...args),
+  listDirectMessagePlayers: (...args: unknown[]) => listDirectMessagePlayers(...args),
 }))
 
 jest.mock('./GlobalChatPanel', () => ({
@@ -53,6 +55,10 @@ describe('ChatWidget', () => {
       ],
       error: null,
     })
+    listDirectMessagePlayers.mockReset().mockResolvedValue({
+      data: [{ id: 'player-2', display_name: 'Druhý hráč', kingdom_name: null }],
+      error: null,
+    })
     ;(useSession as jest.Mock).mockReturnValue({
       user: { id: 'me' },
       player: { onboarding_completed: true },
@@ -83,6 +89,17 @@ describe('ChatWidget', () => {
     await user.click(screen.getByRole('button', { name: /Chat/ }))
     await user.click(screen.getAllByRole('button', { name: 'Zprávy' })[0])
     await user.click(screen.getByRole('button', { name: 'Vybrat konverzaci' }))
+
+    expect(screen.getByText('DM:Druhý hráč')).toBeInTheDocument()
+  })
+
+  it('offers a way to start a new DM from the widget', async () => {
+    const user = userEvent.setup()
+    render(<ChatWidget />)
+
+    await user.click(screen.getByRole('button', { name: /Chat/ }))
+    await user.click(screen.getAllByRole('button', { name: 'Zprávy' })[0])
+    await user.selectOptions(screen.getByRole('combobox'), 'player-2')
 
     expect(screen.getByText('DM:Druhý hráč')).toBeInTheDocument()
   })

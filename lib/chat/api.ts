@@ -3,6 +3,7 @@ import type {
   ChatChannelType,
   ChatConversationSummary,
   ChatListedMessage,
+  ChatPlayerOption,
   ChatSendMessageResult,
 } from './types'
 export { isValidMessageBody } from './validation'
@@ -36,6 +37,18 @@ export async function listGlobalMessages(beforeId: number | null = null, limit =
 export async function listConversations() {
   return supabase.rpc('chat_list_conversations') as unknown as Promise<{
     data: ChatConversationSummary[] | null
+    error: { message: string } | null
+  }>
+}
+
+export async function listDirectMessagePlayers(currentPlayerId: string) {
+  return supabase
+    .from('players')
+    .select('id, display_name, kingdom_name')
+    .eq('is_npc', false)
+    .neq('id', currentPlayerId)
+    .order('display_name') as unknown as Promise<{
+    data: ChatPlayerOption[] | null
     error: { message: string } | null
   }>
 }

@@ -7,9 +7,9 @@ begin;
 
 do $$
 declare
-  v_admin_id uuid := gen_random_uuid();
-  v_player_a uuid := gen_random_uuid();
-  v_player_b uuid := gen_random_uuid();
+  v_admin_id uuid;
+  v_player_a uuid;
+  v_player_b uuid;
   v_conv_ab uuid;
   v_message_id bigint;
   v_count integer;
@@ -17,11 +17,26 @@ begin
   assert to_regprocedure('admin_list_chat_messages(text, integer, bigint)') is not null, 'missing admin_list_chat_messages';
   assert to_regprocedure('admin_delete_chat_message(bigint)') is not null, 'missing admin_delete_chat_message';
 
-  insert into players (id, display_name, nation, is_admin)
-  values
-    (v_admin_id, 'Chat Admin', 'england', true),
-    (v_player_a, 'Chat Admin A', 'francia', false),
-    (v_player_b, 'Chat Admin B', 'hre', false);
+  select id into v_admin_id
+  from players
+  where is_admin = true
+  order by created_at
+  limit 1;
+
+  select id into v_player_a
+  from players
+  where id <> v_admin_id
+  order by created_at
+  limit 1;
+
+  select id into v_player_b
+  from players
+  where id not in (v_admin_id, v_player_a)
+  order by created_at
+  limit 1;
+
+  assert v_admin_id is not null and v_player_a is not null and v_player_b is not null,
+    'need one admin and two additional players for admin verification';
 
   v_conv_ab := chat_conversation_id(v_player_a, v_player_b);
 

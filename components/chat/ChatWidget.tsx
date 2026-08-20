@@ -1,8 +1,8 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
-import { listConversations } from '@/lib/chat/api'
-import type { ChatConversationSummary } from '@/lib/chat/types'
+import { listConversations, listDirectMessagePlayers } from '@/lib/chat/api'
+import type { ChatConversationSummary, ChatPlayerOption } from '@/lib/chat/types'
 import { useSession } from '@/lib/supabase/useSession'
 import { ConversationList } from './ConversationList'
 import { DmChatPanel } from './DmChatPanel'
@@ -16,7 +16,9 @@ export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<WidgetTab>('global')
   const [conversations, setConversations] = useState<ChatConversationSummary[]>([])
+  const [players, setPlayers] = useState<ChatPlayerOption[]>([])
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
+  const [draftRecipientId, setDraftRecipientId] = useState<string | null>(null)
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false)
 
   const loadConversations = useCallback(async () => {
@@ -41,12 +43,26 @@ export function ChatWidget() {
 
   useVisiblePolling(loadConversations, isOpen ? 4000 : 15000, !loading)
 
+  const loadPlayers = useCallback(async () => {
+    if (!user?.id) {
+      setPlayers([])
+      return
+    }
+
+    const { data, error } = await listDirectMessagePlayers(user.id)
+    if (error) return
+    setPlayers(data ?? [])
+  }, [user?.id])
+
+  useVisiblePolling(loadPlayers, 15000, !loading && !!user?.id)
+
   const unreadCount = useMemo(
     () => conversations.reduce((total, conversation) => total + conversation.unread_count, 0),
     [conversations],
   )
   const selectedConversation =
     conversations.find((conversation) => conversation.conversation_id === activeConversationId) ?? null
+  const draftRecipient = players.find((player) => player.id === draftRecipientId) ?? null
 
   if (loading) return null
 
@@ -101,11 +117,32 @@ export function ChatWidget() {
           ) : (
             <div className="grid min-h-0 flex-1 gap-4 md:grid-cols-[16rem_minmax(0,1fr)]">
               <div className={`${mobileDetailOpen ? 'hidden md:block' : 'block'}`}>
+                <label className="mb-2 block text-xs text-zinc-400">
+                  Nová zpráva
+                  <select
+                    value={draftRecipientId ?? ''}
+                    onChange={(event) => {
+                      const nextId = event.target.value || null
+                      setDraftRecipientId(nextId)
+                      setActiveConversationId(null)
+                      setMobileDetailOpen(Boolean(nextId))
+                    }}
+                    className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
+                  >
+                    <option value="">Vyber hráče…</option>
+                    {players.map((player) => (
+                      <option key={player.id} value={player.id}>
+                        {player.display_name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <ConversationList
                   conversations={conversations}
                   activeConversationId={activeConversationId}
                   onSelectConversation={(conversationId) => {
                     setActiveConversationId(conversationId)
+                    setDraftRecipientId(null)
                     setMobileDetailOpen(true)
                   }}
                 />
@@ -123,10 +160,11 @@ export function ChatWidget() {
                 <DmChatPanel
                   currentPlayerId={user.id}
                   conversationId={selectedConversation?.conversation_id ?? null}
-                  recipientId={selectedConversation?.other_participant_id ?? null}
-                  recipientName={selectedConversation?.other_participant_display_name ?? null}
+                  recipientId={selectedConversation?.other_participant_id ?? draftRecipient?.id ?? null}
+                  recipientName={selectedConversation?.other_participant_display_name ?? draftRecipient?.display_name ?? null}
                   onConversationCreated={(conversationId) => {
                     setActiveConversationId(conversationId)
+                    setDraftRecipientId(null)
                     void loadConversations()
                   }}
                 />

@@ -7,9 +7,9 @@ begin;
 
 do $$
 declare
-  v_player_a uuid := gen_random_uuid();
-  v_player_b uuid := gen_random_uuid();
-  v_player_c uuid := gen_random_uuid();
+  v_player_a uuid;
+  v_player_b uuid;
+  v_player_c uuid;
   v_global_id bigint;
   v_dm_ab_id bigint;
   v_dm_bc_id bigint;
@@ -21,11 +21,25 @@ begin
   assert to_regclass('chat_blocks') is not null, 'missing chat_blocks table';
   assert to_regclass('chat_read_state') is not null, 'missing chat_read_state table';
 
-  insert into players (id, display_name, nation)
-  values
-    (v_player_a, 'Chat A', 'england'),
-    (v_player_b, 'Chat B', 'francia'),
-    (v_player_c, 'Chat C', 'hre');
+  select id into v_player_a
+  from players
+  order by created_at
+  limit 1;
+
+  select id into v_player_b
+  from players
+  where id <> v_player_a
+  order by created_at
+  limit 1;
+
+  select id into v_player_c
+  from players
+  where id not in (v_player_a, v_player_b)
+  order by created_at
+  limit 1;
+
+  assert v_player_a is not null and v_player_b is not null and v_player_c is not null,
+    'need at least three players for chat verification';
 
   perform set_config('request.jwt.claim.sub', v_player_a::text, true);
 
@@ -46,6 +60,8 @@ begin
   insert into chat_messages (sender_id, channel_type, conversation_id, recipient_id, body)
   values (v_player_b, 'dm', v_conv_bc, v_player_c, 'Tajná zpráva B-C')
   returning id into v_dm_bc_id;
+
+  execute 'set local role authenticated';
 
   perform set_config('request.jwt.claim.sub', v_player_c::text, true);
 
@@ -78,6 +94,8 @@ begin
   where id = v_dm_ab_id;
 
   assert v_count = 1, 'player A should see their own direct message';
+
+  execute 'reset role';
 
   begin
     insert into chat_messages (sender_id, channel_type, conversation_id, recipient_id, body)

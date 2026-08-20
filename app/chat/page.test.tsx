@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import ChatPage from './page'
 
 const listConversations = jest.fn()
+const listDirectMessagePlayers = jest.fn()
 
 jest.mock('@/lib/supabase/useSession', () => ({
   useSession: jest.fn(),
@@ -10,6 +11,7 @@ jest.mock('@/lib/supabase/useSession', () => ({
 
 jest.mock('@/lib/chat/api', () => ({
   listConversations: (...args: unknown[]) => listConversations(...args),
+  listDirectMessagePlayers: (...args: unknown[]) => listDirectMessagePlayers(...args),
 }))
 
 jest.mock('@/components/chat/GlobalChatPanel', () => ({
@@ -49,6 +51,10 @@ describe('ChatPage', () => {
       ],
       error: null,
     })
+    listDirectMessagePlayers.mockReset().mockResolvedValue({
+      data: [{ id: 'player-2', display_name: 'Druhý hráč', kingdom_name: null }],
+      error: null,
+    })
     ;(useSession as jest.Mock).mockReturnValue({
       user: { id: 'me' },
       player: { onboarding_completed: true },
@@ -77,5 +83,15 @@ describe('ChatPage', () => {
 
     expect(screen.getByText('DM:Druhý hráč')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '← Zpět' })).toBeInTheDocument()
+  })
+
+  it('lets the player start a brand new DM from the player picker', async () => {
+    const user = userEvent.setup()
+    render(<ChatPage />)
+
+    await user.click(screen.getByRole('button', { name: 'Zprávy' }))
+    await user.selectOptions(screen.getByRole('combobox'), 'player-2')
+
+    expect(screen.getByText('DM:Druhý hráč')).toBeInTheDocument()
   })
 })

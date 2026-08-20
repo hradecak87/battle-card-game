@@ -273,9 +273,9 @@ declare
 begin
   select exists(
     select 1
-    from chat_messages
-    where conversation_id = p_conversation_id
-      and channel_type = 'dm'
+    from chat_messages m
+    where m.conversation_id = p_conversation_id
+      and m.channel_type = 'dm'
   )
   into v_exists;
 
@@ -285,10 +285,10 @@ begin
 
   select exists(
     select 1
-    from chat_messages
-    where conversation_id = p_conversation_id
-      and channel_type = 'dm'
-      and (sender_id = v_player_id or recipient_id = v_player_id)
+    from chat_messages m
+    where m.conversation_id = p_conversation_id
+      and m.channel_type = 'dm'
+      and (m.sender_id = v_player_id or m.recipient_id = v_player_id)
   )
   into v_is_participant;
 

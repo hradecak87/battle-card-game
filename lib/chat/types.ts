@@ -34,3 +34,9 @@ export interface ChatConversationSummary {
   last_message_created_at: string
   unread_count: number
 }
+
+export interface ChatPlayerOption {
+  id: string
+  display_name: string
+  kingdom_name: string | null
+}

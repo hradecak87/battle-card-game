@@ -7,9 +7,9 @@ begin;
 
 do $$
 declare
-  v_player_a uuid := gen_random_uuid();
-  v_player_b uuid := gen_random_uuid();
-  v_player_c uuid := gen_random_uuid();
+  v_player_a uuid;
+  v_player_b uuid;
+  v_player_c uuid;
   v_conv_ab uuid;
   v_conv_bc uuid;
   v_msg_id_1 bigint;
@@ -29,11 +29,25 @@ begin
   assert to_regprocedure('chat_block_player(uuid)') is not null, 'missing chat_block_player';
   assert to_regprocedure('chat_unblock_player(uuid)') is not null, 'missing chat_unblock_player';
 
-  insert into players (id, display_name, nation)
-  values
-    (v_player_a, 'Chat RPC A', 'england'),
-    (v_player_b, 'Chat RPC B', 'francia'),
-    (v_player_c, 'Chat RPC C', 'hre');
+  select id into v_player_a
+  from players
+  order by created_at
+  limit 1;
+
+  select id into v_player_b
+  from players
+  where id <> v_player_a
+  order by created_at
+  limit 1;
+
+  select id into v_player_c
+  from players
+  where id not in (v_player_a, v_player_b)
+  order by created_at
+  limit 1;
+
+  assert v_player_a is not null and v_player_b is not null and v_player_c is not null,
+    'need at least three players for chat RPC verification';
 
   v_conv_ab := chat_conversation_id(v_player_a, v_player_b);
   v_conv_bc := chat_conversation_id(v_player_b, v_player_c);

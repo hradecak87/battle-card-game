@@ -1,6 +1,7 @@
 import {
   blockPlayer,
   isValidMessageBody,
+  listDirectMessagePlayers,
   listConversations,
   listDmMessages,
   listGlobalMessages,
@@ -10,16 +11,27 @@ import {
 } from './api'
 
 const rpc = jest.fn()
+const playerOrder = jest.fn()
+const playerNeq = jest.fn(() => ({ order: playerOrder }))
+const playerEq = jest.fn(() => ({ neq: playerNeq }))
+const playerSelect = jest.fn(() => ({ eq: playerEq }))
+const from = jest.fn((_table: string) => ({ select: playerSelect }))
 
 jest.mock('@/lib/supabase/client', () => ({
   supabase: {
     rpc: (...args: unknown[]) => rpc(...args),
+    from: (table: string) => from(table),
   },
 }))
 
 describe('chat api wrappers', () => {
   beforeEach(() => {
     rpc.mockReset()
+    from.mockClear()
+    playerSelect.mockClear()
+    playerEq.mockClear()
+    playerNeq.mockClear()
+    playerOrder.mockClear()
   })
 
   it('validates trimmed chat bodies client-side', () => {
@@ -116,5 +128,18 @@ describe('chat api wrappers', () => {
     expect(rpc).toHaveBeenNthCalledWith(2, 'chat_unblock_player', {
       p_target_id: 'player-9',
     })
+  })
+
+  it('loads direct-message player options from the public players table', async () => {
+    const response = Promise.resolve({ data: [], error: null })
+    ;({ order: playerOrder } as unknown as Promise<unknown>).then = response.then.bind(response)
+
+    await listDirectMessagePlayers('me')
+
+    expect(from).toHaveBeenCalledWith('players')
+    expect(playerSelect).toHaveBeenCalledWith('id, display_name, kingdom_name')
+    expect(playerEq).toHaveBeenCalledWith('is_npc', false)
+    expect(playerNeq).toHaveBeenCalledWith('id', 'me')
+    expect(playerOrder).toHaveBeenCalledWith('display_name')
   })
 })
