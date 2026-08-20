@@ -120,4 +120,28 @@ describe('PeaceProposalForm', () => {
       offeredTerritoryId: 9,
     })
   })
+
+  it('filters out home, locked, and garrisoned territories from the tribute picker', () => {
+    render(
+      <PeaceProposalForm
+        isOpen
+        targetPlayerId="player-2"
+        targetPlayerName="Karel"
+        availableCards={[unitCard]}
+        availableTerritories={[
+          { id: 1, x: 1, y: 1, is_home: true, castle_rank: null, village_rank: null, name: 'Domov', battle_locked_by: null },
+          { id: 2, x: 2, y: 2, is_home: false, castle_rank: null, village_rank: null, name: 'Nárok', claim_locked_by: 'claim-1', battle_locked_by: null },
+          { id: 3, x: 3, y: 3, is_home: false, castle_rank: null, village_rank: null, name: 'Bitva', battle_locked_by: 'battle-1' },
+          { id: 9, x: 9, y: 10, is_home: false, castle_rank: null, village_rank: null, name: 'Volné pohraničí', battle_locked_by: null },
+        ]}
+        onClose={jest.fn()}
+        onSubmit={jest.fn().mockResolvedValue({ ok: true })}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mír za tribut' }))
+
+    const options = screen.getAllByRole('option').map((option) => option.textContent)
+    expect(options).toEqual(['Žádné území', 'Volné pohraničí (9, 10)'])
+  })
 })

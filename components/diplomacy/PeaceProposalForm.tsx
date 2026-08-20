@@ -80,6 +80,15 @@ export function PeaceProposalForm({
   const [selectedTerritoryId, setSelectedTerritoryId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const garrisonedTerritoryIds = useMemo(
+    () =>
+      new Set(
+        availableCards
+          .filter((card) => card.status === 'stationed' && card.stationed_territory_id != null)
+          .map((card) => card.stationed_territory_id as number),
+      ),
+    [availableCards],
+  )
 
   const selectableCards = useMemo(
     () =>
@@ -92,8 +101,15 @@ export function PeaceProposalForm({
   )
 
   const selectableTerritories = useMemo(
-    () => availableTerritories.filter((territory) => !territory.is_home),
-    [availableTerritories],
+    () =>
+      availableTerritories.filter(
+        (territory) =>
+          !territory.is_home &&
+          !territory.claim_locked_by &&
+          !territory.battle_locked_by &&
+          !garrisonedTerritoryIds.has(territory.id),
+      ),
+    [availableTerritories, garrisonedTerritoryIds],
   )
 
   if (!isOpen) return null
