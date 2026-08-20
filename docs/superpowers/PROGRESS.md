@@ -14,6 +14,23 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-20b (card-art fix: karty6-8 re-cropped with corrected 5x5 grid)
+
+User re-uploaded `karty6.png`/`karty7.png`/`karty8.png` (same filenames,
+new content) with a proper uniform 5×5 grid this time, fixing the earlier
+gap-aware crop from batch 5 (2026-08-19i) which the user reported as
+mis-cropped for those three sheets (irregular per-row grid detection was
+inherently fragile; a clean grid sidesteps the problem entirely).
+
+- Same name+unitType lists as before (karty7 gained one extra card,
+  "Poslední bašta" - crossbowmen, now 25/25/25 instead of 25/25/24).
+- Re-ran `scripts/crop-card-sheet.py` (fixed-grid gutter detection, same
+  script used for the original karty1 batch) — 75 tiles cropped, visually
+  verified via contact sheets, then copied over `public/cards/units/`
+  (74 files overwritten, 1 new file added for the extra karty7 card).
+- karty5.png/karty9-13.png (from batches 5 and 6) were unaffected — not
+  reprocessed.
+
 ## Latest update — 2026-08-20 (card-art batch 6: karty9-13 sheets, 125 template ids)
 
 Replaced/added card art for 125 template ids from 5 new source sheets
