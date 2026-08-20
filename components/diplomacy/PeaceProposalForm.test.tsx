@@ -101,7 +101,7 @@ describe('PeaceProposalForm', () => {
         targetPlayerName="Karel"
         availableCards={[unitCard, boostCard]}
         availableTerritories={[
-          { id: 9, x: 9, y: 10, is_home: false, castle_rank: null, village_rank: null, name: 'Pohraničí', battle_locked_by: null },
+          { id: 9, x: 9, y: 10, is_home: false, castle_rank: null, village_rank: null, wall_rank: null, name: 'Pohraničí', battle_locked_by: null },
         ]}
         onClose={jest.fn()}
         onSubmit={onSubmit}
@@ -129,10 +129,10 @@ describe('PeaceProposalForm', () => {
         targetPlayerName="Karel"
         availableCards={[unitCard]}
         availableTerritories={[
-          { id: 1, x: 1, y: 1, is_home: true, castle_rank: null, village_rank: null, name: 'Domov', battle_locked_by: null },
-          { id: 2, x: 2, y: 2, is_home: false, castle_rank: null, village_rank: null, name: 'Nárok', claim_locked_by: 'claim-1', battle_locked_by: null },
-          { id: 3, x: 3, y: 3, is_home: false, castle_rank: null, village_rank: null, name: 'Bitva', battle_locked_by: 'battle-1' },
-          { id: 9, x: 9, y: 10, is_home: false, castle_rank: null, village_rank: null, name: 'Volné pohraničí', battle_locked_by: null },
+          { id: 1, x: 1, y: 1, is_home: true, castle_rank: null, village_rank: null, wall_rank: null, name: 'Domov', battle_locked_by: null },
+          { id: 2, x: 2, y: 2, is_home: false, castle_rank: null, village_rank: null, wall_rank: null, name: 'Nárok', claim_locked_by: 'claim-1', battle_locked_by: null },
+          { id: 3, x: 3, y: 3, is_home: false, castle_rank: null, village_rank: null, wall_rank: null, name: 'Bitva', battle_locked_by: 'battle-1' },
+          { id: 9, x: 9, y: 10, is_home: false, castle_rank: null, village_rank: null, wall_rank: null, name: 'Volné pohraničí', battle_locked_by: null },
         ]}
         onClose={jest.fn()}
         onSubmit={jest.fn().mockResolvedValue({ ok: true })}

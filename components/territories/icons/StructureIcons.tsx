@@ -66,3 +66,7 @@ export function VillageIcon({ variant, ...props }: ImgIconProps & { variant: Vil
 export function HomeIcon(props: ImgIconProps) {
   return <StructureImg variant="home" {...props} />
 }
+
+export function WallIcon(props: ImgIconProps) {
+  return <StructureImg variant="wall" {...props} />
+}

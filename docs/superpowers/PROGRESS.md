@@ -14,6 +14,65 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-20i (Hradby / Walls feature, repo-complete; live apply blocked by missing DB URL in worktree)
+
+Implemented the full Hradby/Walls feature in the `feat/hradby-walls`
+worktree/branch, following the approved spec/plan top-to-bottom.
+
+- New migration files prepared for the next free slot:
+  - `supabase/migrations/0047_wall_structure_card.sql`
+  - `supabase/migrations/0047_wall_structure_card.verification.sql`
+- Backend/schema/combat:
+  - Added `territories.wall_rank` plus the DB-level mutual-exclusion check
+    so `wall_rank` cannot coexist with `castle_rank` / `village_rank`.
+  - Added the 5 `wall-*` structure templates and wired wall rewards into
+    the same reward channels as existing structures (but not starter-kit
+    onboarding inventory).
+  - Updated `build_structure()` to enforce Walls XOR Castle/Village at the
+    RPC layer too.
+  - Updated TypeScript combat math (`lib/territories/structureBonus.ts`,
+    `lib/battles/effectiveStats.ts`, `lib/battles/armyStrength.ts`) and the
+    SQL mirror helpers/functions so walls grant both defense and defender
+    ranged bonus, with parity tests covering the duplicated formulas.
+- Frontend/UI:
+  - Added `wall_rank` / `'wall'` typing through territory + structure-card
+    APIs.
+  - Added the new wall map icon asset (`public/icons/structures/wall.png`)
+    and `WallIcon` rendering on the map.
+  - Extended `GarrisonModal`, `TerritoryDetailPanel`, and
+    `DeclareAttackModal` to show/build/preview walls and to hide
+    Castle/Village build actions when a territory already has walls.
+  - Added an illustrated wall card tile on `/collection` while leaving
+    Castle/Village on the existing plain fallback tile.
+  - Updated `scripts/seed-card-templates.ts` for non-production
+    documentation/local parity.
+- Verification in the worktree:
+  - `npx jest --runInBand` -> **77/77 suites, 523/523 tests**
+  - `npx tsc --noEmit` -> clean
+  - `npm run build` -> succeeds when `NEXT_PUBLIC_SUPABASE_URL` and
+    `NEXT_PUBLIC_SUPABASE_ANON_KEY` are provided in the environment (the
+    worktree currently has no `.env.local`, so a placeholder public URL/key
+    was exported just for build-time prerendering)
+- Live DB:
+  - Applied `0047_wall_structure_card.sql` directly to Supabase via the
+    established temp-`pg` script + `SUPABASE_DB_URL` pattern after
+    `.env.local` was copied into the worktree.
+  - Ran `0047_wall_structure_card.verification.sql` successfully against
+    the live DB (`begin; ... rollback;` verification passed).
+  - Extra live checks confirmed:
+    - `public.territories.wall_rank` exists
+    - `territories_wall_exclusive_check` exists as
+      `wall_rank IS NULL OR (castle_rank IS NULL AND village_rank IS NULL)`
+    - live function definitions for `build_structure`,
+      `_compute_effective_stats`, `_award_xp`,
+      `_finalize_battle_base_0025`, `get_viewport`, and
+      `get_minimap_overview` all include the expected wall logic/columns
+  - Migration file fix made during live apply: the first live attempt
+    exposed that the new `wall-*` template inserts were ordered before the
+    widened `card_templates_category_check`, so Postgres rejected
+    `category = 'wall'`. Fixed by moving the inserts to immediately after
+    the constraint rebuild; re-ran apply + verification successfully.
+
 ## Latest update — 2026-08-20h (diplomacy: wars, peace offers, /diplomacy, live in 0044-0046)
 
 Implemented the full diplomacy feature in the `feat/diplomacy`

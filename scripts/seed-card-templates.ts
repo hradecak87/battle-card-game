@@ -1,7 +1,7 @@
 // One-time seed script (Territory Map design spec §2.1, §7). Loads the 248
 // hand-authored unit templates from lib/cards/catalog-data.json into the
-// `card_templates` table, plus 10 hand-authored Castle/Village structure
-// templates (5 ranks × 2 categories, spec §7's bonus table).
+// `card_templates` table, plus 15 hand-authored Castle/Village/Wall structure
+// templates (5 ranks × 3 categories, spec §7's bonus table).
 //
 // NOT run automatically. Requires the 0002_territories.sql migration to
 // already be applied to the target Supabase project, and requires the
@@ -22,13 +22,13 @@ if (typeof globalThis.WebSocket === 'undefined') {
   ;(globalThis as any).WebSocket = require('ws')
 }
 
-// Village DEF / Castle DEF / Castle ATK bonus %, per rank (spec §7).
-const STRUCTURE_BONUS_TABLE: Record<Rank, { villageDef: number; castleDef: number; castleAtk: number }> = {
-  common: { villageDef: 10, castleDef: 20, castleAtk: 10 },
-  uncommon: { villageDef: 20, castleDef: 35, castleAtk: 20 },
-  rare: { villageDef: 35, castleDef: 55, castleAtk: 35 },
-  epic: { villageDef: 55, castleDef: 80, castleAtk: 55 },
-  legend: { villageDef: 80, castleDef: 120, castleAtk: 80 },
+// Village DEF / Castle DEF / Castle ATK / Wall DEF(+ranged) bonus %, per rank (spec §7).
+const STRUCTURE_BONUS_TABLE: Record<Rank, { villageDef: number; castleDef: number; castleAtk: number; wallDef: number }> = {
+  common: { villageDef: 10, castleDef: 20, castleAtk: 10, wallDef: 5 },
+  uncommon: { villageDef: 20, castleDef: 35, castleAtk: 20, wallDef: 10 },
+  rare: { villageDef: 35, castleDef: 55, castleAtk: 35, wallDef: 17 },
+  epic: { villageDef: 55, castleDef: 80, castleAtk: 55, wallDef: 27 },
+  legend: { villageDef: 80, castleDef: 120, castleAtk: 80, wallDef: 40 },
 }
 
 // Tighter supply caps than unit cards, reflecting "velmi ojedinělé" (spec §2.1).
@@ -44,7 +44,7 @@ const RANKS: Rank[] = ['common', 'uncommon', 'rare', 'epic', 'legend']
 
 interface CardTemplateRow {
   id: string
-  category: 'unit' | 'castle' | 'village' | 'boost'
+  category: 'unit' | 'castle' | 'village' | 'wall' | 'boost'
   unit_type: string | null
   rank: string
   name: string
@@ -110,6 +110,18 @@ function buildStructureRows(): CardTemplateRow[] {
       attack_bonus_pct: null,
       total_supply: supply,
     })
+    rows.push({
+      id: `wall-${rank}`,
+      category: 'wall',
+      unit_type: null,
+      rank,
+      name: `Hradby (${rank})`,
+      flavor_text: `Obranné hradby, které zpevňují obranu území a zvyšují účinnost dálkových obránců.`,
+      base_stats: null,
+      defense_bonus_pct: bonuses.wallDef,
+      attack_bonus_pct: bonuses.wallDef,
+      total_supply: supply,
+    })
   }
   return rows
 }
@@ -167,7 +179,7 @@ async function main() {
     if (error) throw error
   }
   console.log(
-    `Seeded ${rows.length} card templates (${catalogData.length} unit + ${(boostCatalogData as unknown[]).length} boost + 10 structure)`
+    `Seeded ${rows.length} card templates (${catalogData.length} unit + ${(boostCatalogData as unknown[]).length} boost + 15 structure)`
   )
 }
 

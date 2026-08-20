@@ -13,6 +13,7 @@ describe('compareArmyStrength', () => {
       defenderNation: null,
       castleRank: null,
       villageRank: null,
+      wallRank: null,
     })
     expect(result.label).toBe('even')
   })
@@ -25,6 +26,7 @@ describe('compareArmyStrength', () => {
       defenderNation: null,
       castleRank: null,
       villageRank: null,
+      wallRank: null,
     })
     expect(result.label).toBe('strong-advantage')
   })
@@ -37,6 +39,7 @@ describe('compareArmyStrength', () => {
       defenderNation: null,
       castleRank: null,
       villageRank: null,
+      wallRank: null,
     })
     expect(result.label).toBe('strong-advantage')
   })
@@ -49,6 +52,7 @@ describe('compareArmyStrength', () => {
       defenderNation: null,
       castleRank: 'legend',
       villageRank: 'legend',
+      wallRank: null,
     })
     expect(result.label).toBe('disadvantage')
   })
@@ -62,6 +66,7 @@ describe('compareArmyStrength', () => {
       defenderNation: null,
       castleRank: null,
       villageRank: null,
+      wallRank: null,
     })
     expect(result.label).toBe('even')
     expect(result.ratio).toBeCloseTo(0.5, 1)
@@ -76,6 +81,7 @@ describe('compareArmyStrength', () => {
       defenderNation: null,
       castleRank: null,
       villageRank: 'common',
+      wallRank: null,
     })
     const withExtra = compareArmyStrength({
       attackerCards: [...base, { baseStats: weak, rank: 'common' }],
@@ -84,6 +90,7 @@ describe('compareArmyStrength', () => {
       defenderNation: null,
       castleRank: null,
       villageRank: 'common',
+      wallRank: null,
     })
     // Adding one more (of many) equal-strength cards should nudge the ratio
     // up only modestly, not swing the label wildly from run to run (this
@@ -100,6 +107,7 @@ describe('compareArmyStrength', () => {
       defenderNation: null,
       castleRank: 'common' as const,
       villageRank: 'common' as const,
+      wallRank: null,
     }
     const results = Array.from({ length: 5 }, () => compareArmyStrength(params))
     expect(new Set(results.map((r) => r.ratio)).size).toBe(1)

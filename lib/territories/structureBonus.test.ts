@@ -1,4 +1,8 @@
-import { castleAttackBonusPct, combinedDefenseBonusPct } from './structureBonus'
+import {
+  castleAttackBonusPct,
+  combinedDefenseBonusPct,
+  wallRangedBonusPct,
+} from './structureBonus'
 
 describe('combinedDefenseBonusPct', () => {
   it('is 0 when neither structure is built', () => {
@@ -21,6 +25,14 @@ describe('combinedDefenseBonusPct', () => {
     expect(combinedDefenseBonusPct('common', 'legend')).toBe(20 + 80)
     expect(combinedDefenseBonusPct('legend', 'common')).toBe(120 + 10)
   })
+
+  it('adds the wall bonus when provided', () => {
+    expect(combinedDefenseBonusPct(null, null, 'rare')).toBe(17)
+  })
+
+  it('defaults wallRank to null (existing 2-arg call sites unaffected)', () => {
+    expect(combinedDefenseBonusPct('common', 'common')).toBe(20 + 10)
+  })
 })
 
 describe('castleAttackBonusPct', () => {
@@ -36,5 +48,21 @@ describe('castleAttackBonusPct', () => {
     ['legend', 80],
   ] as const)('returns %s rank bonus %i%%', (rank, expected) => {
     expect(castleAttackBonusPct(rank)).toBe(expected)
+  })
+})
+
+describe('wallRangedBonusPct', () => {
+  it('returns 0 for null rank', () => {
+    expect(wallRangedBonusPct(null)).toBe(0)
+  })
+
+  it.each([
+    ['common', 5],
+    ['uncommon', 10],
+    ['rare', 17],
+    ['epic', 27],
+    ['legend', 40],
+  ] as const)('returns %s rank bonus %i%%', (rank, expected) => {
+    expect(wallRangedBonusPct(rank)).toBe(expected)
   })
 })

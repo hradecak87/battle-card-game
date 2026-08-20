@@ -9,6 +9,7 @@ import {
   pickVariant,
   VillageIcon,
   VILLAGE_VARIANTS,
+  WallIcon,
 } from '@/components/territories/icons/StructureIcons'
 
 const DIFFICULTY_TERRAIN_CLASS: Record<1 | 2 | 3 | 4 | 5, string> = {
@@ -491,6 +492,7 @@ export default function MapViewport({
               tile?.is_home,
               tile?.castle_rank,
               tile?.village_rank,
+              tile?.wall_rank,
             ].filter(Boolean).length
             const structureIconSize =
               structureCount > 1
@@ -532,6 +534,18 @@ export default function MapViewport({
                   <VillageIcon
                     variant={pickVariant(`${tile.id}-village`, VILLAGE_VARIANTS)}
                     title="Vesnice"
+                    className="text-stone-300 drop-shadow"
+                    style={structureIconStyle}
+                  />
+                ),
+              })
+            }
+            if (tile?.wall_rank) {
+              structureIcons.push({
+                key: 'wall',
+                node: (
+                  <WallIcon
+                    title="Hradby"
                     className="text-stone-300 drop-shadow"
                     style={structureIconStyle}
                   />

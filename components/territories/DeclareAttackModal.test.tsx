@@ -27,6 +27,7 @@ const territory: Territory = {
   difficulty: 3,
   castle_rank: null,
   village_rank: null,
+  wall_rank: null,
   owner_id: 'other-player',
   is_home: false,
   claim_locked_by: null,
@@ -275,6 +276,22 @@ describe('DeclareAttackModal', () => {
 
     await screen.findByRole('button', { name: 'Odkud útočíš' })
     expect(screen.queryByTestId('declare-attack-structure-bonuses')).not.toBeInTheDocument()
+  })
+
+  it('renders the wall defense and ranged bonus preview without castle/village lines', async () => {
+    render(
+      <DeclareAttackModal
+        territory={{ ...territory, wall_rank: 'epic' }}
+        myPlayerId="me"
+        onClose={jest.fn()}
+      />
+    )
+
+    expect(await screen.findByTestId('declare-attack-structure-bonuses')).toBeInTheDocument()
+    expect(screen.getByText('Hradby (epic): +27 % obrana, +27 % dálkový útok')).toBeInTheDocument()
+    expect(screen.getByText('Celkem pro obránce: +27 % obrana, +0 % útok zblízka i na dálku')).toBeInTheDocument()
+    expect(screen.queryByText(/^Hrad \(/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/^Vesnice \(/)).not.toBeInTheDocument()
   })
 
   it('clears the loading state if the player deselects the origin while units are still loading', async () => {

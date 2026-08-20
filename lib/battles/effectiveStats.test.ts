@@ -16,6 +16,7 @@ describe('computeEffectiveStats', () => {
           isDefendingThisRound: false,
           castleRank: 'legend',
           villageRank: 'legend',
+          wallRank: null,
           ownerNation,
         })
       ).toEqual(expected)
@@ -30,6 +31,7 @@ describe('computeEffectiveStats', () => {
         isDefendingThisRound: true,
         castleRank: null,
         villageRank: 'rare',
+        wallRank: null,
         ownerNation: 'mongol_horde',
       })
     ).toEqual({ str: 10, lng: 10, def: 27, hp: 10 })
@@ -43,6 +45,7 @@ describe('computeEffectiveStats', () => {
         isDefendingThisRound: true,
         castleRank: 'uncommon',
         villageRank: null,
+        wallRank: null,
         ownerNation: 'mongol_horde',
       })
     ).toEqual({ str: 12, lng: 12, def: 27, hp: 10 })
@@ -56,6 +59,7 @@ describe('computeEffectiveStats', () => {
         isDefendingThisRound: true,
         castleRank: 'rare',
         villageRank: 'uncommon',
+        wallRank: null,
         ownerNation: 'mongol_horde',
       })
     ).toEqual({ str: 14, lng: 14, def: 35, hp: 10 })
@@ -69,6 +73,7 @@ describe('computeEffectiveStats', () => {
         isDefendingThisRound: true,
         castleRank: 'common',
         villageRank: null,
+        wallRank: null,
         ownerNation: 'hre',
       })
     ).toEqual({ str: 4, lng: 6, def: 4, hp: 7 })
@@ -84,6 +89,7 @@ describe('computeEffectiveStats', () => {
           isDefendingThisRound: true,
           castleRank: 'common',
           villageRank: 'common',
+          wallRank: null,
           ownerNation,
         })
       ).toEqual({ str: 11, lng: 11, def: 26, hp: 10 })

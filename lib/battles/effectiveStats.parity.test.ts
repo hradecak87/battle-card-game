@@ -40,6 +40,7 @@ describe('computeEffectiveStats parity with SQL _compute_effective_stats()', () 
         isDefendingThisRound: false,
         castleRank: null,
         villageRank: null,
+        wallRank: null,
       },
       expected: { hp: 100, str: 50, lng: 40, def: 30 },
       sqlTrace: `
@@ -62,6 +63,7 @@ describe('computeEffectiveStats parity with SQL _compute_effective_stats()', () 
         isDefendingThisRound: false,
         castleRank: null,
         villageRank: null,
+        wallRank: null,
       },
       expected: { hp: 135, str: 78, lng: 54, def: 41 },
       sqlTrace: `
@@ -84,6 +86,7 @@ describe('computeEffectiveStats parity with SQL _compute_effective_stats()', () 
         isDefendingThisRound: true,
         castleRank: 'common' as Rank,
         villageRank: null,
+        wallRank: null,
       },
       expected: { hp: 100, str: 55, lng: 44, def: 36 },
       sqlTrace: `
@@ -107,6 +110,7 @@ describe('computeEffectiveStats parity with SQL _compute_effective_stats()', () 
         isDefendingThisRound: true,
         castleRank: 'legend' as Rank,
         villageRank: 'rare' as Rank,
+        wallRank: null,
       },
       expected: { hp: 115, str: 90, lng: 72, def: 77 },
       sqlTrace: `
@@ -131,6 +135,7 @@ describe('computeEffectiveStats parity with SQL _compute_effective_stats()', () 
         isDefendingThisRound: true,
         castleRank: null,
         villageRank: 'uncommon' as Rank,
+        wallRank: null,
       },
       expected: { hp: 160, str: 80, lng: 64, def: 66 },
       sqlTrace: `
@@ -155,6 +160,7 @@ describe('computeEffectiveStats parity with SQL _compute_effective_stats()', () 
         isDefendingThisRound: false,
         castleRank: null,
         villageRank: null,
+        wallRank: null,
       },
       expected: { hp: 200, str: 100, lng: 92, def: 60 },
       sqlTrace: `
@@ -177,6 +183,7 @@ describe('computeEffectiveStats parity with SQL _compute_effective_stats()', () 
         isDefendingThisRound: true,
         castleRank: 'epic' as Rank,
         villageRank: null,
+        wallRank: null,
       },
       expected: { hp: 115, str: 88, lng: 71, def: 63 },
       sqlTrace: `
@@ -230,6 +237,7 @@ describe('computeEffectiveStats parity with SQL _compute_effective_stats()', () 
         isDefendingThisRound: true,
         castleRank: null,
         villageRank: 'legend' as Rank,
+        wallRank: null,
       },
       expected: { hp: 135, str: 68, lng: 54, def: 74 },
       sqlTrace: `
@@ -243,6 +251,77 @@ describe('computeEffectiveStats parity with SQL _compute_effective_stats()', () 
           def = 41 * 1.80 = 73.8
         No nation perk (mongol_horde)
         Final round: {hp:135, str:68, lng:54, def:74}
+      `,
+    },
+    {
+      name: 'Case 9: Common defender with rare wall, no castle/village, mongol_horde',
+      input: {
+        baseStats,
+        rank: 'common' as Rank,
+        ownerNation: 'mongol_horde' as NationId,
+        isDefendingThisRound: true,
+        castleRank: null,
+        villageRank: null,
+        wallRank: 'rare' as Rank,
+      } as EffectiveStatsInput,
+      expected: { hp: 100, str: 59, lng: 47, def: 35 },
+      sqlTrace: `
+        rank_mult = 1.0 (common)
+        hp = 100, str = 50, lng = 40, def = 30
+        Structure (defender with rare wall):
+          wall_def_bonus = 17%, wall_atk_bonus = 17%
+          str = 50 * 1.17 = 58.5 -> round = 59
+          lng = 40 * 1.17 = 46.8 -> round = 47
+          def = 30 * 1.17 = 35.1 -> round = 35
+        No nation perk (mongol_horde)
+        Final: {hp:100, str:59, lng:47, def:35}
+      `,
+    },
+    {
+      name: 'Case 10: Common defender with legend wall, england perk applies after wall bonus',
+      input: {
+        baseStats,
+        rank: 'common' as Rank,
+        ownerNation: 'england' as NationId,
+        isDefendingThisRound: true,
+        castleRank: null,
+        villageRank: null,
+        wallRank: 'legend' as Rank,
+      } as EffectiveStatsInput,
+      expected: { hp: 100, str: 70, lng: 64, def: 42 },
+      sqlTrace: `
+        rank_mult = 1.0 (common)
+        hp = 100, str = 50, lng = 40, def = 30
+        Structure (defender with legend wall):
+          wall_def_bonus = 40%, wall_atk_bonus = 40%
+          str = 50 * 1.40 = 70
+          lng = 40 * 1.40 = 56
+          def = 30 * 1.40 = 42
+        Nation perk england: lng *= 1.15 -> 56 * 1.15 = 64.4
+        Final round: {hp:100, str:70, lng:64, def:42}
+      `,
+    },
+    {
+      name: 'Case 11: Legend attacker with legend wall gets no bonus while attacking',
+      input: {
+        baseStats,
+        rank: 'legend' as Rank,
+        ownerNation: 'mongol_horde' as NationId,
+        isDefendingThisRound: false,
+        castleRank: null,
+        villageRank: null,
+        wallRank: 'legend' as Rank,
+      } as EffectiveStatsInput,
+      expected: { hp: 200, str: 100, lng: 80, def: 60 },
+      sqlTrace: `
+        rank_mult = 2.0 (legend)
+        hp = round(100 * 2.0) = 200
+        str = round(50 * 2.0) = 100
+        lng = round(40 * 2.0) = 80
+        def = round(30 * 2.0) = 60
+        No structure bonus (not defender, wall ignored while attacking)
+        No nation perk (mongol_horde)
+        Final: {hp:200, str:100, lng:80, def:60}
       `,
     },
   ];

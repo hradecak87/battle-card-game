@@ -14,6 +14,7 @@ export interface CompareArmyStrengthParams {
   defenderNation: NationId | null
   castleRank: Rank | null
   villageRank: Rank | null
+  wallRank: Rank | null
 }
 
 export type ArmyStrengthLabel = 'strong-advantage' | 'even' | 'risky' | 'disadvantage'
@@ -36,7 +37,13 @@ function cardPower(stats: { str: number; lng: number; def: number; hp: number })
 
 function totalPower(
   cards: ArmyStrengthCard[],
-  opts: { isDefendingThisRound: boolean; castleRank: Rank | null; villageRank: Rank | null; nation: NationId | null }
+  opts: {
+    isDefendingThisRound: boolean
+    castleRank: Rank | null
+    villageRank: Rank | null
+    wallRank: Rank | null
+    nation: NationId | null
+  }
 ): number {
   return cards.reduce((sum, card) => {
     const effective = computeEffectiveStats({
@@ -45,6 +52,7 @@ function totalPower(
       isDefendingThisRound: opts.isDefendingThisRound,
       castleRank: opts.castleRank,
       villageRank: opts.villageRank,
+      wallRank: opts.wallRank,
       ownerNation: opts.nation,
     })
     return sum + cardPower(effective)
@@ -66,12 +74,14 @@ export function compareArmyStrength(params: CompareArmyStrengthParams): ArmyStre
     isDefendingThisRound: false,
     castleRank: null,
     villageRank: null,
+    wallRank: null,
     nation: params.attackerNation,
   })
   const defenderPower = totalPower(params.defenderCards, {
     isDefendingThisRound: true,
     castleRank: params.castleRank,
     villageRank: params.villageRank,
+    wallRank: params.wallRank,
     nation: params.defenderNation,
   })
 

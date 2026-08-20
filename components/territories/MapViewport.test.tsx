@@ -4,13 +4,14 @@ import MapViewport from './MapViewport'
 import { Territory } from '@/lib/territories/api'
 
 function makeTerritory(overrides: Partial<Territory> = {}): Territory {
-  return {
+  const territory: Territory = {
     id: 1,
     x: 10,
     y: 10,
     difficulty: 2,
     castle_rank: null,
     village_rank: null,
+    wall_rank: null,
     owner_id: null,
     is_home: false,
     claim_locked_by: null,
@@ -21,6 +22,7 @@ function makeTerritory(overrides: Partial<Territory> = {}): Territory {
     name: null,
     ...overrides,
   }
+  return { ...territory, wall_rank: territory.wall_rank ?? null }
 }
 
 function renderViewport(
@@ -151,18 +153,26 @@ describe('MapViewport', () => {
   })
 
   it('renders combined castle + village icons compactly instead of overlapping', () => {
-    renderViewport([makeTerritory({ castle_rank: 'basic', village_rank: 'basic' })], 'me')
+    renderViewport([makeTerritory({ castle_rank: 'common', village_rank: 'common' })], 'me')
 
     expect(screen.getByRole('img', { name: 'Hrad' })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Vesnice' })).toBeInTheDocument()
   })
 
   it('shows the battle icon as a blinking overlay on top of structure icons', () => {
-    renderViewport([makeTerritory({ castle_rank: 'basic', battle_locked_by: 'battle-1' })], 'me')
+    renderViewport([makeTerritory({ castle_rank: 'common', battle_locked_by: 'battle-1' })], 'me')
 
     const battleIcon = screen.getByTitle('Probíhá boj')
     expect(battleIcon.className).toContain('animate-pulse')
     expect(battleIcon.className).toContain('absolute')
+  })
+
+  it('renders a wall icon for wall-only territories without castle or village icons', () => {
+    renderViewport([makeTerritory({ wall_rank: 'rare' })], 'me')
+
+    expect(screen.getByRole('img', { name: 'Hradby' })).toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: 'Hrad' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: 'Vesnice' })).not.toBeInTheDocument()
   })
 
   it('renders out-of-bounds cells as inert void tiles instead of clickable territory buttons', () => {
