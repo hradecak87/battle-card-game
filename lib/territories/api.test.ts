@@ -148,7 +148,7 @@ describe('getMyTerritories', () => {
     await getMyTerritories('player-1')
 
     expect(select).toHaveBeenCalledWith(
-      'id, x, y, is_home, castle_rank, village_rank, name, claim_locked_by, battle_locked_by',
+      'id, x, y, is_home, castle_rank, village_rank, wall_rank, name, claim_locked_by, battle_locked_by',
     )
     expect(eq).toHaveBeenCalledWith('owner_id', 'player-1')
   })
@@ -162,7 +162,7 @@ describe('getMyStructureCardInstances', () => {
     inFn.mockReset()
   })
 
-  it('queries card_instances filtered to the owner and castle/village categories', async () => {
+  it('queries card_instances filtered to the owner and castle/village/wall categories', async () => {
     const response = {
       data: [
         {
@@ -192,7 +192,7 @@ describe('getMyStructureCardInstances', () => {
     await expect(getMyStructureCardInstances('player-1')).resolves.toEqual(response)
     expect(from).toHaveBeenCalledWith('card_instances')
     expect(eq).toHaveBeenCalledWith('owner_id', 'player-1')
-    expect(inFn).toHaveBeenCalledWith('card_templates.category', ['castle', 'village'])
+    expect(inFn).toHaveBeenCalledWith('card_templates.category', ['castle', 'village', 'wall'])
   })
 })
 
