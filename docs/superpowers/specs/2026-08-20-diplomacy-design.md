@@ -62,11 +62,34 @@ another to the same target, avoiding offer spam.
   target_id)`. No client writes (RPC-only).
 - `revoke all on both tables from public, anon`.
 
+### `world_events.event_type` CHECK constraint
+
+`world_events` (from `0034_world_events.sql`) constrains `event_type` with a
+fixed `check (event_type in (...))` list. This migration must **alter that
+constraint** (drop and recreate, or use a migration that widens it) to add
+`'war_declared'` and `'peace_signed'` — a plain insert of these new values
+will otherwise fail outright. Verify the current constraint definition
+first (it may have gained more values since 0034 if other work landed
+between then and this implementation).
+
 ## Backend RPCs
 
 All `security definer`, revoke from `public, anon`, grant execute to
 `authenticated`, following the existing project convention (see
-`0012_admin_dashboard.sql` / `world_events` RPCs for the pattern).
+`0012_admin_dashboard.sql` / `world_events` RPCs for the pattern). Every new
+function must set a pinned `search_path` (e.g. `set search_path = public,
+pg_temp`) exactly as the project's other security-definer functions already
+do — check a recent one (e.g. `0035_wire_world_events.sql`) for the exact
+idiom to copy.
+
+**Concurrency**: proposing, accepting, rejecting, and cancelling all mutate
+the same `diplomacy_relations` pair and/or overlapping `diplomacy_offers`
+rows. To prevent races (e.g. two crossed accepts both succeeding, or a
+proposal slipping in between an accept's validation and its write), every
+one of these RPCs must take a **transaction-scoped Postgres advisory lock**
+keyed on the ordered pair (`pg_advisory_xact_lock(hashtext(least(a,b) ||
+greatest(a,b)))`) as its first step, and use `select ... for update` on the
+specific offer/territory/card rows it validates before mutating them.
 
 - **War creation is NOT a new standalone RPC** — it is wired into the
   existing attack-declaration path. Re-verify the current canonical
@@ -93,31 +116,61 @@ All `security definer`, revoke from `public, anon`, grant execute to
 - **`diplomacy_propose_peace(p_target_id uuid, p_kind text, p_offered_card_ids uuid[] default '{}', p_offered_territory_id int default null)`**
   - Reject if no `war` row exists between caller and target.
   - Reject if caller already has a `pending` offer to this target (see
-    unique index above) — client should show "you already have a pending
-    offer" rather than letting this reach the server as a surprise.
+    unique index above) — **first resolve any of the caller's own expired
+    offers to this target** (set `status = 'expired'` for
+    `pending` rows past `expires_at`) before checking this, so an
+    already-expired-but-not-yet-marked offer never blocks a new proposal
+    (do the same lazy-expiry pass inside `diplomacy_list_wars`/offer-listing
+    RPCs, not just here — a page load should never show a stale "pending"
+    offer as blocking).
   - For `tribute_peace`: validate every card in `p_offered_card_ids` is
-    owned by the caller and currently `stationed` (not `in_transit`/
-    `deposit` — must be in the caller's control uncontested); validate
-    `p_offered_territory_id` (if given) is owned by the caller, not
-    `is_home`, and has no card instances with
-    `stationed_territory_id = p_offered_territory_id`.
+    owned by the caller, currently `status = 'stationed'`, and — mirroring
+    the existing trade-offer validation in `0014_trading_exchange.sql` —
+    not stationed on a territory that is currently `battle_locked_by`/part
+    of an unresolved battle. Lock each card row (`for update`) before
+    validating. Validate `p_offered_territory_id` (if given) is owned by
+    the caller, not `is_home`, has no card instances with
+    `stationed_territory_id = p_offered_territory_id`, and — reusing the
+    guard already established in `0021_abandon_territory.sql` — is not
+    currently `claim_locked_by`/`battle_locked_by`, has no unresolved
+    `battles` row, and has no incoming `troop_movements` (`kind = 'attack'`
+    or `'transfer'` with `status = 'in_transit'`) targeting it. Lock the
+    territory row (`for update`) before validating.
   - For `white_peace`: `offered_card_ids` must be empty and
     `offered_territory_id` must be null (reject otherwise — don't silently
     ignore extra input).
   - Insert the offer row, return it.
 
 - **`diplomacy_accept_peace(p_offer_id uuid)`**
+  - Take the pair-level advisory lock first (see Concurrency note above).
   - Caller must be `target_id` on the offer, offer must be `pending` and not
     expired (auto-expire past `expires_at` the same way trade offers do —
     check the existing expiry-check pattern in `lib/trading`/trade RPCs and
     mirror it).
-  - Transfer: `update card_instances set owner_id = target_id where
-    instance_id = any(offered_card_ids)`; if `offered_territory_id` is set,
+  - Reject if there is an unresolved `battles` row between this pair (an
+    active battle keeps the war going regardless of a signed treaty — peace
+    can only be accepted once no battle between the two players is
+    in-progress; the client should surface this clearly rather than let the
+    RPC error be the first the player hears of it).
+  - Re-lock and re-validate every offered card and the offered territory
+    exactly as in `diplomacy_propose_peace` (state may have changed since
+    the offer was created — e.g. the card got moved to deposit, or the
+    territory is now under claim/battle lock elsewhere); reject the whole
+    accept with a clear error if anything no longer validates, do not
+    partially apply.
+  - Transfer cards: for each offered card, if the target's current stationed
+    card count at their home territory is under their deck limit
+    (`_deck_limit`, see `lib/players/cardLimit.ts`/`_deck_limit` SQL
+    function), station it at the target's home territory
+    (`stationed_territory_id = <target home id>`); otherwise route it
+    through the existing deposit mechanism
+    (whatever function `0029_card_limit_deposit.sql` exposes for
+    "receive a card the recipient has no capacity for" — reuse it directly
+    rather than re-implementing deposit logic). Always set
+    `owner_id = target_id` regardless of destination.
+  - Transfer territory (if `offered_territory_id` set):
     `update territories set owner_id = target_id where id =
-    offered_territory_id` (re-validate at accept-time that it's still
-    ownerless-of-troops and still owned by initiator — state may have
-    changed since the offer was created; reject the whole accept with a
-    clear error if not, do not partially apply).
+    offered_territory_id`.
   - Delete the `diplomacy_relations` row for this pair (peace restored).
   - Mark this offer `accepted`, `resolved_at = now()`; mark any other
     `pending` offers between this same pair `cancelled` (a peace treaty
@@ -170,11 +223,16 @@ All `security definer`, revoke from `public, anon`, grant execute to
 - RPC unit tests: attacking a player with no existing war creates exactly
   one `diplomacy_relations` row (idempotent — a second attack does not
   error or duplicate); tribute validation rejects a card the caller doesn't
-  own, a home territory, an occupied territory, and a territory the caller
-  doesn't own; accepting peace transfers cards/territory and deletes the
-  war row; accepting one offer cancels other pending offers between the
-  same pair; RLS isolation (a third player cannot see or act on another
-  pair's war/offers).
+  own, a card on a battle-locked territory, a home territory, a territory
+  under claim/battle lock or with an incoming movement, and a territory the
+  caller doesn't own; accepting peace transfers cards (respecting deck
+  limit vs. deposit routing) and territory and deletes the war row;
+  accepting peace is rejected while an unresolved battle exists between the
+  pair; accepting one offer cancels other pending offers between the same
+  pair; expired pending offers don't block a new proposal; concurrent
+  accept/propose on the same pair is serialized (advisory lock) rather than
+  double-applying; RLS isolation (a third player cannot see or act on
+  another pair's war/offers).
 - Component tests: `/diplomacy` page sections, mobile-portrait layout
   (stacked sections, fullscreen proposal overlay), war badge rendering,
   world feed's two new event types (including their map links).
