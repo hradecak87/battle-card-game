@@ -17,7 +17,7 @@ import { TradingCard } from '@/components/cards/TradingCard'
 import { CardZoomIconButton, CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
 import { applyRank } from '@/lib/cards/combat'
 import { BoostCardTemplate, Rank, UnitType, UnitCardTemplate } from '@/lib/cards/types'
-import { castleAttackBonusPct, combinedDefenseBonusPct } from '@/lib/territories/structureBonus'
+import { castleAttackBonusPct, combinedDefenseBonusPct, wallRangedBonusPct } from '@/lib/territories/structureBonus'
 import { multiOriginAttackHours, occupationHours, armyPower, Difficulty } from '@/lib/territories/formulas'
 import { formatEta } from '@/lib/time/formatEta'
 import { compareArmyStrength, ArmyStrengthLabel } from '@/lib/battles/armyStrength'
@@ -91,11 +91,14 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
   const [reachable, setReachable] = useState<boolean | null>(null)
   const castleRank = territory.castle_rank as Rank | null
   const villageRank = territory.village_rank as Rank | null
+  const wallRank = territory.wall_rank as Rank | null
   const castleDefenseBonus = castleRank ? combinedDefenseBonusPct(castleRank, null) : 0
   const castleAttackBonus = castleAttackBonusPct(castleRank)
   const villageDefenseBonus = villageRank ? combinedDefenseBonusPct(null, villageRank) : 0
-  const totalDefenseBonus = combinedDefenseBonusPct(castleRank, villageRank)
-  const showStructureBonuses = Boolean(castleRank || villageRank)
+  const wallDefenseBonus = wallRank ? combinedDefenseBonusPct(null, null, wallRank) : 0
+  const wallRangedBonus = wallRangedBonusPct(wallRank)
+  const totalDefenseBonus = combinedDefenseBonusPct(castleRank, villageRank, wallRank)
+  const showStructureBonuses = Boolean(castleRank || villageRank || wallRank)
 
   useEffect(() => {
     if (!myPlayerId) return
@@ -224,9 +227,9 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
       defenderNation,
       castleRank,
       villageRank,
-      wallRank: territory.wall_rank as Rank | null,
+      wallRank,
     })
-  }, [attackerCards, defenderInstances, attackerNation, defenderNation, castleRank, villageRank, territory.wall_rank])
+  }, [attackerCards, defenderInstances, attackerNation, defenderNation, castleRank, villageRank, wallRank])
 
   const armyStrengthCopy: Record<ArmyStrengthLabel, { text: string; className: string }> = {
     'strong-advantage': { text: 'Silná výhoda', className: 'text-emerald-400' },
@@ -341,6 +344,7 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
                     <p>{`Hrad (${castleRank}): +${castleDefenseBonus} % obrana, +${castleAttackBonus} % útok zblízka i na dálku`}</p>
                   )}
                   {villageRank && <p>{`Vesnice (${villageRank}): +${villageDefenseBonus} % obrana`}</p>}
+                  {wallRank && <p>{`Hradby (${wallRank}): +${wallDefenseBonus} % obrana, +${wallRangedBonus} % dálkový útok`}</p>}
                   <p className="text-amber-300">{`Celkem pro obránce: +${totalDefenseBonus} % obrana, +${castleAttackBonus} % útok zblízka i na dálku`}</p>
                 </div>
               </div>
