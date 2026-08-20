@@ -154,6 +154,17 @@ describe('MapPage', () => {
     expect(getViewport).toHaveBeenCalledWith(93, 43, 107, 57)
   })
 
+  it('does not override an explicit ?x=&y= deep link with the player home territory', async () => {
+    sessionUser = { id: 'me' }
+    searchParams = new URLSearchParams('x=100&y=50')
+    getMyHomeTerritory.mockResolvedValueOnce({ data: [{ id: 1, x: 10, y: 20 }], error: null })
+    render(<MapPage />)
+
+    await waitFor(() => expect(screen.getByTestId('map-viewport')).toBeInTheDocument())
+    expect(getViewport).toHaveBeenCalledWith(93, 43, 107, 57)
+    expect(getMyHomeTerritory).not.toHaveBeenCalled()
+  })
+
   it('updates the requested window when the coordinate-jump form is submitted', async () => {
     render(<MapPage />)
     await waitFor(() => expect(screen.getByTestId('map-viewport')).toBeInTheDocument())

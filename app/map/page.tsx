@@ -76,8 +76,9 @@ function MapPageContent() {
   const { user, player } = useSession()
   const initialX = getInitialCenter(searchParams, 'x')
   const initialY = getInitialCenter(searchParams, 'y')
-  const [centerX, setCenterX] = useState(initialX !== null && initialY !== null ? initialX : 128)
-  const [centerY, setCenterY] = useState(initialX !== null && initialY !== null ? initialY : 128)
+  const hasExplicitCenter = initialX !== null && initialY !== null
+  const [centerX, setCenterX] = useState(hasExplicitCenter ? initialX : 128)
+  const [centerY, setCenterY] = useState(hasExplicitCenter ? initialY : 128)
   const [zoomIndex, setZoomIndex] = useState(DEFAULT_ZOOM_INDEX)
   const [territories, setTerritories] = useState<Territory[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -264,13 +265,17 @@ function MapPageContent() {
 
     if (autoCenteredUserId.current !== user.id) {
       autoCenteredUserId.current = user.id
-      handleFindHome()
+      // Skip auto-centering on the player's home territory when the URL
+      // already requested a specific tile (e.g. a deep link from /world).
+      if (!hasExplicitCenter) {
+        handleFindHome()
+      }
     }
 
     return () => {
       ignore = true
     }
-  }, [handleFindHome, user?.id])
+  }, [handleFindHome, hasExplicitCenter, user?.id])
 
   function getTerritoryMarker(territory: MyTerritory) {
     if (territory.is_home) return '🏠'
