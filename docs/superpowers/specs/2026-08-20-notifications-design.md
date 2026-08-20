@@ -14,7 +14,7 @@ system:
   the player has the map page open. Nothing persists, nothing fires while
   offline or on another page.
 - **Trade offers**: no notification exists at all. The recipient must
-  manually check the Exchange page to discover a new offer.
+  manually check the Trading page to discover a new offer.
 
 Other event types (battle results, territory loss, war declarations, peace
 offers, level-ups, new DMs) have no player-facing alert beyond the global
@@ -31,15 +31,24 @@ accepted known limitation — not addressed in this MVP.
 
 | Type | Trigger | Recipient(s) |
 |---|---|---|
-| `attack_incoming` | `_declare_attack_core` | territory's current owner |
-| `war_declared` | `_declare_attack_core` (new war relation) | both players |
+| `attack_incoming` | `_declare_attack_core` (lives in `0045_diplomacy_war_creation.sql` as of this writing) | territory's current owner |
+| `war_declared` | `_declare_attack_core` (new war relation created) | both players |
 | `battle_resolved` | `_finalize_battle_base_0025` | attacker + defender |
 | `territory_lost` | `_finalize_battle_base_0025` (capture) | defeated defender |
-| `trade_offer_received` | trade-offer create RPC | offer recipient |
-| `trade_offer_accepted` | trade-offer accept/reject RPC | offer creator |
-| `peace_offer_received` | diplomacy peace-offer RPC | offer recipient |
+| `trade_offer_received` | `create_trade_offer` (direct offer to a specific player only — public marketplace listings via `list_public_trade_marketplace` do not notify anyone until acted on) | offer recipient |
+| `trade_offer_accepted` | `accept_trade_offer` / `respond_to_public_offer` (accepted branch) | offer creator |
+| `trade_offer_rejected` | `reject_trade_offer` / `respond_to_public_offer` (rejected branch) | offer creator |
+| `peace_offer_received` | diplomacy peace-offer RPC (`lib/diplomacy`) | offer recipient |
 | `level_up` | `_award_xp` (level increases) | the leveling player |
-| `dm_message` | chat DM send RPC | recipient (one row per conversation, not per message — chat's existing `unread_count` already tracks message-level detail) |
+| `dm_message` | chat DM send RPC (`lib/chat`) | recipient (one row per conversation, not per message — chat's existing `unread_count` already tracks message-level detail) |
+
+Note: `trade_offer_accepted` and `trade_offer_rejected` are two distinct
+types (not one type covering both outcomes), so the bell/panel and push
+copy can say "accepted" or "rejected" unambiguously without inspecting
+`payload` to figure out which happened. All RPC names above are the actual
+function names in `lib/trading/api.ts` and `lib/diplomacy` — verified
+against the current repo, not the earlier-drafted "exchange" module name
+(there is no `lib/exchange`; the correct path is `lib/trading`).
 
 ## Data model
 
@@ -100,11 +109,20 @@ actually committed, and vice versa.
   `useMyTerritoriesBattleChannel`) — subscribe to `notifications` filtered
   by `player_id = <current user>`; badge count updates immediately on
   INSERT/UPDATE.
-- Clicking the bell opens a panel listing the most recent 20 notifications;
-  each is clickable and navigates to the relevant place (territory on the
-  map, the Exchange page, `/diplomacy`, or the chat conversation).
-- Clicking one notification marks only that one as read. A "Mark all read"
-  button in the panel marks everything read.
+- On mount (before any realtime event arrives), the bell fetches its
+  initial state via two RPCs: `get_unread_notification_count()` (badge
+  number) and `list_notifications(limit, before_id)` (panel contents,
+  paginated by `id` cursor, newest first). These are the same two RPCs the
+  `/notifications` full-history page uses (with a larger page size and its
+  own pagination), so there is exactly one read contract shared by both
+  surfaces — see `lib/notifications/api.ts` in New Files below.
+- Clicking the bell opens a panel listing the most recent 20 notifications
+  from `list_notifications`; each is clickable and navigates to the
+  relevant place (territory on the map, the Trading page, `/diplomacy`, or
+  the chat conversation) using a link derived from `type` + `payload`.
+- Clicking one notification calls `mark_notification_read(id)` (marks only
+  that one as read). A "Mark all read" button in the panel calls
+  `mark_all_notifications_read()`.
 - A dedicated `/notifications` page shows the full 30-day history, so a
   push notification's deep link has somewhere to land.
 - **Must be mobile-friendly in portrait orientation** — the bell/panel is
@@ -116,17 +134,28 @@ actually committed, and vice versa.
 ## Web Push delivery
 
 - **Service worker** (`public/sw.js`): listens for `push` events and shows a
-  system notification; listens for `notificationclick` and focuses/opens the
-  app at `/notifications`.
+  system notification carrying the notification's `id` and `type` in its
+  data payload; listens for `notificationclick` and opens/focuses the app
+  at the **same type+payload-derived deep link the in-app panel uses**
+  (e.g. straight to the attacked territory on the map, or the relevant
+  Trading/`/diplomacy`/chat page) rather than always landing on the generic
+  `/notifications` list. `/notifications` remains the fallback destination
+  only if a deep link can't be resolved (e.g. the target territory/offer no
+  longer exists).
 - **Opt-in registration**: not requested automatically on login. A
   "Enable notifications" control (e.g. in the player's profile/settings)
   triggers the browser permission prompt, registers the service worker,
   obtains a push subscription, and POSTs it to `/api/push/subscribe`, which
   upserts a row into `push_subscriptions`.
-- **Sending**: a Supabase Database Webhook on `INSERT` into `notifications`
-  calls a Vercel API route `/api/push/send` (authenticated via a shared
-  secret header). That route uses the `web-push` npm package with VAPID
-  keys (stored as env vars) to send the push payload to every
+- **Sending**: a Supabase Database Webhook on `INSERT` **and** `UPDATE` of
+  `notifications` calls a Vercel API route `/api/push/send` (authenticated
+  via a shared secret header). Both event types are needed because
+  `dm_message` notifications are an upsert (see Data Model above): the
+  first message in a conversation is an `INSERT`, but subsequent messages
+  refresh the same row via `UPDATE` — without listening to `UPDATE` too,
+  a player would only get a push for the very first DM in a conversation
+  and never any after. The route uses the `web-push` npm package with
+  VAPID keys (stored as env vars) to send the push payload to every
   `push_subscriptions` row for that `player_id`.
 - If a send fails with an expired/invalid-subscription error, that
   `push_subscriptions` row is deleted (no stale subscriptions accumulate).
@@ -136,6 +165,30 @@ actually committed, and vice versa.
 - iOS Safari limitation (no reliable Web Push without "Add to Home Screen")
   is accepted as-is for this MVP; nothing special is built to work around
   it.
+
+## Security / access control
+
+- `notifications` and `push_subscriptions` both get RLS enabled, since the
+  in-app bell subscribes to `notifications` directly over the client-side
+  Supabase Realtime connection (not through a server-side proxy):
+  - `notifications`: `select` policy restricted to `player_id = auth.uid()`;
+    no client `insert`/`update`/`delete` policies at all — every write goes
+    through the `security definer` RPCs (`list_notifications` is a `select`
+    stub for read-with-pagination, `mark_notification_read` /
+    `mark_all_notifications_read` are the only mutation paths, plus the
+    game-action RPCs above that insert on the backend). This mirrors the
+    existing pattern used for other player-scoped tables in this project.
+  - `push_subscriptions`: `select`/`insert`/`update`/`delete` restricted to
+    `player_id = auth.uid()`, since a player only ever needs to manage
+    their own subscriptions via `/api/push/subscribe`.
+  - The Realtime publication for `notifications` only needs to broadcast
+    rows a player is allowed to `select` per the above policy — same
+    approach already relied on by `useMyTerritoriesBattleChannel`'s
+    `territories` subscription.
+- `/api/push/send` is called by the Supabase Database Webhook, not by any
+  browser — it authenticates via a shared secret header (an env var known
+  to both Supabase's webhook config and the Vercel deployment) rather than
+  a user session, since there is no logged-in user in that request context.
 
 ## Error handling
 
@@ -162,10 +215,10 @@ actually committed, and vice versa.
 
 ## New files
 
-- `supabase/migrations/0055_notifications.sql` — tables, RPCs
-  (`list_notifications`, `mark_notification_read`,
-  `mark_all_notifications_read`), and the additional inserts wired into the
-  existing RPCs listed above.
+- `supabase/migrations/0055_notifications.sql` — tables (with RLS policies),
+  RPCs (`list_notifications`, `get_unread_notification_count`,
+  `mark_notification_read`, `mark_all_notifications_read`), and the
+  additional inserts wired into the existing RPCs listed above.
 - `lib/notifications/types.ts`, `lib/notifications/api.ts`,
   `lib/notifications/useNotificationsChannel.ts`
 - `components/notifications/NotificationBell.tsx`,
