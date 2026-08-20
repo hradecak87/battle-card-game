@@ -224,8 +224,9 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
       defenderNation,
       castleRank,
       villageRank,
+      wallRank: territory.wall_rank as Rank | null,
     })
-  }, [attackerCards, defenderInstances, attackerNation, defenderNation, castleRank, villageRank])
+  }, [attackerCards, defenderInstances, attackerNation, defenderNation, castleRank, villageRank, territory.wall_rank])
 
   const armyStrengthCopy: Record<ArmyStrengthLabel, { text: string; className: string }> = {
     'strong-advantage': { text: 'Silná výhoda', className: 'text-emerald-400' },

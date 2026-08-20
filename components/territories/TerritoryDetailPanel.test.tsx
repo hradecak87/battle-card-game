@@ -10,6 +10,7 @@ const baseTerritory: Territory = {
   difficulty: 2,
   castle_rank: null,
   village_rank: null,
+  wall_rank: null,
   owner_id: null,
   is_home: false,
   claim_locked_by: null,

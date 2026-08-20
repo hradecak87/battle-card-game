@@ -27,6 +27,7 @@ const territory: Territory = {
   difficulty: 3,
   castle_rank: null,
   village_rank: null,
+  wall_rank: null,
   owner_id: 'other-player',
   is_home: false,
   claim_locked_by: null,

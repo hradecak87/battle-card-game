@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
+import { Rank } from '@/lib/cards/types'
 
 /**
  * Thin typed wrapper functions around the Territory Map RPCs (design spec
@@ -13,8 +14,9 @@ export interface Territory {
   x: number
   y: number
   difficulty: 1 | 2 | 3 | 4 | 5
-  castle_rank: string | null
-  village_rank: string | null
+  castle_rank: Rank | null
+  village_rank: Rank | null
+  wall_rank: Rank | null
   owner_id: string | null
   owner_is_npc?: boolean
   /** Owning player's display name, joined by `getViewport` for map tooltips. */
@@ -43,8 +45,9 @@ export interface MinimapTile {
   y: number
   owner_id: string | null
   owner_is_npc?: boolean
-  castle_rank: string | null
-  village_rank: string | null
+  castle_rank: Rank | null
+  village_rank: Rank | null
+  wall_rank: Rank | null
   claim_locked_by: string | null
   battle_locked_by: string | null
   battle_id: string | null
@@ -103,8 +106,9 @@ export interface MyTerritory {
   x: number
   y: number
   is_home: boolean
-  castle_rank: string | null
-  village_rank: string | null
+  castle_rank: Rank | null
+  village_rank: Rank | null
+  wall_rank: Rank | null
   name: string | null
   claim_locked_by?: string | null
   battle_locked_by: string | null
@@ -131,7 +135,7 @@ export interface PlayerPublicInfo {
 export async function getMyTerritories(ownerId: string) {
   return supabase
     .from('territories')
-    .select('id, x, y, is_home, castle_rank, village_rank, name, claim_locked_by, battle_locked_by')
+    .select('id, x, y, is_home, castle_rank, village_rank, wall_rank, name, claim_locked_by, battle_locked_by')
     .eq('owner_id', ownerId)
     .order('is_home', { ascending: false })
     .order('x')
@@ -406,7 +410,7 @@ export interface CardInstanceWithTemplate {
     name: string | null
     flavor_text: string | null
     rank: string
-    category: 'unit' | 'castle' | 'village' | 'boost'
+    category: 'unit' | 'castle' | 'village' | 'wall' | 'boost'
     unit_type: string | null
     base_stats: { str: number; lng: number; def: number; hp: number; speed: number } | null
     total_supply: number | null
@@ -534,7 +538,7 @@ export async function renameTerritory(territoryId: number, newName: string) {
 }
 
 /**
- * All structure (castle/village) card instances owned by the given player,
+ * All structure (castle/village/wall) card instances owned by the given player,
  * with their template joined in. Structure cards can be built from anywhere
  * (build_structure checks ownership, not location), so no location filter
  * is applied here — they sit in general inventory until the player builds.
@@ -546,7 +550,7 @@ export async function getMyStructureCardInstances(ownerId: string) {
       'instance_id, template_id, owner_id, stationed_territory_id, status, card_templates!inner(id, name, flavor_text, rank, category, unit_type, base_stats, total_supply, defense_bonus_pct, attack_bonus_pct, boost_type, effect_kind, instant_effect_kind, pct_str, pct_lng, pct_def, pct_hp)'
     )
     .eq('owner_id', ownerId)
-    .in('card_templates.category', ['castle', 'village']) as unknown as Promise<{
+    .in('card_templates.category', ['castle', 'village', 'wall']) as unknown as Promise<{
     data: CardInstanceWithTemplate[] | null
     error: { message: string } | null
   }>

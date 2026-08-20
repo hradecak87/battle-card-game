@@ -88,7 +88,7 @@ export interface UnitCardTemplate {
  */
 export interface StructureCardTemplate {
   id: string
-  category: 'castle' | 'village'
+  category: 'castle' | 'village' | 'wall'
   rank: Rank
   name: string
   flavorText: string

@@ -21,6 +21,7 @@ const destinationTerritory: Territory = {
   difficulty: 3,
   castle_rank: null,
   village_rank: null,
+  wall_rank: null,
   owner_id: 'me',
   is_home: false,
   claim_locked_by: null,
