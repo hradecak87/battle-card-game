@@ -212,4 +212,44 @@ describe('ExchangePage', () => {
     await waitFor(() => expect(screen.getByText('Zatím tu nemáš žádné nabídky.')).toBeInTheDocument())
     expect(screen.queryByText('Čekající nabídka')).not.toBeInTheDocument()
   })
+
+  it('does not offer deposit cards in the create-trade modal', async () => {
+    getMyCardInstances.mockResolvedValue({
+      data: [
+        {
+          instance_id: 'deposit-card-1',
+          template_id: 'archers-common-9',
+          owner_id: 'player-1',
+          stationed_territory_id: null,
+          status: 'deposit',
+          card_templates: {
+            category: 'unit',
+            name: 'Depozitní lučištník',
+            rank: 'common',
+            unit_type: 'archers',
+            flavor_text: 'Čeká v depozitu.',
+            base_stats: { str: 5, lng: 7, def: 3, hp: 7, speed: 5 },
+            total_supply: null,
+            boost_type: null,
+            effect_kind: null,
+            instant_effect_kind: null,
+            pct_str: null,
+            pct_lng: null,
+            pct_def: null,
+            pct_hp: null,
+          },
+        },
+      ],
+      error: null,
+    })
+    const user = userEvent.setup()
+
+    render(<ExchangePage />)
+    await screen.findByRole('heading', { name: 'Směnárna' })
+
+    await user.click(screen.getByRole('button', { name: 'Nová nabídka' }))
+
+    expect(screen.getByRole('heading', { name: 'Nová nabídka' })).toBeInTheDocument()
+    expect(screen.queryByText('Depozitní lučištník')).not.toBeInTheDocument()
+  })
 })

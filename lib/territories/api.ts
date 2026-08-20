@@ -395,7 +395,8 @@ export interface CardInstanceWithTemplate {
   template_id: string
   owner_id: string | null
   stationed_territory_id: number | null
-  status: 'stationed' | 'in_transit'
+  status: 'stationed' | 'in_transit' | 'deposit'
+  deposit_expires_at?: string | null
   is_masked?: boolean
   card_templates: {
     id: string
@@ -437,12 +438,8 @@ export interface MyCardInstance extends CardInstanceWithTemplate {
  * show rank/type/location filters and search without N+1 queries.
  */
 export async function getMyCardInstances(ownerId: string) {
-  return supabase
-    .from('card_instances')
-    .select(
-      'instance_id, template_id, owner_id, stationed_territory_id, status, card_templates(id, name, flavor_text, rank, category, unit_type, base_stats, total_supply, defense_bonus_pct, attack_bonus_pct, boost_type, effect_kind, instant_effect_kind, pct_str, pct_lng, pct_def, pct_hp), territories(id, x, y, is_home)'
-    )
-    .eq('owner_id', ownerId) as unknown as Promise<{
+  void ownerId
+  return supabase.rpc('get_my_card_instances') as unknown as Promise<{
     data: MyCardInstance[] | null
     error: { message: string } | null
   }>
@@ -484,6 +481,20 @@ export async function cancelClaim(territoryId: number) {
  */
 export async function abandonTerritory(territoryId: number) {
   return supabase.rpc('abandon_territory', { p_territory_id: territoryId }) as unknown as Promise<{
+    data: null
+    error: { message: string } | null
+  }>
+}
+
+export async function returnCardToPool(instanceId: string) {
+  return supabase.rpc('return_card_to_pool', { p_instance_id: instanceId }) as unknown as Promise<{
+    data: null
+    error: { message: string } | null
+  }>
+}
+
+export async function withdrawFromDeposit(instanceId: string) {
+  return supabase.rpc('withdraw_from_deposit', { p_instance_id: instanceId }) as unknown as Promise<{
     data: null
     error: { message: string } | null
   }>

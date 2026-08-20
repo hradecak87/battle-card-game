@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
@@ -34,8 +34,12 @@ const ACTIVE_MY_OFFER_STATUSES: TradeOffer['status'][] = ['pending', 'countered'
 function filterTradeEligibleCards(cards: TradeSelectableCard[]) {
   return cards.filter(
     (card) =>
-      card.template_category === 'boost' ||
-      (card.template_category === 'unit' && card.template_base_stats && card.template_unit_type)
+      (card.status === 'stationed' &&
+        card.template_category === 'boost') ||
+      (card.status === 'stationed' &&
+        card.template_category === 'unit' &&
+        card.template_base_stats &&
+        card.template_unit_type)
   )
 }
 
@@ -185,7 +189,7 @@ export default function ExchangePage() {
     setSelectedOffer(nextSelected ?? null)
   }, [activeMyOffers, selectedOffer])
 
-  async function handleSearchPlayers(query: string) {
+  const handleSearchPlayers = useCallback(async (query: string) => {
     if (!user || modalState?.direction === 'respond') return
     if (query.trim().length === 0) {
       setTargetPlayers([])
@@ -202,9 +206,9 @@ export default function ExchangePage() {
     }>)
 
     if (!error) setTargetPlayers(data ?? [])
-  }
+  }, [modalState?.direction, user])
 
-  async function handleTargetPlayerChange(playerId: string | null) {
+  const handleTargetPlayerChange = useCallback(async (playerId: string | null) => {
     if (!playerId) {
       setTargetCards([])
       return
@@ -229,7 +233,7 @@ export default function ExchangePage() {
     }
 
     setTargetCards(filterTradeEligibleCards(mapTradeSelectableCards(data ?? [])))
-  }
+  }, [])
 
   async function submitModal(payload:
     | { kind: 'create'; payload: CreateTradeOfferInput }
