@@ -4,6 +4,7 @@ import "./globals.css";
 import { HeartbeatBeacon } from "@/components/players/HeartbeatBeacon";
 import { AuthStatusBar } from "@/components/players/AuthStatusBar";
 import { MainNav } from "@/components/navigation/MainNav";
+import { ChatWidget } from "@/components/chat/ChatWidget";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -35,6 +36,7 @@ export default function RootLayout({
         <AuthStatusBar />
         <MainNav />
         {children}
+        <ChatWidget />
       </body>
     </html>
   );

@@ -56,6 +56,7 @@ describe('MainNav', () => {
 
     render(<MainNav />)
 
+    expect(await screen.findByRole('link', { name: /Chat/ })).toHaveAttribute('href', '/chat')
     expect(await screen.findByRole('link', { name: /Směnárna/ })).toBeInTheDocument()
     await waitFor(() => expect(screen.getByText('1')).toBeInTheDocument())
   })

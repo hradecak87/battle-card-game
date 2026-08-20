@@ -23,6 +23,7 @@ export function MainNav() {
     const baseLinks = [
       { href: '/', label: 'Domů' },
       { href: '/map', label: 'Mapa' },
+      { href: '/chat', label: 'Chat' },
       { href: '/collection', label: 'Moje sbírka' },
       { href: '/exchange', label: 'Směnárna', badge: pendingCount },
       { href: '/leaderboard', label: 'Žebříček' },
