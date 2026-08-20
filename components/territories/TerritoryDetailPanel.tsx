@@ -36,7 +36,7 @@ function tileState(territory: Territory, myPlayerId: string | null): TileState {
   if (territory.owner_id) {
     return territory.owner_id === myPlayerId ? 'owned-by-me' : 'owned-by-other'
   }
-  if (territory.castle_rank || territory.village_rank) return 'npc-garrisoned'
+  if (territory.castle_rank || territory.village_rank || territory.wall_rank) return 'npc-garrisoned'
   return 'empty-lockable'
 }
 
@@ -91,6 +91,7 @@ export default function TerritoryDetailPanel({
       <p className="text-sm text-zinc-400">Obtížnost: {territory.difficulty}</p>
       {territory.castle_rank && <p className="text-sm text-zinc-400">Hrad: {territory.castle_rank}</p>}
       {territory.village_rank && <p className="text-sm text-zinc-400">Vesnice: {territory.village_rank}</p>}
+      {territory.wall_rank && <p className="text-sm text-zinc-400">Hradby: {territory.wall_rank}</p>}
       {typeof garrisonSize === 'number' && (
         <p className="text-sm text-zinc-400">Posádka: {garrisonSize}</p>
       )}

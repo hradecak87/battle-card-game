@@ -452,6 +452,26 @@ describe('GarrisonModal', () => {
     },
   }
 
+  const wallCard = {
+    instance_id: 'ci-wall-1',
+    template_id: 'wall-common',
+    owner_id: 'me',
+    stationed_territory_id: null as number | null,
+    status: 'stationed' as const,
+    card_templates: {
+      id: 'wall-common',
+      name: 'Hradby (common)',
+      flavor_text: 'x',
+      rank: 'common',
+      category: 'wall' as const,
+      unit_type: null,
+      base_stats: null,
+      total_supply: 45,
+      defense_bonus_pct: 5,
+      attack_bonus_pct: 5,
+    },
+  }
+
   it('does not show the build section for a non-owner', () => {
     render(
       <GarrisonModal
@@ -514,6 +534,22 @@ describe('GarrisonModal', () => {
     expect(screen.getByRole('img', { name: 'Vesnice' })).toBeInTheDocument()
   })
 
+  it('shows wall build row when no structure is present', () => {
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'me' }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+        structureCardOptions={[castleCard, villageCard, wallCard]}
+      />
+    )
+    expect(screen.getByTestId('build-wall-row')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Hradby' })).toBeInTheDocument()
+  })
+
   it('shows disabled hint when player has no castle card and castle is missing', () => {
     render(
       <GarrisonModal
@@ -570,6 +606,25 @@ describe('GarrisonModal', () => {
     expect(screen.queryByTestId('build-castle-row')).not.toBeInTheDocument()
     // village row still shows
     expect(screen.getByTestId('build-village-row')).toBeInTheDocument()
+    expect(screen.queryByTestId('build-wall-row')).not.toBeInTheDocument()
+  })
+
+  it('shows the wall rank and hides castle/village build rows when walls are already built', () => {
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'me', wall_rank: 'rare' }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+        structureCardOptions={[castleCard, villageCard, wallCard]}
+      />
+    )
+    expect(screen.getByText('Hradby: rare')).toBeInTheDocument()
+    expect(screen.queryByTestId('build-castle-row')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('build-village-row')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('build-wall-row')).not.toBeInTheDocument()
   })
 
   // --- abandon territory feature (#19) ---

@@ -167,6 +167,14 @@ describe('MapViewport', () => {
     expect(battleIcon.className).toContain('absolute')
   })
 
+  it('renders a wall icon for wall-only territories without castle or village icons', () => {
+    renderViewport([makeTerritory({ wall_rank: 'rare' })], 'me')
+
+    expect(screen.getByRole('img', { name: 'Hradby' })).toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: 'Hrad' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: 'Vesnice' })).not.toBeInTheDocument()
+  })
+
   it('renders out-of-bounds cells as inert void tiles instead of clickable territory buttons', () => {
     render(
       <MapViewport

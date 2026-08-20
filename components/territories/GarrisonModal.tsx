@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { CardInstanceWithTemplate, Territory } from '@/lib/territories/api'
 import { TradingCard } from '@/components/cards/TradingCard'
-import { CastleIcon, VillageIcon } from '@/components/territories/icons/StructureIcons'
+import { CastleIcon, VillageIcon, WallIcon } from '@/components/territories/icons/StructureIcons'
 import { CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
 import { applyRank } from '@/lib/cards/combat'
 import { BoostCardTemplate, Rank, UnitType, UnitCardTemplate } from '@/lib/cards/types'
@@ -140,6 +140,7 @@ export default function GarrisonModal({
   const [renameLoading, setRenameLoading] = useState(false)
   const [buildCastleInstanceId, setBuildCastleInstanceId] = useState('')
   const [buildVillageInstanceId, setBuildVillageInstanceId] = useState('')
+  const [buildWallInstanceId, setBuildWallInstanceId] = useState('')
   const [buildLoading, setBuildLoading] = useState(false)
   const [confirmingAbandon, setConfirmingAbandon] = useState(false)
   const [abandonLoading, setAbandonLoading] = useState(false)
@@ -166,9 +167,14 @@ export default function GarrisonModal({
     setRenaming(false)
   }
 
-  async function handleBuild(category: 'castle' | 'village') {
+  async function handleBuild(category: 'castle' | 'village' | 'wall') {
     if (!onBuildStructure) return
-    const instanceId = category === 'castle' ? buildCastleInstanceId : buildVillageInstanceId
+    const instanceId =
+      category === 'castle'
+        ? buildCastleInstanceId
+        : category === 'village'
+          ? buildVillageInstanceId
+          : buildWallInstanceId
     if (!instanceId) return
     setBuildLoading(true)
     await onBuildStructure(territory.id, instanceId)
@@ -419,7 +425,7 @@ export default function GarrisonModal({
           </div>
         )}
 
-        {canTransfer && (!territory.castle_rank || !territory.village_rank) && (
+        {canTransfer && !territory.wall_rank && (!territory.castle_rank || !territory.village_rank) && (
           <div className="mb-4 rounded-xl border border-zinc-700 bg-zinc-900/60 p-3 flex flex-col gap-2" data-testid="build-structure-section">
             {!territory.castle_rank && (() => {
               const castleCards = (structureCardOptions ?? []).filter(
@@ -517,6 +523,53 @@ export default function GarrisonModal({
                 </div>
               )
             })()}
+            {!territory.castle_rank && !territory.village_rank && !territory.wall_rank && (() => {
+              const wallCards = (structureCardOptions ?? []).filter(
+                (c) => c.card_templates?.category === 'wall'
+              )
+              return (
+                <div className="flex items-center gap-2 flex-wrap" data-testid="build-wall-row">
+                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-200">
+                    <WallIcon
+                      title="Hradby"
+                      className="text-stone-300 drop-shadow"
+                      style={buildLabelIconStyle}
+                    />
+                    Postavit hradby
+                  </span>
+                  {wallCards.length === 0 ? (
+                    <span className="text-xs text-zinc-500" data-testid="no-wall-cards">
+                      Nemáš žádnou kartu hradeb
+                    </span>
+                  ) : (
+                    <>
+                      <select
+                        aria-label="Vyber kartu hradeb"
+                        value={buildWallInstanceId}
+                        onChange={(e) => setBuildWallInstanceId(e.target.value)}
+                        className="rounded bg-zinc-800 border border-zinc-600 px-2 py-1 text-xs text-zinc-100"
+                        disabled={buildLoading}
+                      >
+                        <option value="">Vyber kartu…</option>
+                        {wallCards.map((c) => (
+                          <option key={c.instance_id} value={c.instance_id}>
+                            {c.card_templates?.name ?? c.template_id} ({c.card_templates?.rank})
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => handleBuild('wall')}
+                        disabled={buildLoading || !buildWallInstanceId}
+                        className="rounded bg-slate-700 hover:bg-slate-600 px-3 py-1 text-xs font-semibold text-white disabled:opacity-50"
+                      >
+                        {buildLoading ? '…' : 'Postavit'}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )
+            })()}
           </div>
         )}
         <div className="mb-4 grid gap-2 rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 text-sm text-zinc-300 sm:grid-cols-2">
@@ -524,6 +577,7 @@ export default function GarrisonModal({
           <p>Souřadnice: ({territory.x}, {territory.y})</p>
           {territory.castle_rank && <p>Hrad: {territory.castle_rank}</p>}
           {territory.village_rank && <p>Vesnice: {territory.village_rank}</p>}
+          {territory.wall_rank && <p>Hradby: {territory.wall_rank}</p>}
           {showsOtherOwnerInfo && (
             <div className="sm:col-span-2">
               <p className="mb-1 font-semibold text-zinc-100">Vlastník území</p>

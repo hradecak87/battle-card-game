@@ -151,6 +151,23 @@ describe('TerritoryDetailPanel', () => {
     expect(screen.getByText('Posádka: 5')).toBeInTheDocument()
   })
 
+  it('shows the wall rank and treats a wall-only territory as NPC-garrisoned', () => {
+    render(
+      <TerritoryDetailPanel
+        territory={{ ...baseTerritory, wall_rank: 'common' }}
+        myPlayerId="me"
+        originInstances={[]}
+        garrisonSize={3}
+        onClaim={noop}
+        onTransfer={noop}
+        onCancelClaim={noop}
+        onBuildStructure={noop}
+      />
+    )
+    expect(screen.getByText('Hradby: common')).toBeInTheDocument()
+    expect(screen.getByText(/hlídá posádka NPC/)).toBeInTheDocument()
+  })
+
   it('selecting troops and submitting calls onClaim with the right args', async () => {
     const onClaim = jest.fn().mockResolvedValue(undefined)
     render(
