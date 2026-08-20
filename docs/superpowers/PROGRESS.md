@@ -14,6 +14,29 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-20c (bugfix: illustrated-art registry was stale for 3 batches)
+
+**Root cause found**: `lib/cards/illustrated-art.ts` keeps a manually
+curated `ILLUSTRATED_CARD_IDS` allow-list that `TradingCard` checks to
+decide between real PNG art and the procedural SVG fallback. This list was
+only ever updated for the first 2 art batches (75 ids) — batches 4, 5, and
+6 (karty5–karty13, ~200 PNG files already on disk and pushed to prod) were
+never added, so despite the art existing, the live app kept rendering SVG
+placeholders for it. This is what the user was seeing as "still a pile of
+SVG-only cards," separate from the 4 template ids that genuinely have no
+art yet.
+
+- Regenerated `ILLUSTRATED_CARD_IDS` from scratch: every catalog id in
+  `lib/cards/catalog-data.json` that has a matching file in
+  `public/cards/units/` (275 of 279 ids, up from 75).
+  Missing 4 (still need art): `settlers-common-07`,
+  `settlers-uncommon-01`, `settlers-uncommon-02`, `settlers-rare-02`.
+- Added a comment to the file warning that this list is NOT auto-derived
+  from the filesystem and must be updated with every new art batch, to
+  prevent this bug recurring.
+- Verified: `npx tsc --noEmit` clean, `TradingCard.test.tsx` passing.
+- Not yet committed — pending user confirmation before commit/push.
+
 ## Latest update — 2026-08-20b (card-art fix: karty6-8 re-cropped with corrected 5x5 grid)
 
 User re-uploaded `karty6.png`/`karty7.png`/`karty8.png` (same filenames,
