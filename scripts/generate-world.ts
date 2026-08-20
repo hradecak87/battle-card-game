@@ -121,6 +121,158 @@ export function preSeededStructureRank(rand: () => number): Rank {
   return 'legend'
 }
 
+/**
+ * Generates a spatially-clustered difficulty grid for the whole map (map
+ * clustering design spec, 2026-08-20): forest(2)/desert(4)/mountain(5) grow
+ * as large irregular blobs, water(3) grows as small gap-spaced blobs, and
+ * any remaining tile defaults to grass(1). Returns a flat array indexed by
+ * `x * height + y`. Pure/testable — `rand()` must return [0,1).
+ */
+export function generateClusteredDifficultyGrid(
+  width: number,
+  height: number,
+  rand: () => number = Math.random
+): number[] {
+  const total = width * height
+  const grid = new Array<number>(total).fill(0)
+  const idx = (x: number, y: number) => x * height + y
+  const coordOf = (i: number) => ({ x: Math.floor(i / height), y: i % height })
+
+  function addNeighbors(i: number, frontier: number[]) {
+    const { x, y } = coordOf(i)
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        if (dx === 0 && dy === 0) continue
+        const nx = x + dx
+        const ny = y + dy
+        if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue
+        const ni = idx(nx, ny)
+        if (grid[ni] === 0) frontier.push(ni)
+      }
+    }
+  }
+
+  /**
+   * Grows one blob from `seedIdx` via random 8-directional frontier
+   * expansion. `maxRadius`, if given, keeps the blob compact (Chebyshev
+   * distance from the seed) — used for water so ponds stay round instead of
+   * snaking out toward other blobs.
+   */
+  function growBlob(
+    seedIdx: number,
+    targetSize: number,
+    value: number,
+    maxRadius?: number
+  ): number {
+    if (grid[seedIdx] !== 0) return 0
+    const seed = coordOf(seedIdx)
+    grid[seedIdx] = value
+    let size = 1
+    const frontier: number[] = []
+    addNeighbors(seedIdx, frontier)
+    while (size < targetSize && frontier.length > 0) {
+      const pick = Math.floor(rand() * frontier.length)
+      const cand = frontier[pick]
+      frontier[pick] = frontier[frontier.length - 1]
+      frontier.pop()
+      if (grid[cand] !== 0) continue
+      if (maxRadius !== undefined) {
+        const { x, y } = coordOf(cand)
+        if (Math.max(Math.abs(x - seed.x), Math.abs(y - seed.y)) > maxRadius) continue
+      }
+      grid[cand] = value
+      size++
+      addNeighbors(cand, frontier)
+    }
+    return size
+  }
+
+  /**
+   * Builds a freshly-shuffled pool of currently-unclaimed cell indices. Built
+   * per-phase (not once globally) so a cell rejected by one phase's extra
+   * constraints (e.g. water's min-gap check) remains a valid candidate for
+   * later attempts within that same phase instead of being permanently lost.
+   */
+  function buildUnclaimedPool(): number[] {
+    const pool: number[] = []
+    for (let i = 0; i < total; i++) {
+      if (grid[i] === 0) pool.push(i)
+    }
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1))
+      const tmp = pool[i]
+      pool[i] = pool[j]
+      pool[j] = tmp
+    }
+    return pool
+  }
+
+  function growRegion(value: number, targetCount: number, minBlob: number, maxBlob: number) {
+    const pool = buildUnclaimedPool()
+    let cursor = 0
+    let claimed = 0
+    while (claimed < targetCount && cursor < pool.length) {
+      const seed = pool[cursor]
+      cursor++
+      if (grid[seed] !== 0) continue
+      const blobTarget = Math.min(
+        minBlob + Math.floor(rand() * (maxBlob - minBlob + 1)),
+        targetCount - claimed
+      )
+      const grown = growBlob(seed, blobTarget, value)
+      claimed += grown
+    }
+  }
+
+  /** True if no water(3) tile exists within `gapRadius` tiles (Chebyshev) of `i`. */
+  function isFarFromWater(i: number, gapRadius: number): boolean {
+    const { x, y } = coordOf(i)
+    for (let dx = -gapRadius; dx <= gapRadius; dx++) {
+      for (let dy = -gapRadius; dy <= gapRadius; dy++) {
+        const nx = x + dx
+        const ny = y + dy
+        if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue
+        if (grid[idx(nx, ny)] === 3) return false
+      }
+    }
+    return true
+  }
+
+  function growWaterRegion(
+    targetCount: number,
+    minBlob: number,
+    maxBlob: number,
+    gapRadius: number
+  ) {
+    const pool = buildUnclaimedPool()
+    let cursor = 0
+    let claimed = 0
+    while (claimed < targetCount && cursor < pool.length) {
+      const seed = pool[cursor]
+      cursor++
+      if (grid[seed] !== 0) continue
+      if (!isFarFromWater(seed, gapRadius)) continue
+      const blobTarget = Math.min(
+        minBlob + Math.floor(rand() * (maxBlob - minBlob + 1)),
+        targetCount - claimed
+      )
+      const grown = growBlob(seed, blobTarget, 3, 2)
+      claimed += grown
+    }
+  }
+
+  growRegion(2, Math.round(total * (DIFFICULTY_WEIGHTS[2] / 100)), 15, 180) // forest
+  growRegion(4, Math.round(total * (DIFFICULTY_WEIGHTS[4] / 100)), 15, 180) // desert
+  growRegion(5, Math.round(total * (DIFFICULTY_WEIGHTS[5] / 100)), 15, 180) // mountain
+  growWaterRegion(Math.round(total * (DIFFICULTY_WEIGHTS[3] / 100)), 5, 15, 2) // water
+
+  for (let i = 0; i < total; i++) {
+    if (grid[i] === 0) grid[i] = 1 // grass fills whatever's left
+  }
+
+  return grid
+}
+
 interface TerritoryRow {
   x: number
   y: number
