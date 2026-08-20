@@ -66,6 +66,51 @@
   appears and deep-links correctly), then remove the
   `.worktrees/notifications-module` worktree and delete the branch.
 
+## Latest update — 2026-08-20z (notifications: found & fixed missing live wiring, smoke test passed)
+
+- **Manual smoke test initially failed silently**: user enabled push
+  notifications on `/profile/me` and sent themselves a real DM from a
+  second account, but no push arrived. Debugged directly against the live
+  DB (Node + `pg`, manual `.env.local` parsing — no `psql`): confirmed the
+  push subscription row existed and `push_webhook_config` was populated
+  correctly, but the `notifications` table was completely empty even
+  though the DM row itself was inserted.
+- **Root cause**: the Chunk 1 event-wiring work added `perform _notify(...)`
+  calls *inside the bodies* of 9 pre-existing functions across 6 already
+  applied migration files (`chat_send_message` in `0041`,
+  `create_trade_offer`/`respond_to_public_offer`/`reject_trade_offer` in
+  `0014`, `accept_trade_offer` in `0030`, `_declare_attack_core` in `0045`,
+  `_award_xp`/`_finalize_battle_base_0025` in `0047`, and
+  `_diplomacy_propose_peace_core` in `0050`). Editing an *old, already-run*
+  migration file's function body is safe for **git** (the file is the
+  correct source of truth going forward, e.g. for a fresh DB) but does
+  **nothing to an already-provisioned live database**, since migrations in
+  this project are applied once, manually, and are never automatically
+  re-run. Only the brand-new `0056_notifications.sql`/`0057_...sql` files
+  had actually been applied live — none of the 9 edited functions had
+  their live definitions updated, so **zero notifications of any of the 9
+  wired types were ever actually created in production**, even though the
+  git-tracked SQL was correct all along.
+- **Fixed** by extracting the exact `create or replace function ... $$;`
+  block for each of the 9 functions straight from their respective
+  migration files and re-applying just those 9 statements live inside a
+  single transaction (verified via `pg_get_functiondef` before/after that
+  each function now contains the `_notify(` call). No git changes were
+  needed — the repository was already correct; this was purely a
+  live-database deployment gap.
+- **Retested**: user sent a real DM between two accounts — notification
+  row was created and a real push notification was delivered and
+  deep-linked correctly. Notifications module confirmed fully working
+  end-to-end in production.
+- **Process lesson for all future "edit an existing function body in an
+  old migration file" changes**: after editing, always check
+  `pg_get_functiondef` (or equivalent) against the *live* database to
+  confirm the edited function actually differs from what's live — editing
+  the file alone is not sufficient, and there is no automatic migration
+  runner in this project that would catch the gap. Consider this a
+  standing verification step for any future migration work that modifies
+  (rather than adds) a function.
+
 ## Latest update — 2026-08-20x (notifications module: all 5 chunks complete)
 
 - **The full notifications module (Chunks 1-5) is now implemented and
