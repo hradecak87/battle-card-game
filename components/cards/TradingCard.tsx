@@ -27,12 +27,13 @@ const RANK_LABELS: Record<Rank, string> = {
  * Rank frame theme (spec: user-requested classic TCG rarity colors):
  * common=gray, uncommon=green, rare=blue, epic=purple, legend=gold.
  *
- * `fadeColor` drives a subtle inset glow (~14px deep) that fades the rank
- * color inward from the border toward the card center, so the rarity
- * frame doesn't feel like a flat hard-edged outline. `glow` is the
- * existing outer glow (legend only) — both are combined into a single
- * `box-shadow` inline style on the card root, since Tailwind's arbitrary
- * `shadow-[...]` class can't reliably express two independent shadows.
+ * `fadeColor` drives a strong inset glow (~15-17px deep, incl. 2px spread)
+ * that fades the rank color inward from the border toward the card
+ * center, so the rarity frame doesn't feel like a flat hard-edged
+ * outline. `glow` is the existing outer glow (legend only) — both are
+ * combined into a single `box-shadow` inline style on the card root,
+ * since Tailwind's arbitrary `shadow-[...]` class can't reliably express
+ * two independent shadows.
  */
 const RANK_FRAME: Record<
   Rank,
@@ -49,35 +50,35 @@ const RANK_FRAME: Record<
     badgeBg: 'bg-zinc-400',
     badgeText: 'text-zinc-900',
     glow: '',
-    fadeColor: 'rgba(161,161,170,0.35)',
+    fadeColor: 'rgba(161,161,170,0.85)',
   },
   uncommon: {
     border: 'border-green-500',
     badgeBg: 'bg-green-500',
     badgeText: 'text-green-50',
     glow: '',
-    fadeColor: 'rgba(34,197,94,0.35)',
+    fadeColor: 'rgba(34,197,94,0.85)',
   },
   rare: {
     border: 'border-blue-500',
     badgeBg: 'bg-blue-500',
     badgeText: 'text-blue-50',
     glow: '',
-    fadeColor: 'rgba(59,130,246,0.35)',
+    fadeColor: 'rgba(59,130,246,0.85)',
   },
   epic: {
     border: 'border-purple-500',
     badgeBg: 'bg-purple-500',
     badgeText: 'text-purple-50',
     glow: '',
-    fadeColor: 'rgba(168,85,247,0.35)',
+    fadeColor: 'rgba(168,85,247,0.85)',
   },
   legend: {
     border: 'border-yellow-400',
     badgeBg: 'bg-yellow-400',
     badgeText: 'text-yellow-950',
     glow: '0 0 16px rgba(250,204,21,0.45)',
-    fadeColor: 'rgba(250,204,21,0.4)',
+    fadeColor: 'rgba(250,204,21,0.9)',
   },
 }
 
@@ -110,7 +111,7 @@ export function TradingCard({
     <div
       className={`[container-type:inline-size] aspect-[5/7] w-full rounded-xl border-[5px] ${frame.border} bg-zinc-900 flex flex-col overflow-hidden`}
       style={{
-        boxShadow: [`inset 0 0 14px 0 ${frame.fadeColor}`, frame.glow]
+        boxShadow: [`inset 0 0 15px 2px ${frame.fadeColor}`, frame.glow]
           .filter(Boolean)
           .join(', '),
       }}
