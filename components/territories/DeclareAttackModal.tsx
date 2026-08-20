@@ -305,7 +305,7 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold">
-            Vyhlásit útok — území ({territory.x}, {territory.y})
+            {isEmptyTarget ? 'Obsadit území' : 'Vyhlásit útok'} — území ({territory.x}, {territory.y})
           </h2>
           <button
             type="button"
@@ -319,7 +319,9 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
 
         {success ? (
           <p className="text-sm text-emerald-400">
-            Útok vyslán! Vojska dorazí na cíl po uplynutí doby přesunu, poté začne bitva.
+            {isEmptyTarget
+              ? 'Vojska vyslána! Po příjezdu začnou území pokojně obsazovat.'
+              : 'Útok vyslán! Vojska dorazí na cíl po uplynutí doby přesunu, poté začne bitva.'}
           </p>
         ) : reachable === false ? (
           <p data-testid="declare-attack-unreachable" className="text-sm text-amber-400">
@@ -529,9 +531,15 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
               type="button"
               disabled={submitting || totalSelectedCount === 0}
               onClick={handleSubmit}
-              className="rounded bg-red-700 px-3 py-2 font-semibold text-white disabled:opacity-50"
+              className={`rounded px-3 py-2 font-semibold text-white disabled:opacity-50 ${isEmptyTarget ? 'bg-emerald-700' : 'bg-red-700'}`}
             >
-              {submitting ? 'Vyhlašuji útok…' : `Zaútočit (${totalSelectedCount} vojsk)`}
+              {submitting
+                ? isEmptyTarget
+                  ? 'Vysílám vojsko…'
+                  : 'Vyhlašuji útok…'
+                : isEmptyTarget
+                  ? `Obsadit (${totalSelectedCount} vojsk)`
+                  : `Zaútočit (${totalSelectedCount} vojsk)`}
             </button>
             <CardZoomOverlay card={zoomedCard} onClose={closeZoom} />
           </div>
