@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
@@ -70,7 +70,7 @@ function getInitialCenter(searchParams: ReturnType<typeof useSearchParams>, key:
   return parsed
 }
 
-export default function MapPage() {
+function MapPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, player } = useSession()
@@ -536,5 +536,19 @@ export default function MapPage() {
         )}
       </div>
     </main>
+  )
+}
+
+export default function MapPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen p-6 sm:p-10">
+          <p className="text-sm text-zinc-400">Načítám mapu…</p>
+        </main>
+      }
+    >
+      <MapPageContent />
+    </Suspense>
   )
 }
