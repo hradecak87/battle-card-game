@@ -82,7 +82,7 @@ export function ChatWidget() {
       {isOpen && (
         <div
           data-testid="chat-widget-panel"
-          className="fixed inset-0 z-50 flex flex-col bg-zinc-950 p-4 md:bottom-4 md:right-4 md:left-auto md:top-auto md:h-[36rem] md:w-[26rem] md:rounded-2xl md:border md:border-zinc-800 md:bg-zinc-950/95"
+          className="fixed inset-0 z-50 flex flex-col bg-zinc-950 p-4 md:bottom-4 md:right-4 md:left-auto md:top-auto md:h-[38rem] md:w-[42rem] md:rounded-2xl md:border md:border-zinc-800 md:bg-zinc-950/95"
         >
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="hidden md:flex items-center gap-2">
@@ -115,7 +115,7 @@ export function ChatWidget() {
           ) : activeTab === 'global' ? (
             <GlobalChatPanel currentPlayerId={user.id} />
           ) : (
-            <div className="grid min-h-0 flex-1 gap-4 md:grid-cols-[16rem_minmax(0,1fr)]">
+            <div className="grid min-h-0 flex-1 gap-4 md:grid-cols-[13rem_minmax(0,1fr)]">
               <div className={`${mobileDetailOpen ? 'hidden md:block' : 'block'}`}>
                 <label className="mb-2 block text-xs text-zinc-400">
                   Nová zpráva
