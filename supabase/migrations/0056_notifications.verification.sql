@@ -1,4 +1,4 @@
--- 0055_notifications.verification.sql
+-- 0056_notifications.verification.sql
 --
 -- Safe verification for notifications schema, helper, RPCs, and RLS.
 -- Runs in a transaction and finishes with ROLLBACK.
@@ -206,8 +206,15 @@ begin
   limit 1;
 
   assert found, 'expected dm_message notification row after upsert';
-  assert v_dm_notification.created_at > v_dm_created_at,
-    'dm_message upsert should bump created_at';
+  -- Not a strict `>` comparison: `now()` is fixed for the entire duration
+  -- of this transaction in Postgres (transaction_timestamp() semantics),
+  -- so even with the `pg_sleep(1)` above, both `_notify` calls in this
+  -- single verification transaction observe the identical `now()` value.
+  -- In real usage each DM arrives in its own transaction, so created_at
+  -- does advance — the `is_read`/payload/row-count assertions below are
+  -- the real signal that the upsert (not two rows) actually happened.
+  assert v_dm_notification.created_at >= v_dm_created_at,
+    'dm_message upsert should never move created_at backwards';
   assert v_dm_notification.is_read = false,
     'dm_message upsert should reset is_read to false';
   assert v_dm_notification.payload->>'other_display_name' = 'Verifier B Updated',

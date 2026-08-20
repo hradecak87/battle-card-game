@@ -14,6 +14,58 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-20y (notifications module merged into main; Database Webhooks platform bug worked around)
+
+- **`feature/notifications-module` merged into `main`** (`--no-ff`). The
+  merge itself brought in the **original, un-renumbered** Chunk 1 migration
+  (`0055_notifications.sql`/`.verification.sql`) instead of the intended
+  `0056_notifications.*` — the earlier rename had only ever been done as an
+  uncommitted on-disk change in the worktree, so it was invisible to `git
+  merge` (which only sees committed history). This produced a real
+  filename collision with `main`'s own `0055_claim_info.sql`. **Fixed
+  directly on `main`** via `git mv` to `0056_notifications.sql`/
+  `.verification.sql` (no live-DB impact — the correct SQL content had
+  already been applied to production earlier under the renamed path
+  regardless of what the committed filename said), plus re-applying the
+  `now()`-per-transaction assertion fix to the verification script (it
+  also hadn't survived into the commit). **Lesson reinforced**: after any
+  `Rename-Item`, always confirm with `git status`/`git add` that the
+  rename is actually staged before assuming it's part of a later commit —
+  a worktree's uncommitted changes are invisible to a merge run from a
+  different working directory.
+- Also discovered `web-push` (added in Chunk 4) was present in `main`'s
+  merged `package.json`/`package-lock.json` but not yet installed in
+  `main`'s `node_modules` — fixed with a plain `npm install`.
+- Post-merge-and-fix verification on `main`: `tsc --noEmit` clean, full
+  suite 88 suites / 575-576 tests passing (only the same pre-existing
+  flaky `app/catalog/page.test.tsx` timing test, confirmed passing in
+  isolation — not a regression).
+- **Supabase Database Webhooks is unusable on this project** due to a
+  confirmed, currently-unfixed Supabase platform bug (missing
+  `supabase_functions` schema, github.com/supabase/supabase/issues/48870 —
+  official workaround is a support ticket; enabling `pg_net` via the
+  Extensions page does *not* fix it, since that's a different schema).
+  **Worked around** with a hand-written trigger
+  (`supabase/migrations/0057_push_webhook_trigger.sql` +
+  `.verification.sql`): a new `push_webhook_config` singleton table (left
+  empty in the migration; the real URL/secret were inserted live via a
+  throwaway, never-committed Node script) and a `_notify_push_webhook()`
+  trigger function calling `net.http_post(...)` directly, bypassing the
+  broken `supabase_functions` wrapper entirely. Applied and verified live.
+  **This is a reusable pattern for any future DB-triggered webhook** in
+  this project, since the platform bug is unlikely to be fixed soon.
+- Vercel production+preview env vars confirmed set by the user:
+  `PUSH_WEBHOOK_SECRET`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_SUBJECT`,
+  `VAPID_PRIVATE_KEY`, `VAPID_PUBLIC_KEY`. **Still need to confirm**
+  `VAPID_SUBJECT` was changed from the placeholder `mailto:admin@example.com`
+  to a real contact address.
+- **Next step**: push `main` to origin (Vercel auto-deploys on push to the
+  connected branch), then do the manual smoke test (enable push
+  notifications via the opt-in button on `/profile/me` on a real
+  Android/Chrome device, trigger a notification, confirm the system push
+  appears and deep-links correctly), then remove the
+  `.worktrees/notifications-module` worktree and delete the branch.
+
 ## Latest update — 2026-08-20x (notifications module: all 5 chunks complete)
 
 - **The full notifications module (Chunks 1-5) is now implemented and
