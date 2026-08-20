@@ -222,17 +222,26 @@ function getStructureIconSize(viewSize: number, cellPx: number | null) {
 // exactly 1px, full-opacity zinc-800) regardless of zoom. At the most
 // zoomed-out level (49x49 tiles, tiny cells) that reads as a comparatively
 // thick, distracting grid; at the most zoomed-in level (5x5, large cells)
-// it's barely noticeable and fine as-is. A first attempt scaled the
-// border-*width* down toward 0.5px, but browsers commonly snap/round
-// sub-1px border widths back up to a full device pixel, so it rendered
-// identically to before. Fading the border *color's opacity* instead is
-// reliable — alpha blending isn't snapped to device pixels — so the line
-// gets visually fainter (not necessarily narrower) as cells shrink.
+// it's barely noticeable and fine as-is. Two bugs found and fixed here:
+// 1) A first attempt scaled the border-*width* down toward 0.5px, but
+//    browsers commonly snap/round sub-1px border widths back up to a full
+//    device pixel, so it visually rendered identically to a plain 1px.
+// 2) Each tile drew a border on ALL FOUR sides, so every internal seam
+//    between two tiles was actually two overlapping/adjacent hairlines
+//    (one from each tile), not one — this is what made the grid look
+//    randomly 1-2px thick from spot to spot (subpixel rounding differs
+//    tile to tile). Fixed by having each tile draw only its right+bottom
+//    border, with a matching left+top border added once on the outer grid
+//    container — every internal seam is now drawn by exactly one element.
+// Color is faded via alpha (not lightened/changed hue) so it reads as the
+// same black line at every zoom level, just fainter when zoomed out; alpha
+// isn't snapped to device pixels the way border-width is, so this reliably
+// changes what's rendered.
 function getGridBorderAlpha(viewSize: number, cellPx: number | null) {
   if (cellPx && cellPx > 0) {
-    return Math.max(0.2, Math.min(0.95, cellPx / 30))
+    return Math.max(0.35, Math.min(1, cellPx / 24))
   }
-  return Math.max(0.2, Math.min(0.95, 1.1 - viewSize * 0.017))
+  return Math.max(0.35, Math.min(1, 1.25 - viewSize * 0.018))
 }
 
 /**
@@ -364,7 +373,7 @@ export default function MapViewport({
 
   const iconStyle = { fontSize: getIconFontSize(viewSize, cellPx) }
   const structureIconBaseSize = getStructureIconSize(viewSize, cellPx)
-  const gridBorderStyle = { borderColor: `rgba(39, 39, 42, ${getGridBorderAlpha(viewSize, cellPx)})` }
+  const gridBorderStyle = { borderColor: `rgba(0, 0, 0, ${getGridBorderAlpha(viewSize, cellPx)})` }
   const visualDragOffset = dragOffset
     ? {
         x: clampVisualDragOffset(dragOffset.x, cellPx),
@@ -466,11 +475,12 @@ export default function MapViewport({
       >
         <div
           data-testid="map-grid"
-          className="grid w-full select-none cursor-grab active:cursor-grabbing overflow-visible"
+          className="grid w-full select-none cursor-grab active:cursor-grabbing overflow-visible border-l border-t"
           style={{
             gridTemplateColumns: `repeat(${viewSize}, minmax(0, 1fr))`,
             transform: visualDragOffset ? `translate(${visualDragOffset.x}px,${visualDragOffset.y}px)` : undefined,
             transition: visualDragOffset ? 'none' : 'transform 0.1s ease-out',
+            ...gridBorderStyle,
           }}
         >
           {Array.from({ length: viewSize }).map((_, row) =>
@@ -614,7 +624,7 @@ export default function MapViewport({
                 data-owned-by-me={isOwnedByMe ? 'true' : 'false'}
                 data-under-attack={isUnderAttack ? 'true' : 'false'}
                 style={gridBorderStyle}
-                className={`relative terrain-tile aspect-square min-w-0 min-h-0 border flex flex-col items-center justify-center gap-0.5 overflow-visible ${terrainClass}`}
+                className={`relative terrain-tile aspect-square min-w-0 min-h-0 border-r border-b flex flex-col items-center justify-center gap-0.5 overflow-visible ${terrainClass}`}
               >
                 {tileHighlight &&
                   perimeterEdges.map((edge) => (
