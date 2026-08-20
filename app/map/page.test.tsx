@@ -2,8 +2,10 @@ import { act, render, screen, waitFor, fireEvent, within } from '@testing-librar
 import MapPage from './page'
 
 const routerPush = jest.fn()
+let searchParams = new URLSearchParams()
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: routerPush }),
+  useSearchParams: () => searchParams,
 }))
 
 const mockTerritory = (x: number, y: number, overrides: Partial<Record<string, unknown>> = {}) => ({
@@ -90,6 +92,7 @@ jest.mock('@/components/territories/MyMovementsPanel', () => ({
 
 describe('MapPage', () => {
   beforeEach(() => {
+    searchParams = new URLSearchParams()
     routerPush.mockReset()
     getViewport.mockReset()
     getViewport.mockResolvedValue({
@@ -141,6 +144,14 @@ describe('MapPage', () => {
 
     await waitFor(() => expect(getMyHomeTerritory).toHaveBeenCalled())
     await waitFor(() => expect(getViewport).toHaveBeenCalledWith(3, 13, 17, 27))
+  })
+
+  it('uses ?x=&y= query params as the initial center when they are valid', async () => {
+    searchParams = new URLSearchParams('x=100&y=50')
+    render(<MapPage />)
+
+    await waitFor(() => expect(screen.getByTestId('map-viewport')).toBeInTheDocument())
+    expect(getViewport).toHaveBeenCalledWith(93, 43, 107, 57)
   })
 
   it('updates the requested window when the coordinate-jump form is submitted', async () => {

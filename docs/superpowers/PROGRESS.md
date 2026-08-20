@@ -14,6 +14,42 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-20f (world activity feed /world + live world_events log)
+
+Implemented backlog #13 end-to-end: a new public `/world` page with four
+stacked sections (attacks in transit, claims in progress, active battles,
+and a paginated recent-events feed), backed by a new append-only
+`world_events` table and live event logging in the existing action SQL
+write paths.
+
+- Added and applied live:
+  - `supabase/migrations/0034_world_events.sql`
+  - `supabase/migrations/0035_wire_world_events.sql`
+  - `supabase/migrations/0036_world_read_rpcs.sql`
+- Each migration has a matching `.verification.sql` smoke test; all three
+  were run live inside rolled-back transactions both during implementation
+  and again in the final verification pass.
+- Logged world events now cover: attack declared/recalled, territory
+  claimed/abandoned, battle won/surrendered, king relocation, level-up,
+  and new-player signup.
+- Added public authenticated RPCs:
+  `world_list_attacks_in_transit()`,
+  `world_list_claims_in_progress()`,
+  `world_list_active_battles()`,
+  `world_list_events(page, pageSize)` (server-clamped to the newest 50).
+- Added `lib/world/api.ts` wrappers, four presentational world-feed
+  components under `components/world/`, and `app/world/page.tsx` with 30s
+  polling for the live sections plus page-based feed fetching.
+- `MainNav` now links to `/world` for every logged-in player.
+- `app/map/page.tsx` now supports initial `?x=&y=` deep-links, wrapped in
+  `Suspense` so the page still passes Next.js production build checks.
+- Final verification in the worktree:
+  - `npx jest --runInBand --silent` → 64/64 suites, 458/458 tests
+  - `npx tsc --noEmit` → clean
+  - `npm run build` → succeeds when the worktree shell loads the same
+    gitignored Supabase env vars as the main worktree (`.env.local` lives
+    only at the repo root, so the bare worktree itself does not inherit it)
+
 ## Latest update — 2026-08-20e (deck limit raised: 80+10/level -> 100+20/level)
 
 User requested a higher base card-limit formula. `_deck_limit(level)` (SQL)
