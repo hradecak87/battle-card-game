@@ -14,6 +14,80 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-20t (one-off live data cleanup: 254 over-cap wild garrisons trimmed back to target size)
+
+- **Found while spot-checking 0053/0054**: user asked to check more villages
+  after territory (4,167) was manually trimmed — found **254 wild/NPC tiles**
+  (owner_id null) with garrisons larger than their difficulty's target size
+  (1054 excess cards at difficulty 1, 552 at difficulty 2, 125 at difficulty
+  3, 30 at difficulty 4 — 1761 total).
+- **Root cause is NOT the 0053/0054 battle-loss-growth bug** (that only
+  just shipped) — it's a pre-existing leftover from the map re-clustering
+  (2026-08-20k) + `scripts/backfill-npc-garrisons.ts`'s deliberate
+  non-shrinking design (documented 2026-08-20p): it re-rolled garrison
+  *ranks* to match the new post-clustering difficulty but never removed
+  excess cards from tiles whose difficulty dropped, to avoid a
+  `battle_rounds` FK violation.
+- **One-off cleanup**: ran an ad-hoc `do $$ ... $$` block directly against
+  the live DB (not a migration — pure data fix, no schema/function change)
+  that, per over-cap tile, kept the top `_npc_garrison_target_size()` cards
+  by `_army_power()` and discarded the rest — common/uncommon via the
+  existing `_return_card()` helper, rare/epic/legend via a direct
+  delete-with-FK-violation-fallback (since `_return_card` requires an owner
+  to log rare+ returns, and wild garrison cards have none).
+- Verified live: 254 → 0 tiles over cap; every difficulty tier's wild tiles
+  now average exactly their target size (1→3, 2→7, 3→11, 4→15, 5→20); 28
+  rare-ranked cards were among the discarded excess (all beyond each tile's
+  strongest-N cutoff).
+
+## Latest update — 2026-08-20s (wild garrison growth capped — follow-up to 0053)
+
+- **Problem spotted by user right after 0053 shipped**: letting a captured
+  attacker card join a wild garrison (0053's fix) meant every failed attack
+  on an unclaimed village/castle added one more card to it — with no cap, a
+  popular attack target could snowball into an effectively unbeatable army.
+- **Fix**: wild garrisons are now capped at the same designed size used at
+  world-gen time per tile difficulty (3/7/11/15/20 for difficulty 1-5, new
+  SQL helper `_npc_garrison_target_size()` mirrors
+  `NPC_GARRISON_SIZES` in `scripts/generate-world.ts` — keep both in sync).
+  Below the cap, a captured card simply joins as before. At/above the cap,
+  it only joins if it's stronger (via the existing `_army_power()` helper)
+  than the weakest existing garrison card, which is then discarded to make
+  room; otherwise the captured card itself is discarded (via `_return_card`,
+  or a direct delete-with-FK-fallback for the ownerless garrison card being
+  displaced, since `_return_card` requires an owner to log rare+ returns).
+  Net effect: the garrison can "harden" toward tougher cards over time but
+  its headcount never grows past its intended difficulty-scaled size.
+- Updated `_resolve_round` (source of truth: `0047_wall_structure_card.sql`)
+  and added `_npc_garrison_target_size()`. New migration
+  `0054_cap_wild_garrison_growth.sql` applied live; verified the live
+  function body now references the cap helper.
+- Full suite: 77/77 suites, 534/534 tests pass; `tsc --noEmit` clean.
+
+## Latest update — 2026-08-20r (bugfix: "player <NULL> not found" when attacking a wild/NPC village)
+
+- **Bug**: attacking an unclaimed/wild village or castle (owner_id null,
+  garrisoned by unowned NPC cards) could crash mid-battle with
+  `player <NULL> not found`.
+- **Root cause**: `_resolve_round()` always ended each round by calling
+  `_deposit_or_grant_card(v_winner_owner, v_loser_card)` to hand the loser's
+  card to the round winner. When the wild garrison's card won a round,
+  `v_winner_owner` was `null` (garrison cards have no player owner), so this
+  called `_deposit_or_grant_card(null, ...)`, which raises `'player % not
+  found'` (a null id can never match a `players` row, and `%` prints as
+  `<NULL>`).
+- **Fix**: `_resolve_round()` now only calls `_deposit_or_grant_card` when
+  the winner has a real owner; otherwise the captured (losing) card simply
+  joins the wild garrison at that territory (`owner_id = null`,
+  `stationed_territory_id = <battle territory>`), matching the "cards
+  change hands" design without requiring a player row.
+- Source of truth updated in `supabase/migrations/0047_wall_structure_card.sql`
+  (the file that currently defines `_resolve_round`); new migration
+  `0053_fix_resolve_round_wild_winner_null_owner.sql` redefines the function
+  with the fix and was applied directly to the live DB. Verified live
+  (`_resolve_round`'s function body now contains the guard).
+- Full suite: 77/77 suites, 534/534 tests pass; `tsc --noEmit` clean.
+
 ## Latest update — 2026-08-20q (Two live bugs fixed: admin card grant unstationed, NPC-battle-breaking function overload ambiguity)
 
 - **admin_grant_card home-territory default**: admin dashboard's card-grant

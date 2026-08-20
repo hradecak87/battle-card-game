@@ -480,6 +480,25 @@ begin
 end;
 $$;
 
+-- Wild/NPC garrison size cap per tile difficulty (must stay in sync with
+-- NPC_GARRISON_SIZES in scripts/generate-world.ts). Used by _resolve_round to
+-- stop a wild village/castle from growing stronger than intended when it
+-- repeatedly wins rounds and captures attacker cards.
+create or replace function _npc_garrison_target_size(p_difficulty smallint)
+returns integer
+language sql
+immutable
+as $$
+  select case p_difficulty
+    when 1 then 3
+    when 2 then 7
+    when 3 then 11
+    when 4 then 15
+    when 5 then 20
+    else 3
+  end;
+$$;
+
 create or replace function _resolve_round(
   p_battle_id uuid,
   p_attacker_card uuid,
@@ -505,6 +524,10 @@ declare
   v_winner_card uuid; v_loser_card uuid; v_winner_owner uuid;
   v_flavor_text text;
   v_resting_until integer;
+  v_territory_difficulty smallint;
+  v_garrison_target_size integer;
+  v_garrison_count integer;
+  v_weakest_garrison_card uuid;
 begin
   select * into v_battle from battles where id = p_battle_id for update;
   v_next_round := v_battle.current_round + 1;
@@ -573,7 +596,74 @@ begin
   end if;
 
   select owner_id into v_winner_owner from card_instances where instance_id = v_winner_card;
-  perform _deposit_or_grant_card(v_winner_owner, v_loser_card);
+  if v_winner_owner is not null then
+    perform _deposit_or_grant_card(v_winner_owner, v_loser_card);
+  else
+    -- Winner is an unowned wild/NPC garrison card (owner_id is null): the captured
+    -- card has no player to deposit to. Cap the wild garrison at its designed
+    -- size for this tile's difficulty so it can never grow stronger than
+    -- intended by repeatedly defeating attackers (a village must not become
+    -- effectively unbeatable over time). Below the cap, the captured card
+    -- simply joins the garrison. At/above the cap, it only joins if it beats
+    -- the weakest existing garrison card (which is then discarded);
+    -- otherwise the captured card itself is discarded.
+    select difficulty into v_territory_difficulty
+    from territories where id = v_battle.territory_id;
+
+    v_garrison_target_size := _npc_garrison_target_size(v_territory_difficulty);
+
+    select count(*) into v_garrison_count
+    from card_instances ci
+    join card_templates ct on ct.id = ci.template_id
+    where ci.stationed_territory_id = v_battle.territory_id
+      and ci.owner_id is null
+      and ct.category = 'unit';
+
+    if v_garrison_count < v_garrison_target_size then
+      update card_instances
+      set owner_id = null,
+          stationed_territory_id = v_battle.territory_id,
+          status = 'stationed',
+          deposit_expires_at = null
+      where instance_id = v_loser_card;
+    else
+      select ci.instance_id into v_weakest_garrison_card
+      from card_instances ci
+      join card_templates ct on ct.id = ci.template_id
+      where ci.stationed_territory_id = v_battle.territory_id
+        and ci.owner_id is null
+        and ct.category = 'unit'
+        and ci.instance_id <> v_winner_card
+      order by _army_power(array[ci.instance_id]) asc
+      limit 1;
+
+      if v_weakest_garrison_card is not null
+         and _army_power(array[v_loser_card]) > _army_power(array[v_weakest_garrison_card]) then
+        begin
+          delete from card_instances where instance_id = v_weakest_garrison_card;
+        exception
+          when foreign_key_violation then
+            -- referenced by historical battle_rounds/battle_unit_rest rows; can't
+            -- hard-delete, so just orphan it (no owner, no station) instead.
+            update card_instances
+            set owner_id = null,
+                stationed_territory_id = null,
+                status = 'stationed',
+                deposit_expires_at = null
+            where instance_id = v_weakest_garrison_card;
+        end;
+
+        update card_instances
+        set owner_id = null,
+            stationed_territory_id = v_battle.territory_id,
+            status = 'stationed',
+            deposit_expires_at = null
+        where instance_id = v_loser_card;
+      else
+        perform _return_card(v_loser_card, 'wild_garrison_full');
+      end if;
+    end if;
+  end if;
 
   update battle_rounds
   set defender_card_instance_id = p_defender_card,
