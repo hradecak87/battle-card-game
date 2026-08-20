@@ -310,41 +310,83 @@ export default function MyCollectionPage() {
           <ul className="grid grid-cols-3 gap-2 sm:gap-4 sm:grid-cols-[repeat(auto-fill,minmax(170px,1fr))]">
             {depositCards.map((card) => {
               const template = card.card_templates!
-              if (
-                template.category !== 'unit' ||
-                !template.base_stats ||
-                !template.unit_type ||
-                !template.name ||
-                template.flavor_text == null
-              ) {
-                return null
-              }
-
-              const zoomTemplate = {
-                id: template.id,
-                category: 'unit' as const,
-                unitType: template.unit_type as UnitType,
-                rank: template.rank as Rank,
-                name: template.name,
-                flavorText: template.flavor_text,
-                baseStats: template.base_stats,
-                totalSupply: template.total_supply,
-              }
-              const stats = applyRank(template.base_stats, template.rank as Rank)
+              const isUnitCard =
+                template.category === 'unit' &&
+                template.base_stats &&
+                template.unit_type &&
+                template.name &&
+                template.flavor_text != null
+              const boostTemplate: BoostCardTemplate | null =
+                template.category === 'boost'
+                  ? {
+                      id: template.id,
+                      category: 'boost',
+                      rank: template.rank as Rank,
+                      name: template.name ?? card.template_id,
+                      flavorText: template.flavor_text ?? '',
+                      boostType: template.boost_type!,
+                      effectKind: template.effect_kind!,
+                      instantEffectKind: template.instant_effect_kind ?? null,
+                      pctStr: template.pct_str ?? null,
+                      pctLng: template.pct_lng ?? null,
+                      pctDef: template.pct_def ?? null,
+                      pctHp: template.pct_hp ?? null,
+                      totalSupply: template.total_supply,
+                    }
+                  : null
 
               return (
                 <li key={card.instance_id} className="flex flex-col gap-2">
-                  <button
-                    type="button"
-                    aria-label={`Zvětšit kartu ${template.name}`}
-                    onClick={() => openZoom(zoomTemplate, stats)}
-                    className="group relative block w-full cursor-pointer rounded-xl text-left transition hover:scale-[1.02]"
-                  >
-                    <TradingCard template={zoomTemplate} stats={stats} />
-                    <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/65 px-2 py-1 text-[10px] text-white shadow-sm">
-                      🔍
-                    </span>
-                  </button>
+                  {isUnitCard ? (
+                    <button
+                      type="button"
+                      aria-label={`Zvětšit kartu ${template.name}`}
+                      onClick={() =>
+                        openZoom(
+                          {
+                            id: template.id,
+                            category: 'unit' as const,
+                            unitType: template.unit_type as UnitType,
+                            rank: template.rank as Rank,
+                            name: template.name!,
+                            flavorText: template.flavor_text!,
+                            baseStats: template.base_stats!,
+                            totalSupply: template.total_supply,
+                          },
+                          applyRank(template.base_stats!, template.rank as Rank)
+                        )
+                      }
+                      className="group relative block w-full cursor-pointer rounded-xl text-left transition hover:scale-[1.02]"
+                    >
+                      <TradingCard
+                        template={{
+                          id: template.id,
+                          category: 'unit',
+                          unitType: template.unit_type as UnitType,
+                          rank: template.rank as Rank,
+                          name: template.name!,
+                          flavorText: template.flavor_text!,
+                          baseStats: template.base_stats!,
+                          totalSupply: template.total_supply,
+                        }}
+                        stats={applyRank(template.base_stats!, template.rank as Rank)}
+                      />
+                      <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/65 px-2 py-1 text-[10px] text-white shadow-sm">
+                        🔍
+                      </span>
+                    </button>
+                  ) : boostTemplate ? (
+                    <>
+                      <VisibleBoostCardTile template={boostTemplate} />
+                      <p className="text-center text-[11px] text-zinc-400">{boostEffectSummary(boostTemplate)}</p>
+                    </>
+                  ) : (
+                    <div className="rounded-2xl border border-zinc-700 bg-zinc-900/70 p-4 text-center">
+                      <p className="text-xs uppercase tracking-wide text-zinc-400">{template.category}</p>
+                      <p className="mt-2 font-semibold text-zinc-100">{template.name ?? card.template_id}</p>
+                      <p className="text-xs text-zinc-400">{template.rank}</p>
+                    </div>
+                  )}
                   <p data-testid="card-location" className="text-center text-[11px] text-zinc-500">
                     {locationLabel(card)}
                   </p>

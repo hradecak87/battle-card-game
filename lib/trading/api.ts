@@ -15,7 +15,7 @@ export interface TradeSelectableCard {
   template_id: string
   owner_id: string | null
   stationed_territory_id: number | null
-  status: 'stationed' | 'in_transit'
+  status: 'stationed' | 'in_transit' | 'deposit'
   template_category: 'unit' | 'boost'
   template_name: string
   template_rank: Rank

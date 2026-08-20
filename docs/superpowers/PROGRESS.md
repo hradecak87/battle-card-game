@@ -2653,3 +2653,61 @@ Verification in this worktree:
 - Final `npx jest 2>&1 | Select-String "Tests:"`: **287 passed, 287 total**
 - `npx tsc --noEmit` ✅
 - `npm run build` ✅ with temporary placeholder `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`; build still emits the pre-existing upstream Supabase Node 20 deprecation warnings, but succeeds.
+
+## Latest update — 2026-08-20 (card limit + overflow deposit, applied live in 0029-0031)
+
+Implemented the full card-limit/deposit feature from the 2026-08-20 plan/spec,
+including one live follow-up safety migration discovered during review.
+
+- New migrations, all **applied directly to the live Supabase project** and
+  re-verified there:
+  - `supabase/migrations/0029_card_limit_deposit.sql`
+  - `supabase/migrations/0029_card_limit_deposit.verification.sql`
+  - `supabase/migrations/0030_wire_card_limit.sql`
+  - `supabase/migrations/0030_wire_card_limit.verification.sql`
+  - `supabase/migrations/0031_card_return_safety.sql`
+  - `supabase/migrations/0031_card_return_safety.verification.sql`
+- SQL/backend:
+  - Added `_level_for_xp`, `_deck_limit`, `_deposit_limit`, `_expire_deposit`,
+    `_deposit_or_grant_card`, `return_card_to_pool`,
+    `withdraw_from_deposit`, `get_my_player_profile`, and
+    `get_my_card_instances`.
+  - Added `card_instances.deposit_expires_at` plus the new
+    `card_return_log` table.
+  - Rewired the **current latest live** ownership-changing functions/grant
+    paths through the shared helper (`_complete_kingdom_onboarding_core`,
+    `claim_daily_reward`, `_award_xp`, `_trigger_instant_boost_if_needed`,
+    `_finalize_battle_base_0025`, `_finalize_battle`, `_resolve_round`,
+    `accept_trade_offer`).
+  - Follow-up `0031` fixes a real coupling issue found in review/testing:
+    returned/overflowed cards that already had battle or movement history can
+    no longer hard-fail on FK deletes; `_return_card` now falls back to an
+    ownerless off-map central-pool row when delete is no longer legal, and
+    `withdraw_from_deposit` now serializes on the owning `players` row.
+- Client/UI:
+  - Added `lib/players/cardLimit.ts` (+ tests) for display-side formulas.
+  - `lib/territories/api.ts` now uses the new deposit-aware RPCs and exposes
+    `deposit_expires_at` / `status='deposit'`.
+  - `lib/supabase/useSession.ts` now loads the player row via
+    `get_my_player_profile()` so login/profile refresh lazily expires deposit.
+  - `app/collection/page.tsx` now shows the deck counter, deposit warning,
+    dedicated deposit section with countdowns + withdraw action, return-to-pool
+    confirm flow with rank-specific copy, and deposit rendering for unit +
+    boost cards (plus a generic fallback tile for other categories).
+  - `app/exchange/page.tsx` now filters deposit cards out of trade selection
+    and stabilizes modal callbacks with `useCallback` (the new modal-opening
+    deposit test exposed a real maximum-update-depth loop in the create-offer
+    dialog).
+- Tests added/updated:
+  - `lib/players/cardLimit.test.ts`
+  - `lib/territories/api.test.ts`
+  - `app/collection/page.test.tsx`
+  - `app/exchange/page.test.tsx`
+- Final verification in this worktree:
+  - `npx jest --runInBand --silent`: **58/58 suites, 442/442 tests passing**
+  - `npx tsc --noEmit`: clean
+  - `npm run build`: clean **when `NEXT_PUBLIC_SUPABASE_URL` and
+    `NEXT_PUBLIC_SUPABASE_ANON_KEY` are set** (same pre-existing environment
+    requirement as the rest of the app; in this worktree I used placeholder
+    values because `.env.local` is gitignored and not present inside the
+    worktree).

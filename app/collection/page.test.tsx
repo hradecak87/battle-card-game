@@ -280,6 +280,30 @@ describe('MyCollectionPage', () => {
     expect(withdrawFromDeposit).toHaveBeenCalledWith('i5')
   })
 
+  it('renders boost cards inside the deposit section too', async () => {
+    const boostDepositFixture = [
+      ...fixture,
+      {
+        instance_id: 'i6',
+        template_id: 'boost-epic-2',
+        owner_id: 'u1',
+        stationed_territory_id: null,
+        status: 'deposit' as const,
+        deposit_expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        card_templates: boostTemplate({ id: 'boost-epic-2', name: 'Přepadová lest', rank: 'epic' }),
+        territories: null,
+      },
+    ]
+
+    ;(useSession as jest.Mock).mockReturnValue({ user: { id: 'u1' }, player: { id: 'u1', xp: 1250 }, loading: false })
+    getMyCardInstances.mockResolvedValue({ data: boostDepositFixture, error: null })
+
+    render(<MyCollectionPage />)
+
+    expect(await screen.findByText('Přepadová lest')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Vyzvednout z depozitu' }).length).toBeGreaterThanOrEqual(2)
+  })
+
   it('disables the withdraw button when the deck is already full', async () => {
     const fullDeckFixture = [
       ...Array.from({ length: 80 }, (_, index) => ({
