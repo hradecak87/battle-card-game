@@ -55,7 +55,42 @@ describe('MapViewport', () => {
   ] as const)('applies %s/5 terrain styling class to the tile background', (difficulty, terrainClass) => {
     renderViewport([makeTerritory({ difficulty })], 'me')
 
-    expect(screen.getByRole('button', { name: 'Území 10,10' })).toHaveClass(terrainClass)
+    const button = screen.getByRole('button', { name: 'Území 10,10' })
+    // One of 3 texture variants (base/-b/-c) for this difficulty — see
+    // DIFFICULTY_TERRAIN_VARIANTS; which one is deterministic per tile id,
+    // not fixed, so match any of the 3 rather than only the base class.
+    expect(button.className).toMatch(new RegExp(`(^|\\s)${terrainClass}(-[bc])?(\\s|$)`))
+  })
+
+  it('always picks the same terrain texture variant for the same tile id (stable across re-renders)', () => {
+    const { rerender } = render(
+      <MapViewport
+        territories={[makeTerritory({ id: 42, difficulty: 3 })]}
+        centerX={10}
+        centerY={10}
+        viewSize={3}
+        currentUserId="me"
+        onPan={jest.fn()}
+        onJump={jest.fn()}
+        onSelectTile={jest.fn()}
+      />
+    )
+    const firstClassName = screen.getByRole('button', { name: 'Území 10,10' }).className
+
+    rerender(
+      <MapViewport
+        territories={[makeTerritory({ id: 42, difficulty: 3 })]}
+        centerX={10}
+        centerY={10}
+        viewSize={3}
+        currentUserId="me"
+        onPan={jest.fn()}
+        onJump={jest.fn()}
+        onSelectTile={jest.fn()}
+      />
+    )
+
+    expect(screen.getByRole('button', { name: 'Území 10,10' }).className).toBe(firstClassName)
   })
 
   it('shows "Tvé území" when hovering a tile owned by the current user', () => {

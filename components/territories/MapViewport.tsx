@@ -12,12 +12,20 @@ import {
   WallIcon,
 } from '@/components/territories/icons/StructureIcons'
 
-const DIFFICULTY_TERRAIN_CLASS: Record<1 | 2 | 3 | 4 | 5, string> = {
-  1: 'terrain-difficulty-1',
-  2: 'terrain-difficulty-2',
-  3: 'terrain-difficulty-3',
-  4: 'terrain-difficulty-4',
-  5: 'terrain-difficulty-5',
+// Each difficulty level has 3 texture variants (base + "-b"/"-c", added
+// alongside the original terrain-N.jpg) so a large contiguous terrain
+// cluster (forest, water, etc. — see the map-level-clustering feature)
+// doesn't read as an obviously tiled, repeating single image. The variant
+// is picked deterministically from the tile's own id via `pickVariant`
+// (same helper/pattern already used for castle/village icon variants), so
+// a given tile always shows the same texture across re-renders/pans
+// instead of flickering between variants.
+const DIFFICULTY_TERRAIN_VARIANTS: Record<1 | 2 | 3 | 4 | 5, readonly string[]> = {
+  1: ['terrain-difficulty-1', 'terrain-difficulty-1-b', 'terrain-difficulty-1-c'],
+  2: ['terrain-difficulty-2', 'terrain-difficulty-2-b', 'terrain-difficulty-2-c'],
+  3: ['terrain-difficulty-3', 'terrain-difficulty-3-b', 'terrain-difficulty-3-c'],
+  4: ['terrain-difficulty-4', 'terrain-difficulty-4-b', 'terrain-difficulty-4-c'],
+  5: ['terrain-difficulty-5', 'terrain-difficulty-5-b', 'terrain-difficulty-5-c'],
 }
 
 const MAP_MIN = 0
@@ -432,7 +440,9 @@ export default function MapViewport({
             const y = y1 + row
             const isVoid = !isWithinBounds(x, y)
             const tile = byCoord.get(`${x},${y}`)
-            const terrainClass = tile ? DIFFICULTY_TERRAIN_CLASS[tile.difficulty] : 'bg-zinc-900'
+            const terrainClass = tile
+              ? pickVariant(`terrain:${tile.id}`, DIFFICULTY_TERRAIN_VARIANTS[tile.difficulty])
+              : 'bg-zinc-900'
             const isHovered = hoveredTile?.x === x && hoveredTile?.y === y
             const isOwnedByMe = Boolean(tile?.owner_id && currentUserId && tile.owner_id === currentUserId)
             const isUnderAttack = Boolean(tile?.battle_locked_by)
