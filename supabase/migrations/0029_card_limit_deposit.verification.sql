@@ -46,11 +46,11 @@ begin
   assert _level_for_xp(0) = 1, 'level 1 expected at 0 xp';
   assert _level_for_xp(4500) = 10, 'level 10 expected at 4500 xp';
   assert _level_for_xp(43500) = 30, 'level 30 expected at 43500 xp';
-  assert _deck_limit(1) = 80, 'deck limit level 1 should be 80';
-  assert _deck_limit(10) = 170, 'deck limit level 10 should be 170';
-  assert _deck_limit(30) = 370, 'deck limit level 30 should be 370';
-  assert _deposit_limit(1) = 40, 'deposit limit level 1 should be 40';
-  assert _deposit_limit(10) = 85, 'deposit limit level 10 should be 85';
+  assert _deck_limit(1) = 100, 'deck limit level 1 should be 100';
+  assert _deck_limit(10) = 280, 'deck limit level 10 should be 280';
+  assert _deck_limit(30) = 680, 'deck limit level 30 should be 680';
+  assert _deposit_limit(1) = 50, 'deposit limit level 1 should be 50';
+  assert _deposit_limit(10) = 140, 'deposit limit level 10 should be 140';
 
   select p.id, t.id
   into v_player_id, v_home_territory_id

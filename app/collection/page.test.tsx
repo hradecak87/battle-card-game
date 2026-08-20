@@ -306,7 +306,7 @@ describe('MyCollectionPage', () => {
 
   it('disables the withdraw button when the deck is already full', async () => {
     const fullDeckFixture = [
-      ...Array.from({ length: 80 }, (_, index) => ({
+      ...Array.from({ length: 100 }, (_, index) => ({
         instance_id: `full-${index}`,
         template_id: `archers-common-${index}`,
         owner_id: 'u1',

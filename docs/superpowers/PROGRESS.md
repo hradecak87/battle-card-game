@@ -14,7 +14,22 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-20e (deck limit raised: 80+10/level -> 100+20/level)
+
+User requested a higher base card-limit formula. `_deck_limit(level)` (SQL)
+and `deckLimit(level)` (TS) both changed from `80 + 10 * (level - 1)` to
+`100 + 20 * (level - 1)`. `_deposit_limit`/`depositLimit` derive from this
+automatically (half of deck limit), no separate change needed.
+
+- Added `supabase/migrations/0033_raise_deck_limit.sql`, applied live and
+  verified (`_deck_limit(1/10/30)` → 100/280/680).
+- Updated `lib/players/cardLimit.ts` + its test, `app/collection/page.test.tsx`
+  (a "deck full" fixture that hardcoded 80 stationed cards, now 100), and
+  the hardcoded assertions in `0029_card_limit_deposit.verification.sql`.
+- Full suite (58/58, 442/442) still green.
+
 ## Latest update — 2026-08-20d (bugfix: admin dashboard "structure of query does not match function result type")
+
 
 **Root cause**: `admin_list_active_battles()` and `admin_list_player_cards()`
 (from `0012_admin_dashboard.sql`) declare `territory_x`/`territory_y` as
