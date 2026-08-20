@@ -78,6 +78,22 @@ function boostTemplate(overrides: Record<string, unknown> = {}) {
   }
 }
 
+function structureTemplate(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'wall-epic-1',
+    name: 'Hradby',
+    flavor_text: '',
+    rank: 'epic',
+    category: 'wall',
+    unit_type: null,
+    base_stats: null,
+    total_supply: null,
+    defense_bonus_pct: 27,
+    attack_bonus_pct: 27,
+    ...overrides,
+  }
+}
+
 const fixture = [
   {
     instance_id: 'i1',
@@ -246,6 +262,49 @@ describe('MyCollectionPage', () => {
     expect(screen.getByText(/1\s+z\s+4 karet/)).toBeInTheDocument()
     expect(screen.getByText('Krysa')).toBeInTheDocument()
     expect(screen.queryByText('Legendární rytíři')).not.toBeInTheDocument()
+  })
+
+  it('renders wall cards with the wall artwork while castle cards keep the plain fallback tile', async () => {
+    const structureFixture = [
+      ...fixture,
+      {
+        instance_id: 'i6',
+        template_id: 'wall-epic-1',
+        owner_id: 'u1',
+        stationed_territory_id: 10,
+        status: 'stationed' as const,
+        card_templates: structureTemplate(),
+        territories: { id: 10, x: 3, y: 4, is_home: true },
+      },
+      {
+        instance_id: 'i7',
+        template_id: 'castle-common-1',
+        owner_id: 'u1',
+        stationed_territory_id: 20,
+        status: 'stationed' as const,
+        card_templates: structureTemplate({
+          id: 'castle-common-1',
+          name: 'Hrad',
+          rank: 'common',
+          category: 'castle',
+          defense_bonus_pct: 20,
+          attack_bonus_pct: 15,
+        }),
+        territories: { id: 20, x: 7, y: 1, is_home: false },
+      },
+    ]
+
+    ;(useSession as jest.Mock).mockReturnValue({ user: { id: 'u1' }, player: { id: 'u1', xp: 1250 }, loading: false })
+    getMyCardInstances.mockResolvedValue({ data: structureFixture, error: null })
+
+    render(<MyCollectionPage />)
+
+    expect(await screen.findByAltText('Hradby')).toHaveAttribute(
+      'src',
+      expect.stringContaining(encodeURIComponent('/icons/structures/wall.png'))
+    )
+    expect(screen.getByText('castle')).toBeInTheDocument()
+    expect(screen.queryByAltText('Hrad')).not.toBeInTheDocument()
   })
 
   it('shows rank-specific return confirmation copy and calls returnCardToPool', async () => {
