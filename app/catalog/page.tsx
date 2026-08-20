@@ -1,12 +1,20 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { getAllTemplates } from '@/lib/cards/catalog'
+import { getNonUnitCardTemplates } from '@/lib/cards/nonUnitTemplates'
 import { applyRank } from '@/lib/cards/combat'
-import { RANKS, Rank, UNIT_TYPES, UnitType } from '@/lib/cards/types'
+import { BoostCardTemplate, CardTemplate, RANKS, Rank, StructureCardTemplate, UNIT_TYPES, UnitType } from '@/lib/cards/types'
 import { TradingCard } from '@/components/cards/TradingCard'
 import { CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
+import { VisibleBoostCardTile } from '@/components/cards/BoostCardTile'
+import { boostEffectSummary } from '@/lib/cards/boosts'
+
+const STRUCTURE_LABELS: Record<StructureCardTemplate['category'], string> = {
+  castle: 'Hrad',
+  village: 'Vesnice',
+}
 
 const UNIT_TYPE_LABELS: Record<UnitType, string> = {
   archers: 'Lučištníci',
@@ -34,13 +42,31 @@ type RankFilter = Rank | 'all'
 export default function CollectionPage() {
   const [unitTypeFilter, setUnitTypeFilter] = useState<UnitTypeFilter>('all')
   const [rankFilter, setRankFilter] = useState<RankFilter>('all')
+  const [nonUnitTemplates, setNonUnitTemplates] = useState<(StructureCardTemplate | BoostCardTemplate)[]>([])
   const { zoomedCard, openZoom, closeZoom } = useCardZoom()
 
-  const allTemplates = useMemo(() => getAllTemplates(), [])
+  const unitTemplates = useMemo(() => getAllTemplates(), [])
+
+  useEffect(() => {
+    let cancelled = false
+    void getNonUnitCardTemplates().then((templates) => {
+      if (!cancelled) setNonUnitTemplates(templates)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const allTemplates: CardTemplate[] = useMemo(
+    () => [...unitTemplates, ...nonUnitTemplates],
+    [unitTemplates, nonUnitTemplates]
+  )
 
   const filtered = useMemo(() => {
     return allTemplates.filter((t) => {
-      if (unitTypeFilter !== 'all' && t.unitType !== unitTypeFilter) return false
+      if (unitTypeFilter !== 'all') {
+        if (t.category !== 'unit' || t.unitType !== unitTypeFilter) return false
+      }
       if (rankFilter !== 'all' && t.rank !== rankFilter) return false
       return true
     })
@@ -94,21 +120,46 @@ export default function CollectionPage() {
       </div>
 
       <ul className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(170px,1fr))]">
-        {filtered.map((t) => (
-          <li key={t.id}>
-            <button
-              type="button"
-              aria-label={`Zvětšit kartu ${t.name}`}
-              onClick={() => openZoom(t, applyRank(t.baseStats, t.rank))}
-              className="group relative block w-full cursor-pointer rounded-xl text-left transition hover:scale-[1.02]"
-            >
-              <TradingCard template={t} stats={applyRank(t.baseStats, t.rank)} />
-              <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/65 px-2 py-1 text-[10px] text-white shadow-sm">
-                🔍
-              </span>
-            </button>
-          </li>
-        ))}
+        {filtered.map((t) => {
+          if (t.category === 'unit') {
+            return (
+              <li key={t.id}>
+                <button
+                  type="button"
+                  aria-label={`Zvětšit kartu ${t.name}`}
+                  onClick={() => openZoom(t, applyRank(t.baseStats, t.rank))}
+                  className="group relative block w-full cursor-pointer rounded-xl text-left transition hover:scale-[1.02]"
+                >
+                  <TradingCard template={t} stats={applyRank(t.baseStats, t.rank)} />
+                  <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/65 px-2 py-1 text-[10px] text-white shadow-sm">
+                    🔍
+                  </span>
+                </button>
+              </li>
+            )
+          }
+
+          if (t.category === 'boost') {
+            return (
+              <li key={t.id} className="flex flex-col gap-1">
+                <VisibleBoostCardTile template={t} />
+                <p className="text-center text-[11px] text-zinc-400">{boostEffectSummary(t)}</p>
+              </li>
+            )
+          }
+
+          return (
+            <li key={t.id}>
+              <div className="rounded-2xl border border-zinc-700 bg-zinc-900/70 p-4 text-center">
+                <p className="text-xs uppercase tracking-wide text-zinc-400">
+                  {STRUCTURE_LABELS[t.category]}
+                </p>
+                <p className="mt-2 font-semibold text-zinc-100">{t.name}</p>
+                <p className="text-xs text-zinc-400">{RANK_LABELS[t.rank]}</p>
+              </div>
+            </li>
+          )
+        })}
       </ul>
       <CardZoomOverlay card={zoomedCard} onClose={closeZoom} />
     </main>
