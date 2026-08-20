@@ -82,6 +82,22 @@ describe('formatWorldEventText', () => {
         },
         'K se připojil do hry',
       ],
+      [
+        {
+          ...base,
+          event_type: 'war_declared',
+          payload: { attacker_display_name: 'L', defender_display_name: 'M' },
+        },
+        'L vyhlásil válku hráči M',
+      ],
+      [
+        {
+          ...base,
+          event_type: 'peace_signed',
+          payload: { player_a_display_name: 'N', player_b_display_name: 'O', had_tribute: true },
+        },
+        'N a O uzavřeli mír za tribut',
+      ],
     ]
 
     expect(cases.map(([event]) => formatWorldEventText(event))).toEqual(cases.map(([, text]) => text))
@@ -130,6 +146,52 @@ describe('WorldEventsFeed', () => {
 
     expect(onPageChange).toHaveBeenNthCalledWith(1, 0)
     expect(onPageChange).toHaveBeenNthCalledWith(2, 2)
+  })
+
+  it('renders diplomacy event links with correct wording', () => {
+    render(
+      <WorldEventsFeed
+        events={[
+          {
+            event_type: 'war_declared',
+            created_at: '2026-08-20T11:55:00.000Z',
+            payload: {
+              attacker_display_name: 'Král Artuš',
+              attacker_home_x: 12,
+              attacker_home_y: 34,
+              defender_display_name: 'Král Jan',
+              defender_home_x: 56,
+              defender_home_y: 78,
+            },
+            total_count: 2,
+          },
+          {
+            event_type: 'peace_signed',
+            created_at: '2026-08-20T11:50:00.000Z',
+            payload: {
+              player_a_display_name: 'Král Artuš',
+              player_a_home_x: 12,
+              player_a_home_y: 34,
+              player_b_display_name: 'Král Jan',
+              player_b_home_x: 56,
+              player_b_home_y: 78,
+              had_tribute: false,
+            },
+            total_count: 2,
+          },
+        ]}
+        page={0}
+        pageSize={10}
+        totalCount={2}
+        now={new Date('2026-08-20T12:00:00.000Z')}
+        onPageChange={jest.fn()}
+      />
+    )
+
+    expect(screen.getAllByRole('link', { name: 'Král Artuš' })).toHaveLength(2)
+    expect(screen.getAllByRole('link', { name: 'Král Jan' })).toHaveLength(2)
+    expect(screen.getByText('vyhlásil válku hráči', { exact: false })).toBeInTheDocument()
+    expect(screen.getByText('uzavřeli bílý mír', { exact: false })).toBeInTheDocument()
   })
 
   it('disables pagination controls at the edges and shows an empty state', () => {

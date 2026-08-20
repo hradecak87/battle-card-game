@@ -233,6 +233,29 @@ describe('GarrisonModal', () => {
     expect(screen.getByRole('button', { name: /Domov útočníka/ })).toHaveTextContent('(10, 20)')
   })
 
+  it('shows a war badge for foreign owners currently at war with the viewer', () => {
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'enemy-1' }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        ownerInfo={{
+          id: 'enemy-1',
+          display_name: 'Nepřítel',
+          nation: 'england',
+          kingdom_name: 'Nepřátelé',
+          xp: 1000,
+          level: 5,
+        }}
+        relationState="war"
+      />
+    )
+
+    expect(screen.getByTestId('garrison-war-badge')).toHaveAttribute('href', '/diplomacy')
+  })
+
   it('shows the claim-in-progress ETA when a claim is underway', () => {
     const completesAt = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString()
     render(

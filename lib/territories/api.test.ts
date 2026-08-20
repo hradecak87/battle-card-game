@@ -137,7 +137,7 @@ describe('getCardInstancesAtTerritory', () => {
 })
 
 describe('getMyTerritories', () => {
-  it('selects the owned-territory battle lock alongside the existing fields', async () => {
+  it('selects owned-territory claim and battle locks alongside the existing fields', async () => {
     const orderChain: { order: jest.Mock } & PromiseLike<{ data: unknown[]; error: null }> = {
       order: jest.fn(() => orderChain),
       then: (resolve: (value: { data: unknown[]; error: null }) => unknown) =>
@@ -147,7 +147,9 @@ describe('getMyTerritories', () => {
 
     await getMyTerritories('player-1')
 
-    expect(select).toHaveBeenCalledWith('id, x, y, is_home, castle_rank, village_rank, name, battle_locked_by')
+    expect(select).toHaveBeenCalledWith(
+      'id, x, y, is_home, castle_rank, village_rank, name, claim_locked_by, battle_locked_by',
+    )
     expect(eq).toHaveBeenCalledWith('owner_id', 'player-1')
   })
 })

@@ -44,4 +44,10 @@ describe('PlayerProfileCard', () => {
     expect(screen.queryByText('Online')).not.toBeInTheDocument()
     expect(screen.queryByText('Offline')).not.toBeInTheDocument()
   })
+
+  it('shows a diplomacy war badge when relationState is war', () => {
+    render(<PlayerProfileCard player={basePlayer} relationState="war" />)
+
+    expect(screen.getByTestId('war-badge')).toHaveAttribute('href', '/diplomacy')
+  })
 })

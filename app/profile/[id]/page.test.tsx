@@ -28,6 +28,15 @@ jest.mock('@/lib/supabase/client', () => ({
   supabase: { from: (table: string) => from(table) },
 }))
 
+const getRelation = jest.fn().mockResolvedValue({ data: 'war', error: null })
+jest.mock('@/lib/diplomacy/api', () => ({
+  getRelation: (...args: unknown[]) => getRelation(...args),
+}))
+
+jest.mock('@/lib/supabase/useSession', () => ({
+  useSession: () => ({ user: { id: 'viewer-1' } }),
+}))
+
 describe('ProfilePage (public)', () => {
   it('fetches and renders the given player id without edit controls', async () => {
     render(<ProfilePage params={{ id: 'u2' }} />)
@@ -36,6 +45,7 @@ describe('ProfilePage (public)', () => {
     expect(from).toHaveBeenCalledWith('players')
     expect(eq).toHaveBeenCalledWith('id', 'u2')
     expect(screen.getByText(/Franská říše/)).toBeInTheDocument()
+    expect(await screen.findByTestId('war-badge')).toHaveAttribute('href', '/diplomacy')
     expect(screen.queryByText('Upravit království')).not.toBeInTheDocument()
   })
 })

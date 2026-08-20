@@ -14,6 +14,74 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-20h (diplomacy: wars, peace offers, /diplomacy, live in 0044-0046)
+
+Implemented the full diplomacy feature in the `feat/diplomacy`
+worktree/branch.
+
+**Renumbered at merge time**: the agent originally used 0043-0045, but an
+unrelated quick-fix batch (map/world UX polish) landed directly on `main`
+as `0043_target_owner_visibility.sql` first. Renamed diplomacy's migration
+files to 0044-0046 before merging (files only — the live DB objects, all
+new tables/functions with no name overlap, were unaffected and needed no
+re-apply).
+
+- New live migrations, applied directly to Supabase and verified:
+  - `supabase/migrations/0044_diplomacy.sql`
+  - `supabase/migrations/0044_diplomacy.verification.sql`
+  - `supabase/migrations/0045_diplomacy_war_creation.sql`
+  - `supabase/migrations/0045_diplomacy_war_creation.verification.sql`
+  - `supabase/migrations/0046_diplomacy_rpcs.sql`
+  - `supabase/migrations/0046_diplomacy_rpcs.verification.sql`
+- Fresh live-codebase verification before implementation found:
+  - diplomacy had to start at migration range **0043-0045** (later
+    renumbered to 0044-0046, see note above)
+  - the practical canonical `declare_attack` logic lives in
+    `_declare_attack_core(uuid, integer, jsonb, uuid)`, with the latest
+    on-disk/live redefinition coming from
+    `supabase/migrations/0035_wire_world_events.sql`
+  - the live `world_events.event_type` CHECK constraint still only listed
+    the pre-diplomacy event types, so `0043` widened the real live
+    constraint instead of trusting docs
+  - `MainNav.tsx` was re-checked fresh before adding the new nav entry
+- Backend:
+  - Added `diplomacy_relations` (active wars only) and `diplomacy_offers`
+    with canonicalized player pairs, RLS, indexes, and a partial unique
+    pending-offer constraint.
+  - `_declare_attack_core(...)` now auto-creates a war on the first real
+    PvP attack between two players and logs `war_declared` exactly once per
+    pair.
+  - Added authenticated diplomacy RPCs for relation lookup, wars list,
+    offers list, propose/accept/reject/cancel peace, with advisory-lock
+    serialization, lazy expiry of visible stale offers, accept-time
+    tribute revalidation, unresolved-battle blocking, territory/card
+    transfer, deck-overflow deposit fallback, and `peace_signed` logging.
+- Frontend:
+  - Added `lib/diplomacy/types.ts` and `lib/diplomacy/api.ts`.
+  - Added diplomacy UI components:
+    `WarList`, `PeaceProposalForm`, and `PeaceOfferList`.
+  - Added a new `/diplomacy` page with stacked mobile-first sections and a
+    full-screen proposal overlay.
+  - Added a `Diplomacie` main-nav link.
+  - Added war-state surfacing on the map/profile flows:
+    foreign-owner `GarrisonModal` and public `PlayerProfileCard` now show
+    a `⚔️ Válka` badge linking to `/diplomacy`.
+  - Extended the world-events feed to render `war_declared` and
+    `peace_signed`.
+- Polling choice:
+  - `/diplomacy` uses the existing visibility-aware polling hook with a
+    **12s** refresh interval.
+- Plan deviation:
+  - Added `diplomacy_list_offers()` in `0046_diplomacy_rpcs.sql` even
+    though the original chunk list only named the other RPCs; the page/UI
+    needs a dedicated typed list endpoint and this kept the client aligned
+    with the existing RPC-wrapper pattern.
+- Final verification in the worktree:
+  - `npx jest --runInBand --silent` -> **77/77 suites, 503/503 tests**
+  - `npx tsc --noEmit` -> clean
+  - `npm run build` -> succeeds (with repeated upstream Supabase Node 20
+    deprecation warnings only; no build failure)
+
 ## Latest update — 2026-08-20g (chat module: global + DM chat, applied live in 0040-0042)
 
 Implemented the full chat feature in the `feat/chat` worktree/branch:

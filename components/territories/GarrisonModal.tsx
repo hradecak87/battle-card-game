@@ -11,6 +11,8 @@ import { NATIONS } from '@/lib/players/nations'
 import { formatEta } from '@/lib/time/formatEta'
 import { MaskedBoostSummaryTile, VisibleBoostCardTile } from '@/components/cards/BoostCardTile'
 import { IncomingAttackInfo } from '@/lib/territories/api'
+import type { DiplomacyRelationState } from '@/lib/diplomacy/types'
+import Link from 'next/link'
 
 export interface GarrisonModalOwnerInfo {
   id: string
@@ -33,6 +35,7 @@ export interface GarrisonModalProps {
   ownerInfo?: GarrisonModalOwnerInfo | null
   ownerInfoLoading?: boolean
   ownerInfoError?: string | null
+  relationState?: DiplomacyRelationState | null
   /**
    * Identity + ETA of the in-transit attack currently converging on this
    * territory, if any (fetched separately since `battle_locked_by` is
@@ -121,6 +124,7 @@ export default function GarrisonModal({
   ownerInfo,
   ownerInfoLoading,
   ownerInfoError,
+  relationState,
   incomingAttackInfo,
   onNavigateToTerritory,
   onRename,
@@ -530,6 +534,17 @@ export default function GarrisonModal({
               {!ownerInfoLoading && !ownerInfoError && ownerInfo && (
                 <div className="grid gap-1 sm:grid-cols-2">
                   <p>Jméno: {ownerInfo.display_name}</p>
+                  {relationState === 'war' && (
+                    <p className="sm:col-span-2">
+                      <Link
+                        href="/diplomacy"
+                        data-testid="garrison-war-badge"
+                        className="inline-flex rounded-full border border-red-500/60 bg-red-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-red-200"
+                      >
+                        ⚔️ Válka
+                      </Link>
+                    </p>
+                  )}
                   {ownerInfo.is_npc && (
                     <p className="font-semibold text-fuchsia-300">Typ: NPC říše</p>
                   )}

@@ -23,6 +23,7 @@ export function MainNav() {
     const baseLinks = [
       { href: '/', label: 'Domů' },
       { href: '/map', label: 'Mapa' },
+      { href: '/diplomacy', label: 'Diplomacie' },
       { href: '/world', label: 'Dění ve světě' },
       { href: '/chat', label: 'Chat' },
       { href: '/collection', label: 'Moje sbírka' },
