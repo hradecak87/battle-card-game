@@ -1,10 +1,6 @@
 import Image from 'next/image'
 import type { ComponentPropsWithoutRef } from 'react'
 
-type SvgIconProps = Omit<ComponentPropsWithoutRef<'svg'>, 'viewBox'> & {
-  title?: string
-}
-
 type ImgIconProps = Omit<ComponentPropsWithoutRef<typeof Image>, 'src' | 'alt' | 'width' | 'height'> & {
   title?: string
 }
@@ -35,36 +31,6 @@ export function pickVariant<T>(seed: string, variants: readonly T[]): T {
   return variants[hashStringToIndex(seed, variants.length)]
 }
 
-function IconBase({ title, children, ...props }: SvgIconProps) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      role="img"
-      aria-label={title}
-      aria-hidden={title ? undefined : true}
-      {...props}
-    >
-      {title && <title>{title}</title>}
-      {children}
-    </svg>
-  )
-}
-
-export function HomeIcon(props: SvgIconProps) {
-  return (
-    <IconBase {...props}>
-      <path
-        fill="currentColor"
-        fillRule="evenodd"
-        d="M4 11.5 11.7 5l2.5 2.1V5.7h2.1V9l3.7 3.2v1.6h-1.6V19H5.6v-5.9H4v-1.6Zm3.4 6h8.8v-5.7l-4.4-3.7-4.4 3.7v5.7Zm3-2.1h2.9v-3.5h-2.9v3.5Z"
-        clipRule="evenodd"
-      />
-      <path fill="currentColor" d="M16.8 6.5h1.5V8h-1.5z" opacity="0.85" />
-    </IconBase>
-  )
-}
-
 function StructureImg({
   variant,
   title,
@@ -92,4 +58,11 @@ export function CastleIcon({ variant, ...props }: ImgIconProps & { variant: Cast
 
 export function VillageIcon({ variant, ...props }: ImgIconProps & { variant: VillageVariant }) {
   return <StructureImg variant={variant} {...props} />
+}
+
+// Single fixed illustration (public/icons/structures/home.png, drawn by the
+// project owner) — unlike castle/village there's only one home design, so no
+// `pickVariant` seed selection is needed.
+export function HomeIcon(props: ImgIconProps) {
+  return <StructureImg variant="home" {...props} />
 }

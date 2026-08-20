@@ -205,10 +205,8 @@ describe('MapViewport', () => {
 
     const zoomedOutIcon = screen.getByRole('img', { name: 'Domov' })
 
-    expect(
-      Number.parseFloat(zoomedInIcon instanceof SVGElement ? zoomedInIcon.style.width : '')
-    ).toBeGreaterThan(
-      Number.parseFloat(zoomedOutIcon instanceof SVGElement ? zoomedOutIcon.style.width : '')
+    expect(Number.parseFloat((zoomedInIcon as HTMLElement).style.width)).toBeGreaterThan(
+      Number.parseFloat((zoomedOutIcon as HTMLElement).style.width)
     )
   })
 
