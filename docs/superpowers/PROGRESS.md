@@ -14,6 +14,44 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-20g (chat module: global + DM chat, applied live in 0040-0042)
+
+Implemented the full chat feature in the `feat/chat` worktree/branch:
+
+- New live migrations, applied directly to Supabase and verified:
+  - `supabase/migrations/0040_chat.sql`
+  - `supabase/migrations/0040_chat.verification.sql`
+  - `supabase/migrations/0041_chat_rpcs.sql`
+  - `supabase/migrations/0041_chat_rpcs.verification.sql`
+  - `supabase/migrations/0042_chat_admin.sql`
+  - `supabase/migrations/0042_chat_admin.verification.sql`
+- Schema/backend:
+  - `chat_messages`, `chat_blocks`, `chat_read_state` with RLS.
+  - Core chat RPCs for global/DM send + list + read + block/unblock.
+  - Admin moderation RPCs for listing all chat messages and soft-deleting.
+- Frontend:
+  - `lib/chat/*` typed client wrappers + validation helper.
+  - `components/chat/*` message list/input, conversation list, global panel,
+    DM panel, polling hook, and floating `ChatWidget`.
+  - New `/chat` page and a persistent `Chat` main-nav link.
+  - Added a **new-DM player picker** in both `/chat` and the widget so a
+    player can start a first DM even when no prior conversation exists yet.
+- Polling choices:
+  - Open global/DM views: **4s**
+  - Collapsed widget unread/conversation refresh: **15s**
+  - Polling is visibility-aware (`document.visibilityState === 'visible'`).
+- Worktree-specific build fix:
+  - Added `"root": true` to this worktree's `.eslintrc.json` so `next build`
+    no longer reports the nested-worktree ESLint plugin conflict from the
+    parent repo root.
+- Verification-script deviation from the original plan:
+  - The first draft tried to insert throwaway `players` rows directly, but
+    live verification exposed the real `players -> auth.users` FK.
+    Verification SQL was updated to reuse existing live players instead.
+  - Because direct `pg` connections run with elevated privileges and bypass
+    RLS on raw table reads, `0040_chat.verification.sql` now temporarily
+    switches to `role authenticated` for the direct RLS-select assertions.
+
 ## Latest update — 2026-08-20f (world activity feed /world + live world_events log)
 
 Implemented backlog #13 end-to-end: a new public `/world` page with four

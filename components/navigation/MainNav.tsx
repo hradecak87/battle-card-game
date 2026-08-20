@@ -24,6 +24,7 @@ export function MainNav() {
       { href: '/', label: 'Domů' },
       { href: '/map', label: 'Mapa' },
       { href: '/world', label: 'Dění ve světě' },
+      { href: '/chat', label: 'Chat' },
       { href: '/collection', label: 'Moje sbírka' },
       { href: '/exchange', label: 'Směnárna', badge: pendingCount },
       { href: '/leaderboard', label: 'Žebříček' },
