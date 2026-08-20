@@ -6,7 +6,17 @@
 // owner_id IS NULL card_instances, so it never disturbs anything a player
 // has already claimed or been given.
 //
-// Before deleting anything, dumps the exact rows about to be removed to a
+// IMPORTANT: does NOT delete existing card_instances rows. Unit card
+// instances are never hard-deleted anywhere in normal game logic (battles
+// only ever change owner_id, never remove the row), and some historical
+// battle_rounds rows reference old NPC garrison instance_ids via a plain
+// (RESTRICT) foreign key -- attempting to delete those rows fails with a
+// foreign-key violation. Instead this script re-rolls each existing
+// instance's template_id in place (same instance_id, new rank/unit type)
+// and only INSERTs new rows to top a tile up to its target size (never
+// deletes to shrink an oversized tile).
+//
+// Before touching anything, dumps the exact pre-change rows to a
 // timestamped JSON file in this directory so the prior state can be
 // inspected/restored if needed.
 //
@@ -79,29 +89,29 @@ async function main() {
       .not('stationed_territory_id', 'is', null)
       .range(from, to) as any
   )
-  const toDelete = allNpcInstances.filter(
-    (inst) => inst.stationed_territory_id !== null && tileIds.has(inst.stationed_territory_id)
-  )
-  console.log(`Found ${toDelete.length} existing NPC garrison card instances to replace`)
+  const existingByTile = new Map<number, { instance_id: string; template_id: string }[]>()
+  for (const inst of allNpcInstances) {
+    if (inst.stationed_territory_id === null || !tileIds.has(inst.stationed_territory_id)) continue
+    const list = existingByTile.get(inst.stationed_territory_id) ?? []
+    list.push({ instance_id: inst.instance_id, template_id: inst.template_id })
+    existingByTile.set(inst.stationed_territory_id, list)
+  }
+  const totalExisting = Array.from(existingByTile.values()).reduce((sum, l) => sum + l.length, 0)
+  console.log(`Found ${totalExisting} existing NPC garrison card instances to re-roll`)
 
-  // 3. Back up exactly what's about to be deleted.
+  // 3. Back up exactly what's about to be touched (nothing is deleted; this
+  //    is purely for inspection/rollback of the template_id re-rolls).
   const backupPath = path.join(
     __dirname,
     `_backup-npc-garrisons-${new Date().toISOString().replace(/[:.]/g, '-')}.json`
   )
-  fs.writeFileSync(backupPath, JSON.stringify({ structureTiles, deletedInstances: toDelete }, null, 2))
+  fs.writeFileSync(
+    backupPath,
+    JSON.stringify({ structureTiles, existingInstances: allNpcInstances.filter((i) => i.stationed_territory_id !== null && tileIds.has(i.stationed_territory_id)) }, null, 2)
+  )
   console.log(`Backed up pre-change state to ${backupPath}`)
 
-  // 4. Delete the old garrison instances, in batches.
-  const deleteBatchSize = 500
-  for (let i = 0; i < toDelete.length; i += deleteBatchSize) {
-    const batchIds = toDelete.slice(i, i + deleteBatchSize).map((r) => r.instance_id)
-    const { error } = await supabase.from('card_instances').delete().in('instance_id', batchIds)
-    if (error) throw error
-  }
-  console.log(`Deleted ${toDelete.length} old NPC garrison card instances`)
-
-  // 5. Fetch unit templates by rank (common/uncommon/rare only — see
+  // 4. Fetch unit templates by rank (common/uncommon/rare only — see
   //    generate-world.ts for why epic/legend are excluded).
   const { data: garrisonTemplates, error: templateError } = await supabase
     .from('card_templates')
@@ -117,29 +127,58 @@ async function main() {
     uncommon: garrisonTemplates.filter((t) => t.rank === 'uncommon'),
     rare: garrisonTemplates.filter((t) => t.rank === 'rare'),
   }
+  function rollTemplateId(difficulty: 1 | 2 | 3 | 4 | 5): string {
+    let rank = pickGarrisonRank(difficulty, Math.random)
+    if (templatesByRank[rank].length === 0) rank = 'uncommon'
+    if (templatesByRank[rank].length === 0) rank = 'common'
+    const pool = templatesByRank[rank]
+    return pool[Math.floor(Math.random() * pool.length)].id
+  }
 
-  // 6. Re-seed each tile with the new difficulty-scaled size/rank logic.
+  // 5. Re-roll each existing instance's template_id in place (no delete —
+  //    keeps the row's instance_id intact for any historical battle_rounds
+  //    foreign-key references), then top any under-sized tile up to its
+  //    target size with fresh INSERTs. Never shrinks an over-sized tile
+  //    (that would require deleting rows, which can fail on old instances
+  //    referenced by history) — a few tiles may end up with more troops
+  //    than the ideal target, which is an acceptable minor deviation.
+  let totalRerolled = 0
   let totalMinted = 0
+  const updateBatchSize = 200
   for (const tile of structureTiles) {
     const difficulty = tile.difficulty as 1 | 2 | 3 | 4 | 5
-    const size = npcGarrisonSize(difficulty)
-    const instances = Array.from({ length: size }, () => {
-      let rank = pickGarrisonRank(difficulty, Math.random)
-      if (templatesByRank[rank].length === 0) rank = 'uncommon'
-      if (templatesByRank[rank].length === 0) rank = 'common'
-      const pool = templatesByRank[rank]
-      return {
-        template_id: pool[Math.floor(Math.random() * pool.length)].id,
+    const target = npcGarrisonSize(difficulty)
+    const existing = existingByTile.get(tile.id) ?? []
+
+    for (let i = 0; i < existing.length; i += updateBatchSize) {
+      const batch = existing.slice(i, i + updateBatchSize)
+      for (const inst of batch) {
+        const newTemplateId = rollTemplateId(difficulty)
+        const { error } = await supabase
+          .from('card_instances')
+          .update({ template_id: newTemplateId })
+          .eq('instance_id', inst.instance_id)
+        if (error) throw error
+        totalRerolled++
+      }
+    }
+
+    const deficit = target - existing.length
+    if (deficit > 0) {
+      const instances = Array.from({ length: deficit }, () => ({
+        template_id: rollTemplateId(difficulty),
         owner_id: null,
         stationed_territory_id: tile.id,
         status: 'stationed',
-      }
-    })
-    const { error } = await supabase.from('card_instances').insert(instances)
-    if (error) throw error
-    totalMinted += instances.length
+      }))
+      const { error } = await supabase.from('card_instances').insert(instances)
+      if (error) throw error
+      totalMinted += instances.length
+    }
   }
-  console.log(`Re-seeded ${structureTiles.length} tiles with ${totalMinted} new NPC garrison card instances`)
+  console.log(
+    `Re-rolled ${totalRerolled} existing NPC garrison card instances and minted ${totalMinted} new ones across ${structureTiles.length} tiles`
+  )
 }
 
 main().catch((err) => {
