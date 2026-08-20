@@ -25,10 +25,20 @@ body {
     background-position: center;
   }
 
+  /* Each .terrain-difficulty-N rule below uses a flat single-color tint
+     overlay (same rgba color repeated as both linear-gradient stops), not
+     a top-to-bottom gradient. A per-tile top-to-bottom gradient looked
+     fine on one tile in isolation, but since every tile independently
+     resets its own gradient, the boundary between two stacked tiles was
+     actually "light bottom of tile A" meeting "dark top of tile B" —
+     a visible colored seam (e.g. a light green band across forest tiles)
+     competing with the intentional black grid line. A flat tint has no
+     top/bottom asymmetry, so it can't create that seam. */
+
   .terrain-difficulty-1 {
     background-color: #255b2c;
     background-image:
-      linear-gradient(180deg, rgba(33, 78, 40, 0.18) 0%, rgba(63, 143, 69, 0.08) 100%),
+      linear-gradient(rgba(48, 111, 55, 0.13), rgba(48, 111, 55, 0.13)),
       url('/textures/terrain-1.jpg');
     background-repeat: no-repeat, no-repeat;
     background-size: 100% 100%, 100% 100%;
@@ -37,7 +47,7 @@ body {
   .terrain-difficulty-1-b {
     background-color: #255b2c;
     background-image:
-      linear-gradient(180deg, rgba(33, 78, 40, 0.18) 0%, rgba(63, 143, 69, 0.08) 100%),
+      linear-gradient(rgba(48, 111, 55, 0.13), rgba(48, 111, 55, 0.13)),
       url('/textures/terrain-1-b.png');
     background-repeat: no-repeat, no-repeat;
     background-size: 100% 100%, 100% 100%;
@@ -46,7 +56,7 @@ body {
   .terrain-difficulty-1-c {
     background-color: #255b2c;
     background-image:
-      linear-gradient(180deg, rgba(33, 78, 40, 0.18) 0%, rgba(63, 143, 69, 0.08) 100%),
+      linear-gradient(rgba(48, 111, 55, 0.13), rgba(48, 111, 55, 0.13)),
       url('/textures/terrain-1-c.png');
     background-repeat: no-repeat, no-repeat;
     background-size: 100% 100%, 100% 100%;
@@ -55,7 +65,7 @@ body {
   .terrain-difficulty-2 {
     background-color: #55652f;
     background-image:
-      linear-gradient(180deg, rgba(34, 56, 30, 0.26) 0%, rgba(92, 113, 54, 0.1) 100%),
+      linear-gradient(rgba(63, 85, 42, 0.18), rgba(63, 85, 42, 0.18)),
       url('/textures/terrain-2.jpg');
     background-repeat: no-repeat, no-repeat;
     background-size: 100% 100%, 100% 100%;
@@ -64,7 +74,7 @@ body {
   .terrain-difficulty-2-b {
     background-color: #55652f;
     background-image:
-      linear-gradient(180deg, rgba(34, 56, 30, 0.26) 0%, rgba(92, 113, 54, 0.1) 100%),
+      linear-gradient(rgba(63, 85, 42, 0.18), rgba(63, 85, 42, 0.18)),
       url('/textures/terrain-2-b.png');
     background-repeat: no-repeat, no-repeat;
     background-size: 100% 100%, 100% 100%;
@@ -73,7 +83,7 @@ body {
   .terrain-difficulty-2-c {
     background-color: #55652f;
     background-image:
-      linear-gradient(180deg, rgba(34, 56, 30, 0.26) 0%, rgba(92, 113, 54, 0.1) 100%),
+      linear-gradient(rgba(63, 85, 42, 0.18), rgba(63, 85, 42, 0.18)),
       url('/textures/terrain-2-c.png');
     background-repeat: no-repeat, no-repeat;
     background-size: 100% 100%, 100% 100%;
@@ -82,7 +92,7 @@ body {
   .terrain-difficulty-3 {
     background-color: #887141;
     background-image:
-      linear-gradient(180deg, rgba(111, 93, 57, 0.22) 0%, rgba(169, 141, 82, 0.08) 100%),
+      linear-gradient(rgba(140, 117, 70, 0.15), rgba(140, 117, 70, 0.15)),
       url('/textures/terrain-3.jpg');
     background-repeat: no-repeat, no-repeat;
     background-size: 100% 100%, 100% 100%;
@@ -91,7 +101,7 @@ body {
   .terrain-difficulty-3-b {
     background-color: #887141;
     background-image:
-      linear-gradient(180deg, rgba(111, 93, 57, 0.22) 0%, rgba(169, 141, 82, 0.08) 100%),
+      linear-gradient(rgba(140, 117, 70, 0.15), rgba(140, 117, 70, 0.15)),
       url('/textures/terrain-3-b.png');
     background-repeat: no-repeat, no-repeat;
     background-size: 100% 100%, 100% 100%;
@@ -100,7 +110,7 @@ body {
   .terrain-difficulty-3-c {
     background-color: #887141;
     background-image:
-      linear-gradient(180deg, rgba(111, 93, 57, 0.22) 0%, rgba(169, 141, 82, 0.08) 100%),
+      linear-gradient(rgba(140, 117, 70, 0.15), rgba(140, 117, 70, 0.15)),
       url('/textures/terrain-3-c.png');
     background-repeat: no-repeat, no-repeat;
     background-size: 100% 100%, 100% 100%;
@@ -109,7 +119,7 @@ body {
   .terrain-difficulty-4 {
     background-color: #5b5753;
     background-image:
-      linear-gradient(180deg, rgba(31, 64, 92, 0.24) 0%, rgba(72, 121, 157, 0.1) 100%),
+      linear-gradient(rgba(52, 93, 125, 0.17), rgba(52, 93, 125, 0.17)),
       url('/textures/terrain-4.jpg');
     background-repeat: no-repeat, no-repeat;
     background-size: 100% 100%, 100% 100%;
@@ -118,7 +128,7 @@ body {
   .terrain-difficulty-4-b {
     background-color: #5b5753;
     background-image:
-      linear-gradient(180deg, rgba(31, 64, 92, 0.24) 0%, rgba(72, 121, 157, 0.1) 100%),
+      linear-gradient(rgba(52, 93, 125, 0.17), rgba(52, 93, 125, 0.17)),
       url('/textures/terrain-4-b.png');
     background-repeat: no-repeat, no-repeat;
     background-size: 100% 100%, 100% 100%;
@@ -127,7 +137,7 @@ body {
   .terrain-difficulty-4-c {
     background-color: #5b5753;
     background-image:
-      linear-gradient(180deg, rgba(31, 64, 92, 0.24) 0%, rgba(72, 121, 157, 0.1) 100%),
+      linear-gradient(rgba(52, 93, 125, 0.17), rgba(52, 93, 125, 0.17)),
       url('/textures/terrain-4-c.png');
     background-repeat: no-repeat, no-repeat;
     background-size: 100% 100%, 100% 100%;
@@ -136,7 +146,7 @@ body {
   .terrain-difficulty-5 {
     background-color: #31485b;
     background-image:
-      linear-gradient(180deg, rgba(37, 56, 71, 0.16) 0%, rgba(118, 137, 152, 0.08) 100%),
+      linear-gradient(rgba(78, 97, 112, 0.12), rgba(78, 97, 112, 0.12)),
       url('/textures/terrain-5.jpg');
     background-repeat: no-repeat, no-repeat;
     background-size: 100% 100%, 100% 100%;
@@ -145,7 +155,7 @@ body {
   .terrain-difficulty-5-b {
     background-color: #31485b;
     background-image:
-      linear-gradient(180deg, rgba(37, 56, 71, 0.16) 0%, rgba(118, 137, 152, 0.08) 100%),
+      linear-gradient(rgba(78, 97, 112, 0.12), rgba(78, 97, 112, 0.12)),
       url('/textures/terrain-5-b.png');
     background-repeat: no-repeat, no-repeat;
     background-size: 100% 100%, 100% 100%;
@@ -154,7 +164,7 @@ body {
   .terrain-difficulty-5-c {
     background-color: #31485b;
     background-image:
-      linear-gradient(180deg, rgba(37, 56, 71, 0.16) 0%, rgba(118, 137, 152, 0.08) 100%),
+      linear-gradient(rgba(78, 97, 112, 0.12), rgba(78, 97, 112, 0.12)),
       url('/textures/terrain-5-c.png');
     background-repeat: no-repeat, no-repeat;
     background-size: 100% 100%, 100% 100%;
