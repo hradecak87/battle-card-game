@@ -14,6 +14,56 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-20o (Map grid line rendering bugs — 3 fixes, confirmed working)
+
+Follow-up polish after the zoom-widening/texture-variant work above,
+iterated live with user screenshots across several rounds. Final,
+user-confirmed-working state on `main`:
+
+1. **Doubled/uneven grid lines fixed at the root** (`6b57430`): each
+   tile drew a border on all 4 sides, so every internal seam was really
+   two overlapping hairlines (one per tile), varying in apparent
+   thickness tile-to-tile from subpixel rounding. Fixed by having each
+   tile draw only its right+bottom border, with a matching left+top
+   border added once on the outer grid container, so every seam is
+   drawn by exactly one element. Border color switched from a
+   semi-transparent zinc-800 (bled toward whatever texture was
+   underneath) to true black, faded via alpha (not width — browsers
+   snap sub-1px border widths back to a full device pixel, so scaling
+   *width* down for the "thinner at max zoom-out" effect silently did
+   nothing; alpha isn't snapped and reliably fades the line).
+2. **Colored seam between terrain tiles fixed** (light green band
+   across forest tiles etc.): each `.terrain-difficulty-N` tile
+   background used a top-to-bottom gradient tint that reset
+   independently per tile, so the boundary between two stacked tiles
+   was "light bottom of tile A" meeting "dark top of tile B" — a
+   visible colored seam. Replaced with a flat single-color tint (same
+   rgba repeated as both gradient stops), which has no top/bottom
+   asymmetry and can't produce that seam.
+3. **Periodically thicker/doubled grid lines at *some* map zoom levels,
+   confirmed present even at exactly 100% browser zoom** (`6b57430`,
+   the actual final fix — an earlier attempt at masking this via
+   slightly negative tile margins, `607ed9a`, was tried, made it worse
+   by having each tile's neighbor completely paint over its border, and
+   was reverted as `d523434`): root cause was `gridTemplateColumns:
+   repeat(viewSize, minmax(0, 1fr))` — when the frame's pixel width
+   doesn't divide evenly by viewSize (the common case), the browser
+   gives a handful of columns 1 extra device pixel so the total still
+   adds up exactly, and those columns' borders render visibly
+   thicker/doubled at that spot, periodically, at whichever zoom levels
+   happen to produce a non-evenly-divisible width. Fixed by measuring
+   the frame width, flooring to a whole multiple of viewSize
+   (`Math.floor(width / viewSize) * viewSize`), and sizing columns with
+   a fixed `${cellPx}px` instead of `1fr` once measured — every column
+   is now the exact same integer pixel width, so no rounding remainder
+   is ever needed. Costs at most `viewSize-1`px of unused space at the
+   frame's right/bottom edge (invisible against the page background).
+
+All three fixes verified via the full `components/territories` test
+suite (123/123), `tsc --noEmit`, and `npm run build` before each push,
+and the final state was visually confirmed by the user as fully fixed
+across zoom levels.
+
 ## Latest update — 2026-08-20n (Terrain texture variants — shipped)
 
 Implemented and shipped `terrain-texture-variants` directly (small,
