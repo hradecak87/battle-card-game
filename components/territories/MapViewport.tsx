@@ -295,7 +295,21 @@ export default function MapViewport({
     if (!el || typeof ResizeObserver === 'undefined') return
     const update = () => {
       const width = el.getBoundingClientRect().width
-      if (width > 0) setCellPx(width / viewSize)
+      // Floored to a whole CSS pixel (not left fractional): with `1fr`
+      // grid columns, a container width that doesn't divide evenly by
+      // viewSize forces the browser to give a handful of columns 1 extra
+      // device pixel so the total still adds up exactly — those columns'
+      // borders then render visibly thicker/doubled compared to the rest,
+      // periodically, even at exactly 100% browser zoom (confirmed: only
+      // showed up at specific map zoom levels, i.e. specific viewSize/
+      // container-width combinations, not tied to browser zoom at all).
+      // Snapping the grid to `cellPx * viewSize` whole pixels (below) and
+      // sizing columns with a fixed `${cellPx}px` instead of `1fr` makes
+      // every column exactly the same integer width, eliminating the
+      // rounding remainder entirely — at the cost of up to viewSize-1px of
+      // unused space at the right/bottom edge of the frame, invisible
+      // against the page background.
+      if (width > 0) setCellPx(Math.floor(width / viewSize))
     }
     update()
     const observer = new ResizeObserver(update)
@@ -475,9 +489,10 @@ export default function MapViewport({
       >
         <div
           data-testid="map-grid"
-          className="grid w-full select-none cursor-grab active:cursor-grabbing overflow-visible border-l border-t"
+          className={`grid select-none cursor-grab active:cursor-grabbing overflow-visible border-l border-t ${cellPx ? '' : 'w-full'}`}
           style={{
-            gridTemplateColumns: `repeat(${viewSize}, minmax(0, 1fr))`,
+            gridTemplateColumns: cellPx ? `repeat(${viewSize}, ${cellPx}px)` : `repeat(${viewSize}, minmax(0, 1fr))`,
+            width: cellPx ? `${cellPx * viewSize}px` : undefined,
             transform: visualDragOffset ? `translate(${visualDragOffset.x}px,${visualDragOffset.y}px)` : undefined,
             transition: visualDragOffset ? 'none' : 'transform 0.1s ease-out',
             ...gridBorderStyle,
