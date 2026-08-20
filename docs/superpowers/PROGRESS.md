@@ -14,6 +14,66 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-20m (Terrain texture variants — shipped)
+
+Implemented and shipped `terrain-texture-variants` directly (small,
+self-contained task, no worktree/agent needed).
+
+- Each of the 5 terrain difficulty levels (grass/forest/water/desert/
+  mountain) now has 3 texture variants instead of 1 (user supplied 2 new
+  images per level as `lvl{1-5}x.png`/`lvl{1-5}y.png`, moved/renamed into
+  `public/textures/terrain-{1-5}-b.png` / `terrain-{1-5}-c.png`).
+- `app/globals.css`: added `.terrain-difficulty-{1-5}-b` and `-c` CSS
+  classes (10 new), same background-color/gradient as the base class,
+  pointing at the new texture files.
+- `components/territories/MapViewport.tsx`: replaced the single-class
+  `DIFFICULTY_TERRAIN_CLASS` map with `DIFFICULTY_TERRAIN_VARIANTS`
+  (array of 3 classes per difficulty); tile rendering now calls the
+  existing `pickVariant('terrain:' + tile.id, DIFFICULTY_TERRAIN_VARIANTS[...])`
+  pattern (same deterministic-per-id hash already used for castle/village
+  icon variants), so each tile always shows the same variant across
+  re-renders/pans, but different tiles vary.
+- Updated `MapViewport.test.tsx`: relaxed the difficulty-class assertion
+  to a regex tolerant of any of the 3 variants (all test fixtures share
+  `id: 1`, whose hash consistently resolves to the `-b` variant, so the
+  old exact-class assertion would've failed), and added a new test
+  asserting the picked variant is stable across re-renders for the same
+  tile id.
+- Full `components/territories` test suite (32/32), `tsc --noEmit`, and
+  `npm run build` all green. Committed as `7933aff` (excluding unrelated
+  pre-existing deleted `karty*.png` noise in the working tree).
+- Not yet pushed to `origin/main` — pending user confirmation, along with
+  the still-unpushed map-zoom-widening commit `878a4cf` from the same
+  session (see below).
+
+## Latest update — 2026-08-20l (Map zoom range widened 5×5 → 49×49)
+
+Implemented and shipped `map-zoom-range-widening` directly (bounded,
+self-contained task).
+
+- Root cause of why simply adding a wider zoom level wouldn't have worked:
+  `get_viewport(x1,y1,x2,y2)` was a `returns table(...)` Postgres function
+  exposed as a Supabase RPC, subject to PostgREST's default 1000-row
+  response cap — a 49×49 = 2401-tile viewport would've been silently
+  truncated.
+- Fix: rewrote `get_viewport` to `returns jsonb`, aggregating the same
+  query via `jsonb_agg(row_to_json(sub))` into a single row — sidesteps
+  the row-count cap entirely (cap limits row *count*, not payload size).
+  No client-side (`lib/territories/api.ts`) changes needed — supabase-js
+  returns a scalar-jsonb RPC's array value identically to a table-returning
+  one.
+- `supabase/migrations/0049_map_viewport_json.sql` +
+  `.verification.sql` — applied and verified live (49×49 viewport now
+  returns all 2401 rows correctly).
+- `app/map/page.tsx`: `ZOOM_LEVELS` widened from `[7,11,15,19,23,27]` to
+  `[5, 9, 15, 21, 29, 37, 49]` (kept all odd for exact centering).
+- Icon/structure scaling needed **no changes** — already derives from a
+  `ResizeObserver`-measured `cellPx`, not from `viewSize`, so it's
+  automatically correct at any zoom level.
+- 210/210 relevant tests, `tsc`, `npm run build` all green with zero test
+  file changes needed. Committed as `878a4cf`. **Not yet pushed** —
+  pending user confirmation (bundle with the texture-variant push above).
+
 ## Latest update — 2026-08-20k (Map level clustering — terrain recolor applied live)
 
 Implemented and applied `map-level-clustering` directly (no separate
