@@ -22,3 +22,22 @@ export function applyNationCombatPerk(stats: EffectiveCard, nation: NationId | n
       return { ...stats }
   }
 }
+
+/**
+ * Short, human-readable label for a nation's *combat* perk (the 4 nations
+ * whose perk actually affects battle stats — mongol_horde/scandinavia's
+ * perks are transfer/occupation-speed only and have no combat label).
+ * Used by the pre-attack defender-bonuses preview so a player can see the
+ * defender's nation combat perk alongside castle/village/wall bonuses.
+ */
+const NATION_COMBAT_PERK_LABEL: Partial<Record<NationId, string>> = {
+  england: 'Anglické království: +15 % útok na dálku (LNG)',
+  francia: 'Franská říše: +15 % útok zblízka (STR)',
+  hre: 'Svatá říše římská: +15 % obrana (DEF)',
+  byzantium: 'Byzantská říše: +15 % zdraví (HP)',
+}
+
+export function nationCombatPerkLabel(nation: NationId | null): string | null {
+  if (!nation) return null
+  return NATION_COMBAT_PERK_LABEL[nation] ?? null
+}

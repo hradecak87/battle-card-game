@@ -18,6 +18,7 @@ import { CardZoomIconButton, CardZoomOverlay, useCardZoom } from '@/components/c
 import { applyRank } from '@/lib/cards/combat'
 import { BoostCardTemplate, Rank, UnitType, UnitCardTemplate } from '@/lib/cards/types'
 import { castleAttackBonusPct, combinedDefenseBonusPct, wallRangedBonusPct } from '@/lib/territories/structureBonus'
+import { nationCombatPerkLabel } from '@/lib/battles/nationCombatPerk'
 import { multiOriginAttackHours, occupationHours, armyPower, Difficulty } from '@/lib/territories/formulas'
 import { formatEta } from '@/lib/time/formatEta'
 import { compareArmyStrength, ArmyStrengthLabel } from '@/lib/battles/armyStrength'
@@ -98,8 +99,8 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
   const wallDefenseBonus = wallRank ? combinedDefenseBonusPct(null, null, wallRank) : 0
   const wallRangedBonus = wallRangedBonusPct(wallRank)
   const totalDefenseBonus = combinedDefenseBonusPct(castleRank, villageRank, wallRank)
-  const showStructureBonuses = Boolean(castleRank || villageRank || wallRank)
-
+  const defenderNationPerkLabel = nationCombatPerkLabel(defenderNation)
+  const showStructureBonuses = Boolean(castleRank || villageRank || wallRank || defenderNationPerkLabel)
   useEffect(() => {
     if (!myPlayerId) return
     getPlayerPublicInfo(myPlayerId).then(({ data }) => {
@@ -345,6 +346,7 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
                   )}
                   {villageRank && <p>{`Vesnice (${villageRank}): +${villageDefenseBonus} % obrana`}</p>}
                   {wallRank && <p>{`Hradby (${wallRank}): +${wallDefenseBonus} % obrana, +${wallRangedBonus} % dálkový útok`}</p>}
+                  {defenderNationPerkLabel && <p>{defenderNationPerkLabel}</p>}
                   <p className="text-amber-300">{`Celkem pro obránce: +${totalDefenseBonus} % obrana, +${castleAttackBonus} % útok zblízka i na dálku`}</p>
                 </div>
               </div>
