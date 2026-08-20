@@ -53,11 +53,25 @@ worktree/branch, following the approved spec/plan top-to-bottom.
     `NEXT_PUBLIC_SUPABASE_ANON_KEY` are provided in the environment (the
     worktree currently has no `.env.local`, so a placeholder public URL/key
     was exported just for build-time prerendering)
-- Live-DB note:
-  - The repo-side migration + verification SQL are ready, but this
-    worktree/session currently has **no `.env.local` and no
-    `SUPABASE_DB_URL` in the environment**, so the established temp-`pg`
-    live-apply step could not be executed from this worktree yet.
+- Live DB:
+  - Applied `0047_wall_structure_card.sql` directly to Supabase via the
+    established temp-`pg` script + `SUPABASE_DB_URL` pattern after
+    `.env.local` was copied into the worktree.
+  - Ran `0047_wall_structure_card.verification.sql` successfully against
+    the live DB (`begin; ... rollback;` verification passed).
+  - Extra live checks confirmed:
+    - `public.territories.wall_rank` exists
+    - `territories_wall_exclusive_check` exists as
+      `wall_rank IS NULL OR (castle_rank IS NULL AND village_rank IS NULL)`
+    - live function definitions for `build_structure`,
+      `_compute_effective_stats`, `_award_xp`,
+      `_finalize_battle_base_0025`, `get_viewport`, and
+      `get_minimap_overview` all include the expected wall logic/columns
+  - Migration file fix made during live apply: the first live attempt
+    exposed that the new `wall-*` template inserts were ordered before the
+    widened `card_templates_category_check`, so Postgres rejected
+    `category = 'wall'`. Fixed by moving the inserts to immediately after
+    the constraint rebuild; re-ran apply + verification successfully.
 
 ## Latest update — 2026-08-20h (diplomacy: wars, peace offers, /diplomacy, live in 0044-0046)
 

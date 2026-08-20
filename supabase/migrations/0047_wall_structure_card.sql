@@ -4,26 +4,6 @@ alter table territories
   add column if not exists wall_rank text
     check (wall_rank in ('common','uncommon','rare','epic','legend'));
 
-insert into card_templates (
-  id,
-  category,
-  unit_type,
-  rank,
-  name,
-  flavor_text,
-  base_stats,
-  defense_bonus_pct,
-  attack_bonus_pct,
-  total_supply
-)
-values
-  ('wall-common', 'wall', null, 'common', 'Hradby (common)', 'Pevné kamenné hradby dávají obráncům skromnou, ale univerzální ochranu i palebnou oporu.', null, 5, 5, 45),
-  ('wall-uncommon', 'wall', null, 'uncommon', 'Hradby (uncommon)', 'Rozšířené opevnění zpevňuje obrannou linii a pomáhá i střelcům na hradbách.', null, 10, 10, 23),
-  ('wall-rare', 'wall', null, 'rare', 'Hradby (rare)', 'Důkladně vystavěné hradby dávají obráncům citelnou výhodu v obraně i dálkovém boji.', null, 17, 17, 11),
-  ('wall-epic', 'wall', null, 'epic', 'Hradby (epic)', 'Mohutné městské opevnění chrání vojsko a současně zvyšuje sílu střelby z výšin.', null, 27, 27, 4),
-  ('wall-legend', 'wall', null, 'legend', 'Hradby (legend)', 'Legendární hradby mění území v téměř nedobytnou baštu a zvedají obráncům morálku i palebnou sílu.', null, 40, 40, 2)
-on conflict (id) do nothing;
-
 do $$
 declare
   v_constraint record;
@@ -84,6 +64,26 @@ alter table card_templates
           and pct_str is null and pct_lng is null and pct_def is null and pct_hp is null)
       )
     );
+
+insert into card_templates (
+  id,
+  category,
+  unit_type,
+  rank,
+  name,
+  flavor_text,
+  base_stats,
+  defense_bonus_pct,
+  attack_bonus_pct,
+  total_supply
+)
+values
+  ('wall-common', 'wall', null, 'common', 'Hradby (common)', 'Pevné kamenné hradby dávají obráncům skromnou, ale univerzální ochranu i palebnou oporu.', null, 5, 5, 45),
+  ('wall-uncommon', 'wall', null, 'uncommon', 'Hradby (uncommon)', 'Rozšířené opevnění zpevňuje obrannou linii a pomáhá i střelcům na hradbách.', null, 10, 10, 23),
+  ('wall-rare', 'wall', null, 'rare', 'Hradby (rare)', 'Důkladně vystavěné hradby dávají obráncům citelnou výhodu v obraně i dálkovém boji.', null, 17, 17, 11),
+  ('wall-epic', 'wall', null, 'epic', 'Hradby (epic)', 'Mohutné městské opevnění chrání vojsko a současně zvyšuje sílu střelby z výšin.', null, 27, 27, 4),
+  ('wall-legend', 'wall', null, 'legend', 'Hradby (legend)', 'Legendární hradby mění území v téměř nedobytnou baštu a zvedají obráncům morálku i palebnou sílu.', null, 40, 40, 2)
+on conflict (id) do nothing;
 
 alter table territories
   drop constraint if exists territories_wall_exclusive_check;
