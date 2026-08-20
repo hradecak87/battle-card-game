@@ -14,7 +14,42 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-20q (Two live bugs fixed: admin card grant unstationed, NPC-battle-breaking function overload ambiguity)
+
+- **admin_grant_card home-territory default**: admin dashboard's card-grant
+  form has an optional territory-ID field; leaving it blank inserted the
+  card with `stationed_territory_id = null` — visible in `/collection` but
+  unusable anywhere (garrison, battle picker, transfer all require a
+  stationed territory). Fixed to default to the target player's home
+  territory (`territories.is_home`) when unset. Applied live
+  (`supabase/migrations/0051_admin_grant_card_home_default.sql`); fixed the
+  6 already-granted unstationed cards for the reporting user directly.
+- **`_compute_effective_stats` overload ambiguity — real gameplay-breaking
+  bug**: `0047_wall_structure_card.sql` added a `p_wall_rank` param
+  (defaulted to null) to `_compute_effective_stats` /
+  `_compute_battle_effective_stats` but never dropped the pre-wall 6/9-param
+  overloads, so both versions coexisted live. Since the new param defaults
+  to null, any 6-arg call became ambiguous — `function
+  _compute_effective_stats(...) is not unique`. This broke **every** battle
+  round where an NPC had to auto-pick its defending card
+  (`_pick_npc_defender_card`'s attacker-side call was still 6 args, missed
+  in the 0047 wall-rank rollout). User hit this live while playing. Fixed
+  `0047`'s source (added the missing `drop function` statements + the
+  missing 7th arg) and applied the same fix live via
+  `supabase/migrations/0052_fix_compute_effective_stats_ambiguity.sql`.
+  Verified live: only the intentional `declare_attack` legacy-wrapper
+  overload remains repo-wide; a direct 6-arg `_compute_effective_stats` call
+  now resolves unambiguously.
+- Both committed together as `007abcc`, pushed to `origin/main`.
+- **Lesson for future migrations that widen a function's signature with a
+  new defaulted param**: always `drop function if exists <old signature>`
+  for every overload being superseded, and grep all call sites (including
+  ones outside the migration being written) for the old arg count —
+  otherwise old and new overloads silently coexist until a caller with the
+  old arg count hits "is not unique" in production.
+
 ## Latest update — 2026-08-20p (NPC garrison rank rebalance after map re-clustering, applied live)
+
 
 Follow-up to 2026-08-20k's explicit decision NOT to resync NPC garrisons at
 that time. User later noticed wild villages/castles whose `difficulty`
