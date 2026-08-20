@@ -38,10 +38,14 @@ import { useSession } from '@/lib/supabase/useSession'
 import { getRelation } from '@/lib/diplomacy/api'
 import type { DiplomacyRelationState } from '@/lib/diplomacy/types'
 
-// Capped below Supabase/PostgREST's default 1000-row response limit
-// (viewSize² must stay under that, confirmed live: a 35×35=1225 request
-// silently truncated to 1000 rows, dropping the last several columns).
-const ZOOM_LEVELS = [7, 11, 15, 19, 23, 27]
+// `get_viewport` (migration 0049) now returns one aggregated jsonb row
+// instead of one row per territory, so it's no longer subject to
+// Supabase/PostgREST's default 1000-row response cap that used to limit
+// viewSize to well under 32 (a 35x35=1225-tile request used to silently
+// truncate to 1000 rows, dropping the last several columns).
+// Kept odd so `half = floor(viewSize / 2)` centers the viewport exactly on
+// the requested (centerX, centerY) tile at every zoom step, same as before.
+const ZOOM_LEVELS = [5, 9, 15, 21, 29, 37, 49]
 const DEFAULT_ZOOM_INDEX = 2 // 15 tiles per side, same as the previous fixed size
 const MAP_MIN = 0
 const MAP_MAX = 255
