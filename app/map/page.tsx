@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   getViewport,
   getCardInstancesAtTerritory,
@@ -58,11 +58,26 @@ function clamp(value: number) {
   return Math.max(MAP_MIN, Math.min(MAP_MAX, value))
 }
 
+function getInitialCenter(searchParams: ReturnType<typeof useSearchParams>, key: 'x' | 'y') {
+  const raw = searchParams.get(key)
+  if (raw === null) return null
+
+  const parsed = Number.parseInt(raw, 10)
+  if (!Number.isFinite(parsed) || parsed < MAP_MIN || parsed > MAP_MAX) {
+    return null
+  }
+
+  return parsed
+}
+
 export default function MapPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user, player } = useSession()
-  const [centerX, setCenterX] = useState(128)
-  const [centerY, setCenterY] = useState(128)
+  const initialX = getInitialCenter(searchParams, 'x')
+  const initialY = getInitialCenter(searchParams, 'y')
+  const [centerX, setCenterX] = useState(initialX !== null && initialY !== null ? initialX : 128)
+  const [centerY, setCenterY] = useState(initialX !== null && initialY !== null ? initialY : 128)
   const [zoomIndex, setZoomIndex] = useState(DEFAULT_ZOOM_INDEX)
   const [territories, setTerritories] = useState<Territory[] | null>(null)
   const [error, setError] = useState<string | null>(null)
