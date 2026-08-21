@@ -23,6 +23,7 @@ export interface NpcTargetCoords {
 }
 
 export const NPC_ATTACK_POWER_RATIO = 1.2
+export const NPC_ATTACK_CANCEL_RATIO = 11 / 9
 
 export function chooseNpcAction({
   hasExpansionCandidates,
@@ -39,6 +40,16 @@ export function chooseNpcAction({
 
 export function canNpcAttackTarget({ availablePower, defenderPower }: NpcAttackThresholdInput): boolean {
   return availablePower >= defenderPower * NPC_ATTACK_POWER_RATIO
+}
+
+export function attackerWinProbability(attackerPower: number, defenderPower: number): number {
+  const totalPower = attackerPower + defenderPower
+  if (totalPower === 0) return 1
+  return attackerPower / totalPower
+}
+
+export function shouldNpcCancelAttack(attackerPower: number, defenderPower: number): boolean {
+  return defenderPower > NPC_ATTACK_CANCEL_RATIO * attackerPower
 }
 
 /**

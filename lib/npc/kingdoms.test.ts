@@ -1,7 +1,10 @@
 import {
+  attackerWinProbability,
   canNpcAttackTarget,
   chooseNpcAction,
+  NPC_ATTACK_CANCEL_RATIO,
   scheduleNpcNextActionAt,
+  shouldNpcCancelAttack,
   shouldUseAdjacentTier,
   selectNearestOriginTerritory,
 } from './kingdoms'
@@ -33,6 +36,40 @@ describe('canNpcAttackTarget', () => {
   it('requires the attacker to be meaningfully stronger than the defender', () => {
     expect(canNpcAttackTarget({ availablePower: 120, defenderPower: 100 })).toBe(true)
     expect(canNpcAttackTarget({ availablePower: 119, defenderPower: 100 })).toBe(false)
+  })
+})
+
+describe('attackerWinProbability', () => {
+  it('treats zero total power as a certain attacker win to avoid NaN', () => {
+    expect(attackerWinProbability(0, 0)).toBe(1)
+  })
+
+  it('matches the simple attacker-share formula', () => {
+    expect(attackerWinProbability(9, 11)).toBeCloseTo(0.45)
+    expect(attackerWinProbability(55, 45)).toBeCloseTo(0.55)
+  })
+})
+
+describe('shouldNpcCancelAttack', () => {
+  it('does not cancel exactly at the 45% threshold', () => {
+    expect(shouldNpcCancelAttack(90, NPC_ATTACK_CANCEL_RATIO * 90)).toBe(false)
+  })
+
+  it('cancels once the defender power rises just above the threshold', () => {
+    expect(shouldNpcCancelAttack(90, NPC_ATTACK_CANCEL_RATIO * 90 + 0.001)).toBe(true)
+  })
+
+  it('never cancels when there are no defenders', () => {
+    expect(shouldNpcCancelAttack(90, 0)).toBe(false)
+    expect(shouldNpcCancelAttack(0, 0)).toBe(false)
+  })
+
+  it('is true exactly when the attacker win probability drops below 45%', () => {
+    expect(shouldNpcCancelAttack(100, 122.2)).toBe(false)
+    expect(attackerWinProbability(100, 122.2)).toBeCloseTo(0.45)
+
+    expect(shouldNpcCancelAttack(100, 123)).toBe(true)
+    expect(attackerWinProbability(100, 123)).toBeLessThan(0.45)
   })
 })
 
