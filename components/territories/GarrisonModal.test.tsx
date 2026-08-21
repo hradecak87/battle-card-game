@@ -288,6 +288,64 @@ describe('GarrisonModal', () => {
     expect(onDeclareWar).toHaveBeenCalledWith('enemy-1')
   })
 
+  it('shows a coalition badge and hides the declare-war button for coalition members', () => {
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'ally-1' }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        ownerInfo={{
+          id: 'ally-1',
+          display_name: 'Spojenec',
+          nation: 'england',
+          kingdom_name: 'Koaliční koruna',
+          xp: 1000,
+          level: 5,
+        }}
+        relationState="coalition"
+        onDeclareWar={jest.fn()}
+      />
+    )
+
+    expect(screen.getByText('🤝 Koalice')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Vyhlásit válku/ })).not.toBeInTheDocument()
+  })
+
+  it('shows a pact badge and breaking-war button for non-aggression pacts', async () => {
+    const onDeclareWar = jest.fn().mockResolvedValue(undefined)
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'pact-1' }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        ownerInfo={{
+          id: 'pact-1',
+          display_name: 'Paktář',
+          nation: 'england',
+          kingdom_name: 'Paktová říše',
+          xp: 1000,
+          level: 5,
+        }}
+        relationState="non_aggression"
+        onDeclareWar={onDeclareWar}
+      />
+    )
+
+    expect(screen.getByText('🕊️ Pakt')).toBeInTheDocument()
+    const declareWarButton = screen.getByRole('button', { name: '⚔️ Zrušit pakt a vyhlásit válku' })
+    expect(declareWarButton).toHaveAttribute(
+      'title',
+      'Tímto krokem se zruší pakt o neútočení a okamžitě vyhlásí válka.'
+    )
+
+    fireEvent.click(declareWarButton)
+    await waitFor(() => expect(onDeclareWar).toHaveBeenCalledWith('pact-1'))
+  })
+
   it('does not show a "Vyhlásit válku" button for NPC owners even at peace', () => {
     render(
       <GarrisonModal

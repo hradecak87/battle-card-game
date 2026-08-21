@@ -1,7 +1,7 @@
 import type { Rank, RawStats, UnitType } from '@/lib/cards/types'
 
-export type DiplomacyRelationState = 'war' | 'peace'
-export type PeaceOfferKind = 'white_peace' | 'tribute_peace'
+export type DiplomacyRelationState = 'war' | 'non_aggression' | 'peace' | 'coalition'
+export type PeaceOfferKind = 'white_peace' | 'tribute_peace' | 'non_aggression'
 export type PeaceOfferStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled' | 'expired'
 
 export interface DiplomacyWarRow {
@@ -11,6 +11,15 @@ export interface DiplomacyWarRow {
   other_home_x: number | null
   other_home_y: number | null
   war_started_at: string
+}
+
+export interface NonAggressionPactRow {
+  other_player_id: string
+  other_player_display_name: string
+  other_kingdom_name: string | null
+  other_home_x: number | null
+  other_home_y: number | null
+  pact_started_at: string
 }
 
 export interface DiplomacyOfferedCard {
@@ -51,4 +60,48 @@ export interface ProposePeaceInput {
   kind: PeaceOfferKind
   offeredCardIds?: string[]
   offeredTerritoryId?: number | null
+}
+
+export interface CoalitionMember {
+  player_id: string
+  display_name: string
+  joined_at: string
+  is_leader: boolean
+  is_online: boolean
+}
+
+export interface CoalitionSummary {
+  id: string
+  name: string
+  leader_id: string
+  leader_display_name: string
+  member_count: number
+}
+
+export interface CoalitionDetail {
+  id: string | null
+  name: string | null
+  leader_id: string | null
+  leader_display_name: string | null
+  created_at: string | null
+  members: CoalitionMember[]
+}
+
+export interface CoalitionInviteRow {
+  id: string
+  coalition_id: string
+  coalition_name: string
+  leader_id: string
+  leader_display_name: string
+  invited_by: string
+  invited_by_display_name: string
+  created_at: string
+}
+
+export interface CoalitionJoinRequestRow {
+  id: string
+  coalition_id: string
+  player_id: string
+  player_display_name: string
+  created_at: string
 }

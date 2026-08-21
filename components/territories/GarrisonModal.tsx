@@ -606,6 +606,23 @@ export default function GarrisonModal({
               )}
               {!ownerInfoLoading && !ownerInfoError && ownerInfo && (
                 <div className="grid gap-1 sm:grid-cols-2">
+                  {(() => {
+                    const declareWarAction = onDeclareWar
+                    const canDeclareWarFromDiplomacy =
+                      (relationState === 'peace' || relationState === 'non_aggression') &&
+                      !ownerInfo.is_npc &&
+                      Boolean(declareWarAction)
+                    const declareWarLabel =
+                      relationState === 'non_aggression'
+                        ? '⚔️ Zrušit pakt a vyhlásit válku'
+                        : '⚔️ Vyhlásit válku'
+                    const declareWarTitle =
+                      relationState === 'non_aggression'
+                        ? 'Tímto krokem se zruší pakt o neútočení a okamžitě vyhlásí válka.'
+                        : undefined
+
+                    return (
+                      <>
                   <p>Jméno: {ownerInfo.display_name}</p>
                   {relationState === 'war' && (
                     <p className="sm:col-span-2">
@@ -618,7 +635,21 @@ export default function GarrisonModal({
                       </Link>
                     </p>
                   )}
-                  {relationState === 'peace' && !ownerInfo.is_npc && onDeclareWar && (
+                  {relationState === 'coalition' && (
+                    <p className="sm:col-span-2">
+                      <span className="inline-flex rounded-full border border-emerald-500/60 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-200">
+                        🤝 Koalice
+                      </span>
+                    </p>
+                  )}
+                  {relationState === 'non_aggression' && (
+                    <p className="sm:col-span-2">
+                      <span className="inline-flex rounded-full border border-sky-500/60 bg-sky-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sky-200">
+                        🕊️ Pakt
+                      </span>
+                    </p>
+                  )}
+                  {canDeclareWarFromDiplomacy && (
                     <div className="sm:col-span-2">
                       <button
                         type="button"
@@ -626,7 +657,7 @@ export default function GarrisonModal({
                           setDeclareWarError(null)
                           setDeclareWarLoading(true)
                           try {
-                            await onDeclareWar(ownerInfo.id)
+                            await declareWarAction!(ownerInfo.id)
                           } catch (err) {
                             setDeclareWarError(err instanceof Error ? err.message : 'Vyhlášení války selhalo.')
                           } finally {
@@ -634,9 +665,10 @@ export default function GarrisonModal({
                           }
                         }}
                         disabled={declareWarLoading}
+                        title={declareWarTitle}
                         className="inline-flex rounded-full border border-red-500/60 bg-red-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-red-200 disabled:opacity-50"
                       >
-                        {declareWarLoading ? 'Vyhlašuji válku…' : '⚔️ Vyhlásit válku'}
+                        {declareWarLoading ? 'Vyhlašuji válku…' : declareWarLabel}
                       </button>
                       {declareWarError && <p className="mt-1 text-xs text-red-400">{declareWarError}</p>}
                     </div>
@@ -647,6 +679,9 @@ export default function GarrisonModal({
                   <p>Národ: {formatNation(ownerInfo.nation)}</p>
                   {ownerInfo.kingdom_name && <p>Království: {ownerInfo.kingdom_name}</p>}
                   <p>Úroveň: {ownerInfo.level}</p>
+                      </>
+                    )
+                  })()}
                 </div>
               )}
             </div>

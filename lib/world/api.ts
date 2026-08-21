@@ -13,6 +13,16 @@ export type WorldEventType =
   | 'war_declared'
   | 'peace_signed'
   | 'claim_started'
+  | 'coalition_created'
+  | 'coalition_member_joined'
+  | 'coalition_member_left'
+  | 'coalition_member_kicked'
+  | 'coalition_leadership_transferred'
+  | 'coalition_disbanded'
+  | 'coalition_war_declared'
+  | 'coalition_peace_signed'
+  | 'non_aggression_signed'
+  | 'non_aggression_broken'
 
 export interface AttackInTransitRow {
   movement_id: string

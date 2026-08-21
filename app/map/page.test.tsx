@@ -362,6 +362,40 @@ describe('MapPage', () => {
     expect(screen.getByTestId('garrison-war-badge')).toHaveAttribute('href', '/diplomacy')
   })
 
+  it('passes coalition and non-aggression relation states through to the garrison modal', async () => {
+    sessionUser = { id: 'me' }
+    getViewport.mockResolvedValueOnce({
+      data: [mockTerritory(128, 128, { owner_id: 'other-player' })],
+      error: null,
+    })
+    getCardInstancesAtTerritory.mockResolvedValue({ data: [], error: null })
+    getPlayerPublicInfo.mockResolvedValue({
+      data: {
+        id: 'other-player',
+        display_name: 'Sir Testalot',
+        nation: 'england',
+        kingdom_name: 'Bílý lev',
+        xp: 1250,
+      },
+      error: null,
+    })
+    getRelation.mockResolvedValueOnce({ data: 'coalition', error: null })
+
+    const { rerender } = render(<MapPage />)
+    await waitFor(() => expect(screen.getByTestId('map-viewport')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: 'Území 128,128' }))
+    expect(await screen.findByText('🤝 Koalice')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Vyhlásit válku/ })).not.toBeInTheDocument()
+
+    getRelation.mockResolvedValueOnce({ data: 'non_aggression', error: null })
+    rerender(<MapPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Území 128,128' }))
+
+    expect(await screen.findByText('🕊️ Pakt')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '⚔️ Zrušit pakt a vyhlásit válku' })).toBeInTheDocument()
+  })
+
   it('shows the king relocation action for an eligible owned non-home territory and executes it', async () => {
     sessionUser = { id: 'me' }
     sessionPlayer = { xp: 10500, king_relocation_used_at: null }
