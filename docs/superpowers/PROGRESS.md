@@ -14,6 +14,50 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-21i (player search restored + critical `resolve_due_movements()` hotfix)
+
+- **Restored and finished the "player search for diplomacy targets" feature**
+  that had been sitting stashed (uncommitted) since before the coalitions
+  phase 2/3 merge:
+  - `0066_search_players.sql` — new `search_players(p_query, p_limit)`
+    RPC (`security definer`), matching display name / kingdom name / email
+    (email is match-only, never returned), 2-char minimum query, excludes
+    the caller and NPCs, capped at 25 results.
+  - `components/players/PlayerSearchInput.tsx` — debounced (300ms)
+    autocomplete input with online/offline dot, keyboard-safe
+    mousedown-before-blur selection, clear-selection affordance.
+  - `components/diplomacy/CoalitionPanel.tsx` and `PactList.tsx` — replaced
+    raw "paste a player UUID" text fields (invite / declare war / declare
+    peace / propose pact) with `PlayerSearchInput`.
+  - Live-applied `0066` to Supabase and re-ran its rollback-wrapped
+    verification — passed (display_name / kingdom_name / email match,
+    caller-exclusion, NPC-exclusion, short-query no-op, unauthenticated
+    rejection all covered).
+- **Found and fixed a critical production bug while live-applying `0066`**:
+  `0066`'s verification triggers `resolve_due_movements()` via kingdom
+  onboarding, which crashed with `relation "card_xp" does not exist`.
+  Root-caused to a leftover/erroneous statement in `0068_troop_lending.sql`
+  (introduced by the troop-lending background agent, never part of that
+  spec/plan) that inserted into a `card_xp` table that no migration ever
+  created — this broke **every territory claim completion in production**
+  (claims stuck in `'occupying'` forever) from the moment `0068` was
+  live-applied until this fix.
+  - `0071_fix_resolve_due_movements_card_xp.sql` redefines
+    `resolve_due_movements()` with that block removed; everything else is
+    byte-for-byte identical to `0068`'s version.
+  - `0071_fix_resolve_due_movements_card_xp.verification.sql` reproduces
+    the exact crash (an overdue claim occupation) and proves it now
+    completes cleanly (ownership transferred, movement marked
+    `'completed'`). Live-applied and verified.
+  - **Lesson**: a background implementation agent's own passing
+    verification does not guarantee full-path coverage — this slipped
+    through because the troop-lending verification never happened to
+    exercise a *completing* claim. Worth spot-checking merged migrations
+    for stray/unspec'd statements, especially ones touching tables that
+    don't otherwise exist in the schema.
+- Full suite after restoring player-search + the hotfix: `tsc` clean,
+  **96/96 suites, 666/666 tests**.
+
 ## Latest update — 2026-08-21h (troop lending wild-garrison cleanup follow-up)
 
 - **Closed the remaining troop-lending edge case** in `_resolve_round(...)`

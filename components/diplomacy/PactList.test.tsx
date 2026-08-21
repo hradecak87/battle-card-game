@@ -1,8 +1,19 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { PactList } from './PactList'
 import type { DiplomacyOfferRow, NonAggressionPactRow } from '@/lib/diplomacy/types'
 
+const searchPlayers = jest.fn()
+
+jest.mock('@/lib/players/api', () => ({
+  searchPlayers: (...args: unknown[]) => searchPlayers(...args),
+}))
+
 describe('PactList', () => {
+  beforeEach(() => {
+    searchPlayers.mockReset()
+  })
+
   it('renders active pacts, pending offers, and the proposal form', async () => {
     const onPropose = jest.fn().mockResolvedValue(undefined)
     const onAccept = jest.fn().mockResolvedValue(undefined)
@@ -70,9 +81,18 @@ describe('PactList', () => {
 
     expect(screen.getByRole('link', { name: 'Spojenec' })).toHaveAttribute('href', '/map?x=11&y=22')
 
-    fireEvent.change(screen.getByPlaceholderText('ID cílového hráče'), { target: { value: 'player-5' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Navrhnout pakt' }))
+    jest.useFakeTimers({ advanceTimers: true })
+    const user = userEvent.setup()
+    searchPlayers.mockResolvedValue({
+      data: [{ id: 'player-5', display_name: 'Cizí Král', kingdom_name: null, nation: 'england', is_online: true }],
+      error: null,
+    })
+    await user.type(screen.getByPlaceholderText(/Hledej hráče/), 'Cizí')
+    await waitFor(() => expect(screen.getByText('Cizí Král')).toBeInTheDocument())
+    await user.click(screen.getByText('Cizí Král'))
+    await user.click(screen.getByRole('button', { name: 'Navrhnout pakt' }))
     await waitFor(() => expect(onPropose).toHaveBeenCalledWith('player-5'))
+    jest.useRealTimers()
 
     fireEvent.click(screen.getByRole('button', { name: 'Přijmout' }))
     await waitFor(() => expect(onAccept).toHaveBeenCalledWith('offer-incoming'))
@@ -81,7 +101,7 @@ describe('PactList', () => {
     await waitFor(() => expect(onCancel).toHaveBeenCalledWith('offer-outgoing'))
   })
 
-  it('keeps the pact proposal input populated when proposing fails', async () => {
+  it('keeps the pact proposal selection populated when proposing fails', async () => {
     const onPropose = jest.fn().mockResolvedValue(false)
 
     render(
@@ -96,11 +116,19 @@ describe('PactList', () => {
       />
     )
 
-    const input = screen.getByPlaceholderText('ID cílového hráče') as HTMLInputElement
-    fireEvent.change(input, { target: { value: 'player-5' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Navrhnout pakt' }))
+    jest.useFakeTimers({ advanceTimers: true })
+    const user = userEvent.setup()
+    searchPlayers.mockResolvedValue({
+      data: [{ id: 'player-5', display_name: 'Cizí Král', kingdom_name: null, nation: 'england', is_online: true }],
+      error: null,
+    })
+    await user.type(screen.getByPlaceholderText(/Hledej hráče/), 'Cizí')
+    await waitFor(() => expect(screen.getByText('Cizí Král')).toBeInTheDocument())
+    await user.click(screen.getByText('Cizí Král'))
+    await user.click(screen.getByRole('button', { name: 'Navrhnout pakt' }))
 
     await waitFor(() => expect(onPropose).toHaveBeenCalledWith('player-5'))
-    expect(input.value).toBe('player-5')
+    expect(screen.getByText('Cizí Král')).toBeInTheDocument()
+    jest.useRealTimers()
   })
 })

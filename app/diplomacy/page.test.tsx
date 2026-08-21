@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import DiplomacyPage from './page'
 
 const useSession = jest.fn()
@@ -32,6 +33,7 @@ const declareCoalitionWar = jest.fn()
 const declareCoalitionPeace = jest.fn()
 const getMyCardInstances = jest.fn()
 const getMyTerritories = jest.fn()
+const searchPlayers = jest.fn()
 
 jest.mock('@/lib/supabase/useSession', () => ({
   useSession: () => useSession(),
@@ -71,6 +73,10 @@ jest.mock('@/lib/diplomacy/api', () => ({
 jest.mock('@/lib/territories/api', () => ({
   getMyCardInstances: (...args: unknown[]) => getMyCardInstances(...args),
   getMyTerritories: (...args: unknown[]) => getMyTerritories(...args),
+}))
+
+jest.mock('@/lib/players/api', () => ({
+  searchPlayers: (...args: unknown[]) => searchPlayers(...args),
 }))
 
 describe('DiplomacyPage', () => {
@@ -212,6 +218,7 @@ describe('DiplomacyPage', () => {
       data: [{ id: 9, x: 9, y: 10, is_home: false, castle_rank: null, village_rank: null, name: 'Pohraničí', battle_locked_by: null }],
       error: null,
     })
+    searchPlayers.mockReset().mockResolvedValue({ data: [], error: null })
   })
 
   it('renders the tabbed diplomacy layout and keeps stacked mobile sections', async () => {
@@ -253,9 +260,19 @@ describe('DiplomacyPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Pakty' }))
     expect(screen.getByRole('link', { name: 'Spojenec' })).toHaveAttribute('href', '/map?x=33&y=44')
 
-    fireEvent.change(screen.getByPlaceholderText('ID cílového hráče'), { target: { value: 'player-5' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Navrhnout pakt' }))
+    jest.useFakeTimers({ advanceTimers: true })
+    const user = userEvent.setup()
+    searchPlayers.mockResolvedValue({
+      data: [{ id: 'player-5', display_name: 'Nový Spojenec', kingdom_name: null, nation: 'england', is_online: true }],
+      error: null,
+    })
+
+    await user.type(screen.getByPlaceholderText(/Hledej hráče/), 'nov')
+    await waitFor(() => expect(screen.getByText('Nový Spojenec')).toBeInTheDocument())
+    await user.click(screen.getByText('Nový Spojenec'))
+    await user.click(screen.getByRole('button', { name: 'Navrhnout pakt' }))
 
     await waitFor(() => expect(proposeNonAggression).toHaveBeenCalledWith('player-5'))
+    jest.useRealTimers()
   })
 })

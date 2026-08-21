@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import type { DiplomacyOfferRow, NonAggressionPactRow } from '@/lib/diplomacy/types'
+import { PlayerSearchInput, type PlayerSearchSelection } from '@/components/players/PlayerSearchInput'
 
 type ActionResult = void | boolean | Promise<void | boolean>
 
@@ -29,27 +30,25 @@ function pactLink(pact: NonAggressionPactRow) {
 }
 
 export function PactList({ pacts, offers, currentPlayerId, onPropose, onAccept, onReject, onCancel }: PactListProps) {
-  const [targetPlayerId, setTargetPlayerId] = useState('')
+  const [targetPlayer, setTargetPlayer] = useState<PlayerSearchSelection | null>(null)
 
   return (
     <div className="space-y-4">
       <section className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
         <h3 className="text-lg font-semibold text-zinc-100">Navrhnout pakt o neútočení</h3>
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-          <input
-            value={targetPlayerId}
-            onChange={(event) => setTargetPlayerId(event.target.value)}
-            placeholder="ID cílového hráče"
-            className="flex-1 rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
-          />
+          <div className="flex-1">
+            <PlayerSearchInput value={targetPlayer} onChange={setTargetPlayer} />
+          </div>
           <button
             type="button"
             onClick={async () => {
-              if (!targetPlayerId.trim()) return
-              const ok = await onPropose(targetPlayerId.trim())
-              if (ok !== false) setTargetPlayerId('')
+              if (!targetPlayer) return
+              const ok = await onPropose(targetPlayer.id)
+              if (ok !== false) setTargetPlayer(null)
             }}
-            className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white"
+            disabled={!targetPlayer}
+            className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
             Navrhnout pakt
           </button>

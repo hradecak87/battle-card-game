@@ -8,6 +8,7 @@ import type {
   CoalitionMember,
   CoalitionSummary,
 } from '@/lib/diplomacy/types'
+import { PlayerSearchInput, type PlayerSearchSelection } from '@/components/players/PlayerSearchInput'
 
 type ActionResult = void | boolean | Promise<void | boolean>
 
@@ -107,9 +108,9 @@ export function CoalitionPanel({
   onDeclarePeace,
 }: CoalitionPanelProps) {
   const [newCoalitionName, setNewCoalitionName] = useState('')
-  const [invitePlayerId, setInvitePlayerId] = useState('')
-  const [warTargetId, setWarTargetId] = useState('')
-  const [peaceTargetId, setPeaceTargetId] = useState('')
+  const [invitePlayer, setInvitePlayer] = useState<PlayerSearchSelection | null>(null)
+  const [warTarget, setWarTarget] = useState<PlayerSearchSelection | null>(null)
+  const [peaceTarget, setPeaceTarget] = useState<PlayerSearchSelection | null>(null)
 
   const activeCoalition = myCoalition?.id ? myCoalition : null
   const isLeader = activeCoalition?.leader_id === currentPlayerId
@@ -252,20 +253,16 @@ export function CoalitionPanel({
           <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
             <h4 className="font-semibold text-zinc-100">Pozvat hráče</h4>
             <div className="mt-3 flex flex-col gap-2">
-              <input
-                value={invitePlayerId}
-                onChange={(event) => setInvitePlayerId(event.target.value)}
-                placeholder="ID hráče"
-                className="rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
-              />
+              <PlayerSearchInput value={invitePlayer} onChange={setInvitePlayer} />
               <button
                 type="button"
                 onClick={async () => {
-                  if (!invitePlayerId.trim()) return
-                  const ok = await onInvite(coalitionId, invitePlayerId.trim())
-                  if (ok !== false) setInvitePlayerId('')
+                  if (!invitePlayer) return
+                  const ok = await onInvite(coalitionId, invitePlayer.id)
+                  if (ok !== false) setInvitePlayer(null)
                 }}
-                className="rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white"
+                disabled={!invitePlayer}
+                className="rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
               >
                 Odeslat pozvánku
               </button>
@@ -275,20 +272,16 @@ export function CoalitionPanel({
           <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
             <h4 className="font-semibold text-zinc-100">Koaliční válka</h4>
             <div className="mt-3 flex flex-col gap-2">
-              <input
-                value={warTargetId}
-                onChange={(event) => setWarTargetId(event.target.value)}
-                placeholder="ID cílového hráče"
-                className="rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
-              />
+              <PlayerSearchInput value={warTarget} onChange={setWarTarget} />
               <button
                 type="button"
                 onClick={async () => {
-                  if (!warTargetId.trim()) return
-                  const ok = await onDeclareWar(warTargetId.trim())
-                  if (ok !== false) setWarTargetId('')
+                  if (!warTarget) return
+                  const ok = await onDeclareWar(warTarget.id)
+                  if (ok !== false) setWarTarget(null)
                 }}
-                className="rounded-full bg-red-700 px-4 py-2 text-sm font-semibold text-white"
+                disabled={!warTarget}
+                className="rounded-full bg-red-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
               >
                 Vyhlásit válku
               </button>
@@ -298,20 +291,16 @@ export function CoalitionPanel({
           <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
             <h4 className="font-semibold text-zinc-100">Koaliční mír</h4>
             <div className="mt-3 flex flex-col gap-2">
-              <input
-                value={peaceTargetId}
-                onChange={(event) => setPeaceTargetId(event.target.value)}
-                placeholder="ID cílového hráče"
-                className="rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
-              />
+              <PlayerSearchInput value={peaceTarget} onChange={setPeaceTarget} />
               <button
                 type="button"
                 onClick={async () => {
-                  if (!peaceTargetId.trim()) return
-                  const ok = await onDeclarePeace(peaceTargetId.trim())
-                  if (ok !== false) setPeaceTargetId('')
+                  if (!peaceTarget) return
+                  const ok = await onDeclarePeace(peaceTarget.id)
+                  if (ok !== false) setPeaceTarget(null)
                 }}
-                className="rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white"
+                disabled={!peaceTarget}
+                className="rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
               >
                 Navrhnout mír
               </button>

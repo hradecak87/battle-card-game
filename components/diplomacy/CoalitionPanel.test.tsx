@@ -1,10 +1,36 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { CoalitionPanel } from './CoalitionPanel'
 import type { CoalitionDetail, CoalitionInviteRow, CoalitionJoinRequestRow, CoalitionSummary } from '@/lib/diplomacy/types'
 
 const noop = jest.fn()
+const searchPlayers = jest.fn()
+
+jest.mock('@/lib/players/api', () => ({
+  searchPlayers: (...args: unknown[]) => searchPlayers(...args),
+}))
+
+async function pickPlayer(
+  user: ReturnType<typeof userEvent.setup>,
+  sectionHeading: string,
+  searchQuery: string,
+  resultLabel: string,
+) {
+  const heading = screen.getByText(sectionHeading)
+  const section = heading.closest('div')
+  if (!section) throw new Error(`Could not find section for heading "${sectionHeading}"`)
+  const input = within(section).getByPlaceholderText(/Hledej hráče/)
+  await user.type(input, searchQuery)
+  await waitFor(() => expect(within(section).getByText(resultLabel)).toBeInTheDocument())
+  await user.click(within(section).getByText(resultLabel))
+}
 
 describe('CoalitionPanel', () => {
+  beforeEach(() => {
+    searchPlayers.mockReset()
+    searchPlayers.mockResolvedValue({ data: [], error: null })
+  })
+
   it('renders browse/create state with invites for players outside a coalition', async () => {
     const onCreate = jest.fn().mockResolvedValue(undefined)
     const onAcceptInvite = jest.fn().mockResolvedValue(undefined)
@@ -160,12 +186,31 @@ describe('CoalitionPanel', () => {
       />
     )
 
-    fireEvent.change(screen.getByPlaceholderText('ID hráče'), { target: { value: 'candidate-2' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Odeslat pozvánku' }))
+    jest.useFakeTimers({ advanceTimers: true })
+    const user = userEvent.setup()
+    searchPlayers.mockImplementation((query: string) => {
+      const q = query.toLowerCase()
+      if (q.startsWith('can')) {
+        return Promise.resolve({
+          data: [{ id: 'candidate-2', display_name: 'Candidate Two', kingdom_name: null, nation: 'england', is_online: true }],
+          error: null,
+        })
+      }
+      if (q.startsWith('ene')) {
+        return Promise.resolve({
+          data: [{ id: 'enemy-1', display_name: 'Enemy One', kingdom_name: null, nation: 'francia', is_online: false }],
+          error: null,
+        })
+      }
+      return Promise.resolve({ data: [], error: null })
+    })
+
+    await pickPlayer(user, 'Pozvat hráče', 'can', 'Candidate Two')
+    await user.click(screen.getByRole('button', { name: 'Odeslat pozvánku' }))
     await waitFor(() => expect(onInvite).toHaveBeenCalledWith('coalition-1', 'candidate-2'))
 
-    fireEvent.change(screen.getAllByPlaceholderText('ID cílového hráče')[0], { target: { value: 'enemy-1' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Vyhlásit válku' }))
+    await pickPlayer(user, 'Koaliční válka', 'ene', 'Enemy One')
+    await user.click(screen.getByRole('button', { name: 'Vyhlásit válku' }))
     await waitFor(() => expect(onDeclareWar).toHaveBeenCalledWith('enemy-1'))
 
     fireEvent.click(screen.getByRole('button', { name: 'Schválit' }))
@@ -176,9 +221,10 @@ describe('CoalitionPanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Předat vedení' }))
     await waitFor(() => expect(onTransferLeadership).toHaveBeenCalledWith('member-2'))
+    jest.useRealTimers()
   })
 
-  it('keeps leader action inputs populated when the action fails', async () => {
+  it('keeps the leader action selection populated when the action fails', async () => {
     const onInvite = jest.fn().mockResolvedValue(false)
     const onDeclareWar = jest.fn().mockResolvedValue(false)
     const onDeclarePeace = jest.fn().mockResolvedValue(false)
@@ -222,21 +268,45 @@ describe('CoalitionPanel', () => {
       />
     )
 
-    const inviteInput = screen.getByPlaceholderText('ID hráče') as HTMLInputElement
-    fireEvent.change(inviteInput, { target: { value: 'candidate-2' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Odeslat pozvánku' }))
+    jest.useFakeTimers({ advanceTimers: true })
+    const user = userEvent.setup()
+    searchPlayers.mockImplementation((query: string) => {
+      const q = query.toLowerCase()
+      if (q.startsWith('can')) {
+        return Promise.resolve({
+          data: [{ id: 'candidate-2', display_name: 'Candidate Two', kingdom_name: null, nation: 'england', is_online: true }],
+          error: null,
+        })
+      }
+      if (q.startsWith('en1')) {
+        return Promise.resolve({
+          data: [{ id: 'enemy-1', display_name: 'Enemy One', kingdom_name: null, nation: 'francia', is_online: false }],
+          error: null,
+        })
+      }
+      if (q.startsWith('en2')) {
+        return Promise.resolve({
+          data: [{ id: 'enemy-2', display_name: 'Enemy Two', kingdom_name: null, nation: 'francia', is_online: false }],
+          error: null,
+        })
+      }
+      return Promise.resolve({ data: [], error: null })
+    })
+
+    await pickPlayer(user, 'Pozvat hráče', 'can', 'Candidate Two')
+    await user.click(screen.getByRole('button', { name: 'Odeslat pozvánku' }))
     await waitFor(() => expect(onInvite).toHaveBeenCalledWith('coalition-1', 'candidate-2'))
-    expect(inviteInput.value).toBe('candidate-2')
+    expect(screen.getByText('Candidate Two')).toBeInTheDocument()
 
-    const targetInputs = screen.getAllByPlaceholderText('ID cílového hráče') as HTMLInputElement[]
-    fireEvent.change(targetInputs[0], { target: { value: 'enemy-1' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Vyhlásit válku' }))
+    await pickPlayer(user, 'Koaliční válka', 'en1', 'Enemy One')
+    await user.click(screen.getByRole('button', { name: 'Vyhlásit válku' }))
     await waitFor(() => expect(onDeclareWar).toHaveBeenCalledWith('enemy-1'))
-    expect(targetInputs[0].value).toBe('enemy-1')
+    expect(screen.getByText('Enemy One')).toBeInTheDocument()
 
-    fireEvent.change(targetInputs[1], { target: { value: 'enemy-2' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Navrhnout mír' }))
+    await pickPlayer(user, 'Koaliční mír', 'en2', 'Enemy Two')
+    await user.click(screen.getByRole('button', { name: 'Navrhnout mír' }))
     await waitFor(() => expect(onDeclarePeace).toHaveBeenCalledWith('enemy-2'))
-    expect(targetInputs[1].value).toBe('enemy-2')
+    expect(screen.getByText('Enemy Two')).toBeInTheDocument()
+    jest.useRealTimers()
   })
 })

@@ -18,3 +18,21 @@ export async function claimDailyReward() {
     error: { message: string } | null
   }>
 }
+
+export interface PlayerSearchResult {
+  id: string
+  display_name: string
+  kingdom_name: string | null
+  nation: string
+  is_online: boolean
+}
+
+export async function searchPlayers(query: string, limit = 8) {
+  return supabase.rpc('search_players', {
+    p_query: query,
+    p_limit: limit,
+  }) as unknown as Promise<{
+    data: PlayerSearchResult[] | null
+    error: { message: string } | null
+  }>
+}
