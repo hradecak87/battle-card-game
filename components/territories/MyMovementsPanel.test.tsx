@@ -216,6 +216,27 @@ describe('MyMovementsPanel', () => {
     expect(territoryLink.closest('a')).toHaveAttribute('href', '/map?x=5&y=9')
   })
 
+  it('uses onNavigateToTerritory (instead of a Link) for the recently resolved battle territory when provided, since same-route Link navigation does not reliably update the map', async () => {
+    getMyMovements.mockResolvedValue({ data: [], error: null })
+    getMyRecentlyResolvedBattles.mockResolvedValue({
+      data: [{ id: 'battle-npc-1', territory_id: 83, current_round: 164, resolved_at: new Date().toISOString() }],
+      error: null,
+    })
+    getTerritoriesByIds.mockResolvedValue({
+      data: [{ id: 83, x: 5, y: 9, name: null }],
+      error: null,
+    })
+    getLastSeenRound.mockReturnValue(0)
+
+    const onNavigateToTerritory = jest.fn()
+    render(<MyMovementsPanel myPlayerId="me" onNavigateToTerritory={onNavigateToTerritory} />)
+
+    const territoryButton = await screen.findByText('5, 9')
+    expect(territoryButton.closest('a')).toBeNull()
+    await userEvent.click(territoryButton)
+    expect(onNavigateToTerritory).toHaveBeenCalledWith(5, 9)
+  })
+
   it('hides a recently resolved battle once its rounds have already been fully viewed', async () => {
     getMyMovements.mockResolvedValue({ data: [], error: null })
     getMyRecentlyResolvedBattles.mockResolvedValue({

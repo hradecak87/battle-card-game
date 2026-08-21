@@ -180,9 +180,19 @@ export default function MyMovementsPanel({ myPlayerId, refreshKey, onNavigateToT
                 <span>
                   Bitva dokončena (
                   {territory ? (
-                    <Link href={`/map?x=${territory.x}&y=${territory.y}`} className="underline hover:text-zinc-100">
-                      {territory.name ?? `${territory.x}, ${territory.y}`}
-                    </Link>
+                    onNavigateToTerritory ? (
+                      <button
+                        type="button"
+                        onClick={() => onNavigateToTerritory(territory.x, territory.y)}
+                        className="underline hover:text-zinc-100"
+                      >
+                        {territory.name ?? `${territory.x}, ${territory.y}`}
+                      </button>
+                    ) : (
+                      <Link href={`/map?x=${territory.x}&y=${territory.y}`} className="underline hover:text-zinc-100">
+                        {territory.name ?? `${territory.x}, ${territory.y}`}
+                      </Link>
+                    )
                   ) : (
                     `území ${b.territory_id}`
                   )}
