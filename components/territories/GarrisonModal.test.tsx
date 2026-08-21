@@ -174,6 +174,7 @@ describe('GarrisonModal', () => {
 
   it("shows the transfer button for the viewer's own territory and wires it correctly", () => {
     const onTransfer = jest.fn()
+    const onLend = jest.fn()
     render(
       <GarrisonModal
         territory={{ ...baseTerritory, owner_id: 'me' }}
@@ -183,14 +184,39 @@ describe('GarrisonModal', () => {
         onRename={jest.fn()}
         myPlayerId="me"
         onTransfer={onTransfer}
+        onLend={onLend}
       />
     )
 
     const button = screen.getByRole('button', { name: /Přesunout vojska/ })
+    const lendButton = screen.getByRole('button', { name: /Půjčit vojska/ })
     expect(screen.queryByRole('button', { name: /Zaútočit/ })).not.toBeInTheDocument()
 
     fireEvent.click(button)
+    fireEvent.click(lendButton)
     expect(onTransfer).toHaveBeenCalled()
+    expect(onLend).toHaveBeenCalled()
+  })
+
+  it('shows a loan badge on borrowed stationed units', () => {
+    render(
+      <GarrisonModal
+        territory={baseTerritory}
+        instances={[
+          {
+            ...stationedUnit,
+            loaned_from_id: 'ally-1',
+            loan_return_at: new Date().toISOString(),
+            loaned_from_display_name: 'Spojenec',
+          },
+        ]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+      />
+    )
+
+    expect(screen.getByText('na půjčku od Spojenec')).toBeInTheDocument()
   })
 
   it('shows a generic "in battle" message when no ETA is known', () => {

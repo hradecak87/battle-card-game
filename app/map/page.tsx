@@ -27,7 +27,9 @@ import {
 import MapViewport from '@/components/territories/MapViewport'
 import GarrisonModal from '@/components/territories/GarrisonModal'
 import DeclareAttackModal from '@/components/territories/DeclareAttackModal'
+import LendModal from '@/components/territories/LendModal'
 import TransferModal from '@/components/territories/TransferModal'
+import MyLoansPanel from '@/components/territories/MyLoansPanel'
 import MyMovementsPanel from '@/components/territories/MyMovementsPanel'
 import MapMovementArrows from '@/components/territories/MapMovementArrows'
 import { useTerritoryBattleChannel } from '@/lib/battles/useTerritoryBattleChannel'
@@ -104,6 +106,7 @@ function MapPageContent() {
   const [ownedTerritories, setOwnedTerritories] = useState<MyTerritory[] | null>(null)
   const [structureCardInstances, setStructureCardInstances] = useState<CardInstanceWithTemplate[] | null>(null)
   const [showAttackModal, setShowAttackModal] = useState(false)
+  const [showLendModal, setShowLendModal] = useState(false)
   const [showTransferModal, setShowTransferModal] = useState(false)
   const [showMovementArrows, setShowMovementArrows] = useState(false)
   const [movementsRefreshKey, setMovementsRefreshKey] = useState(0)
@@ -335,6 +338,7 @@ function MapPageContent() {
     setClaimInfo(null)
     setRelationState(null)
     setShowAttackModal(false)
+    setShowLendModal(false)
     setShowTransferModal(false)
     const shouldLoadOwnerInfo = Boolean(tile.owner_id && tile.owner_id !== user?.id)
     setOwnerInfoLoading(shouldLoadOwnerInfo)
@@ -453,6 +457,7 @@ function MapPageContent() {
           refreshKey={movementsRefreshKey}
           onNavigateToTerritory={handleJump}
         />
+        <MyLoansPanel myPlayerId={user?.id ?? null} refreshKey={movementsRefreshKey} onNavigateToTerritory={handleJump} />
 
         {incomingBattleAlerts.length > 0 && (
           <div className="flex flex-col gap-3">
@@ -544,6 +549,7 @@ function MapPageContent() {
             onClose={() => setSelectedTile(null)}
             myPlayerId={user?.id ?? null}
             onAttack={() => setShowAttackModal(true)}
+            onLend={() => setShowLendModal(true)}
             onTransfer={() => setShowTransferModal(true)}
             ownerInfo={ownerInfo}
             ownerInfoLoading={ownerInfoLoading}
@@ -604,6 +610,20 @@ function MapPageContent() {
             myPlayerId={user?.id ?? null}
             onClose={() => setShowAttackModal(false)}
             onDeclared={() => {
+              loadViewport(centerX, centerY, viewSize)
+              setMovementsRefreshKey((k) => k + 1)
+            }}
+          />
+        )}
+
+        {selectedTile && showLendModal && (
+          <LendModal
+            originTerritory={selectedTile}
+            myPlayerId={user?.id ?? null}
+            instances={garrison}
+            onClose={() => setShowLendModal(false)}
+            onLent={() => {
+              setShowLendModal(false)
               loadViewport(centerX, centerY, viewSize)
               setMovementsRefreshKey((k) => k + 1)
             }}

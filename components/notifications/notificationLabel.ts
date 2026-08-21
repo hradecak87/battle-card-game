@@ -24,6 +24,12 @@ export function notificationLabel(notification: NotificationRow): string {
       return 'Nová zpráva'
     case 'attack_cancelled':
       return 'NPC útok zrušen'
+    case 'loan_arrived':
+      return 'Půjčená vojska dorazila'
+    case 'loan_returned':
+      return 'Půjčená vojska se vrací'
+    case 'loan_auto_recalled':
+      return 'Půjčka byla odvolána'
     default:
       return 'Nové oznámení'
   }

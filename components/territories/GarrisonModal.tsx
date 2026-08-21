@@ -32,6 +32,7 @@ export interface GarrisonModalProps {
   myPlayerId?: string | null
   onAttack?: () => void
   onTransfer?: () => void
+  onLend?: () => void
   ownerInfo?: GarrisonModalOwnerInfo | null
   ownerInfoLoading?: boolean
   ownerInfoError?: string | null
@@ -134,6 +135,7 @@ export default function GarrisonModal({
   myPlayerId,
   onAttack,
   onTransfer,
+  onLend,
   ownerInfo,
   ownerInfoLoading,
   ownerInfoError,
@@ -275,6 +277,15 @@ export default function GarrisonModal({
                 className="rounded bg-emerald-700 hover:bg-emerald-600 px-3 py-1 text-sm font-semibold text-white"
               >
                 Přesunout vojska
+              </button>
+            )}
+            {canTransfer && onLend && (
+              <button
+                type="button"
+                onClick={onLend}
+                className="rounded bg-sky-700 hover:bg-sky-600 px-3 py-1 text-sm font-semibold text-white"
+              >
+                Půjčit vojska
               </button>
             )}
             {canTransfer && !renaming && (
@@ -790,6 +801,11 @@ export default function GarrisonModal({
                   )}
                   {instance.status === 'in_transit' && (
                     <span className="text-[10px] text-zinc-500">na cestě</span>
+                  )}
+                  {instance.loaned_from_display_name && (
+                    <span className="rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-[10px] text-sky-200">
+                      na půjčku od {instance.loaned_from_display_name}
+                    </span>
                   )}
                 </div>
               )

@@ -200,6 +200,51 @@ describe('POST /api/push/send', () => {
     expect(response.status).toBe(200)
   })
 
+  it('formats loan_auto_recalled pushes with the other player name and map payload', async () => {
+    sendPush.mockResolvedValue({ statusCode: 201 })
+
+    const { POST } = await import('./route')
+    const response = await POST(
+      new Request('http://localhost/api/push/send', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-push-webhook-secret': 'super-secret-value',
+        },
+        body: JSON.stringify({
+          type: 'INSERT',
+          table: 'notifications',
+          record: {
+            id: 3,
+            player_id: 'player-1',
+            type: 'loan_auto_recalled',
+            payload: {
+              territory_id: 11,
+              territory_x: 6,
+              territory_y: 9,
+              territory_name: 'Spojenecká bašta',
+              other_player_id: 'player-2',
+              other_display_name: 'Spojenec',
+            },
+            is_read: false,
+            created_at: '2026-08-20T12:00:00.000Z',
+          },
+        }),
+      }),
+    )
+
+    expect(sendPush).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ id: 1 }),
+      expect.objectContaining({
+        title: 'Půjčka byla odvolána',
+        body: 'Spojenec',
+        type: 'loan_auto_recalled',
+      }),
+    )
+    expect(response.status).toBe(200)
+  })
+
   it('deletes only the expired subscription when a push service returns 410', async () => {
     sendPush
       .mockRejectedValueOnce(Object.assign(new Error('Gone'), { statusCode: 410 }))

@@ -10,6 +10,9 @@ export type NotificationType =
   | 'level_up'
   | 'dm_message'
   | 'attack_cancelled'
+  | 'loan_arrived'
+  | 'loan_returned'
+  | 'loan_auto_recalled'
 
 export interface AttackIncomingNotificationPayload {
   territory_id: number
@@ -70,6 +73,15 @@ export interface AttackCancelledNotificationPayload {
   attacker_display_name: string
 }
 
+export interface LoanNotificationPayload {
+  territory_id: number
+  territory_x: number
+  territory_y: number
+  territory_name: string | null
+  other_player_id: string | null
+  other_display_name: string
+}
+
 export interface NotificationPayloadByType {
   attack_incoming: AttackIncomingNotificationPayload
   war_declared: WarDeclaredNotificationPayload
@@ -82,6 +94,9 @@ export interface NotificationPayloadByType {
   level_up: LevelUpNotificationPayload
   dm_message: DmMessageNotificationPayload
   attack_cancelled: AttackCancelledNotificationPayload
+  loan_arrived: LoanNotificationPayload
+  loan_returned: LoanNotificationPayload
+  loan_auto_recalled: LoanNotificationPayload
 }
 
 interface NotificationRowBase<TType extends NotificationType> {

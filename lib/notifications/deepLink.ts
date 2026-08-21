@@ -28,6 +28,9 @@ export function getDeepLink(notification: NotificationRow): string {
         ? `/map?x=${notification.payload.x}&y=${notification.payload.y}`
         : '/notifications'
     case 'attack_cancelled':
+    case 'loan_arrived':
+    case 'loan_returned':
+    case 'loan_auto_recalled':
       return hasTerritoryCoordinates(notification.payload)
         ? `/map?x=${notification.payload.territory_x}&y=${notification.payload.territory_y}`
         : '/notifications'

@@ -68,6 +68,9 @@ function getDeepLinkForServiceWorker(data) {
         ? `/map?x=${data.payload.x}&y=${data.payload.y}`
         : '/notifications'
     case 'attack_cancelled':
+    case 'loan_arrived':
+    case 'loan_returned':
+    case 'loan_auto_recalled':
       return hasTerritoryCoordinates(data.payload)
         ? `/map?x=${data.payload.territory_x}&y=${data.payload.territory_y}`
         : '/notifications'

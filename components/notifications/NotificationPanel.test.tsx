@@ -75,6 +75,18 @@ describe('NotificationPanel', () => {
             attacker_display_name: 'Severské NPC',
           },
         }),
+        createNotification({
+          id: 14,
+          type: 'loan_auto_recalled',
+          payload: {
+            territory_id: 45,
+            territory_x: 4,
+            territory_y: 9,
+            territory_name: 'Spojenecká bašta',
+            other_player_id: 'player-4',
+            other_display_name: 'Spojenec',
+          },
+        }),
         ]}
         refresh={jest.fn()}
         onClose={jest.fn()}
@@ -84,7 +96,9 @@ describe('NotificationPanel', () => {
     expect(screen.getByText('Útok na tvé území')).toBeInTheDocument()
     expect(screen.getByText('Obchodní nabídka přijata')).toBeInTheDocument()
     expect(screen.getByText('NPC útok zrušen')).toBeInTheDocument()
+    expect(screen.getByText('Půjčka byla odvolána')).toBeInTheDocument()
     expect(screen.getByText('Severské NPC')).toBeInTheDocument()
+    expect(screen.getAllByText('Spojenec')).toHaveLength(2)
     expect(screen.getByTestId('notification-panel')).toHaveClass(
       'fixed',
       'inset-0',

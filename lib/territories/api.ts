@@ -56,7 +56,7 @@ export interface MinimapTile {
 export interface TroopMovement {
   id: string
   player_id: string
-  kind: 'transfer' | 'claim' | 'attack'
+  kind: 'transfer' | 'claim' | 'attack' | 'loan' | 'loan_return'
   origin_territory_id: number
   destination_territory_id: number
   started_at: string
@@ -433,6 +433,9 @@ export interface CardInstanceWithTemplate {
   stationed_territory_id: number | null
   status: 'stationed' | 'in_transit' | 'deposit'
   deposit_expires_at?: string | null
+  loaned_from_id?: string | null
+  loan_return_at?: string | null
+  loaned_from_display_name?: string | null
   is_masked?: boolean
   card_templates: {
     id: string
@@ -522,6 +525,49 @@ export async function startTransfer(
     destination_territory_id: destinationTerritoryId,
     card_instance_ids: cardInstanceIds,
   })
+}
+
+export interface MyLoan {
+  destination_territory_id: number
+  destination_territory_x: number
+  destination_territory_y: number
+  destination_territory_name: string | null
+  borrower_id: string
+  borrower_display_name: string
+  loan_return_at: string
+  card_instance_ids: string[]
+  card_names: string[]
+}
+
+export async function lendTroops(
+  destinationTerritoryId: number,
+  cardInstanceIds: string[],
+  durationHours: number
+) {
+  return supabase.rpc('lend_troops', {
+    p_destination_territory_id: destinationTerritoryId,
+    p_card_instance_ids: cardInstanceIds,
+    p_duration_hours: durationHours,
+  }) as unknown as Promise<{
+    data: null
+    error: { message: string } | null
+  }>
+}
+
+export async function recallLoan(cardInstanceId: string) {
+  return supabase.rpc('recall_loan', {
+    p_card_instance_id: cardInstanceId,
+  }) as unknown as Promise<{
+    data: null
+    error: { message: string } | null
+  }>
+}
+
+export async function getMyLoans() {
+  return supabase.rpc('get_my_loans') as unknown as Promise<{
+    data: MyLoan[] | null
+    error: { message: string } | null
+  }>
 }
 
 export async function cancelClaim(territoryId: number) {

@@ -68,6 +68,10 @@ function notificationBody(notification: NotificationRow) {
       return notification.payload.other_display_name
     case 'attack_cancelled':
       return notification.payload.attacker_display_name
+    case 'loan_arrived':
+    case 'loan_returned':
+    case 'loan_auto_recalled':
+      return notification.payload.other_display_name
     case 'battle_resolved':
       return notification.payload.outcome === 'won' ? 'Vyhrál/a jsi bitvu.' : 'Prohrál/a jsi bitvu.'
     case 'level_up':
