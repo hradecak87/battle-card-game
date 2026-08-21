@@ -14,6 +14,28 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-21f (NPC attack cancellation)
+
+- **Implemented the approved NPC attack cancellation flow**:
+  - `lib/npc/kingdoms.ts` adds `NPC_ATTACK_CANCEL_RATIO`,
+    `attackerWinProbability()`, and `shouldNpcCancelAttack()` with new
+    Jest coverage in `lib/npc/kingdoms.test.ts` (written red→green first).
+  - `supabase/migrations/0067_npc_attack_cancellation.sql` adds
+    `troop_movements.npc_reeval_at`, `_movement_unit_power(...)`,
+    `_recall_attack_core(...)`, `resolve_due_npc_attack_reevaluations()`,
+    wires reevaluation into `resolve_due_movements()`, updates both NPC
+    `_declare_attack_core(...)` call sites to stamp `npc_reeval_at`, and
+    extends notifications with `attack_cancelled`.
+  - `supabase/migrations/0067_npc_attack_cancellation.verification.sql`
+    seeds deterministic live-DB scenarios proving: timely reinforcements
+    cancel the NPC attack, late reinforcements do not, `npc_reeval_at`
+    advances ~30 minutes on no-cancel, and the public `recall_attack()`
+    RPC still works unchanged.
+  - Applied `0067` live to Supabase via a temporary local Node + `pg`
+    script reading `SUPABASE_DB_URL` from the project `.env.local` with a
+    CRLF-safe split, then ran the rollback-wrapped verification script to a
+    successful `VERIFICATION OK` notice.
+
 ## Latest update — 2026-08-21e (coalitions core + non-aggression pacts)
 
 - **Implemented backlog item #30 phase 1** from the approved coalitions
@@ -1683,6 +1705,7 @@ status inline as items are picked up.
 | 29 | Diplomacy module: default neutral relations, attacking declares war, diplomacy resolves it (e.g. tribute) | 8 | 3 | pending | Idea only, needs its own brainstorming, large scope |
 | 30 | Coalition module: leader roles, combined armies for bigger battles | 9 | 2 | **done (phase 1 core)** | Implemented 2026-08-21e: coalition core + non-aggression pacts now live (schema/RLS, RPCs, attack/claim guardrails, diplomacy/map/world-feed UI). Remaining follow-on phases only: (2) troop lending / shared forces, (3) shared visibility/intelligence. |
 | 31 | Chat / messaging module between players/kingdoms | 5 | 4 | pending | Medium scope, needs realtime infra |
+| 32 | NPCs should cancel in-transit attacks when defender reinforcements drop their win chance below 45% | 7 | 6 | **done** (applied to live DB 2026-08-21) | Design: `docs/superpowers/specs/2026-08-21-npc-attack-cancellation-design.md`. `lib/npc/kingdoms.ts` now exposes the shared cancellation-threshold helpers, and `supabase/migrations/0067_npc_attack_cancellation.sql` adds per-attack `npc_reeval_at`, `_movement_unit_power(...)`, `_recall_attack_core(...)`, the lazy `resolve_due_npc_attack_reevaluations()` loop, `attack_cancelled` notifications, and the two `resolve_due_npc_actions()` call-site updates that stamp new NPC attack movements for reevaluation. Live verification confirmed: timely reinforcements cancel the NPC attack with defender notification + `attack_recalled` world event, late reinforcements do not, and the public `recall_attack()` RPC still behaves unchanged. |
 
 **Also still open from earlier roadmap discussions** (tracked in the session
 `todos` table, not yet started):

@@ -65,10 +65,13 @@ a `npc_reeval_at <= now()`:
    `status = 'in_transit'` a nejdou spočítat přes stávající
    `_territory_effective_unit_power` (ta čte jen `status = 'stationed'`
    karty na konkrétním území).
-2. **Obranná síla cíle** = `_territory_effective_unit_power(cíl_owner,
-   cíl_territory_id, true)` (aktuální posádka, beze změny) **+** součet
-   `_movement_unit_power(...)` přes všechny `troop_movements` s
-   `kind = 'transfer'`, `status = 'in_transit'`,
+2. **Obranná síla cíle** = `_territory_effective_unit_power(coalesce(cíl_owner, cíl_claim_locked_by),
+   cíl_territory_id, true)` (aktuální posádka, beze změny; pro právě
+   claimované, ale ještě nevlastněné území se jako obránce bere
+   `claim_locked_by`, stejně jako v existujícím výběru attack targetů)
+   **+** součet `_movement_unit_power(...)` přes všechny `troop_movements`
+   s `kind = 'transfer'`, `status = 'in_transit'`,
+   `player_id = coalesce(cíl_owner, cíl_claim_locked_by)`,
    `destination_territory_id = cíl`, `transfer_arrives_at <=`
    přehodnocovaný NPC útok `transfer_arrives_at` (posily, co stihnou
    dorazit dřív než NPC).
