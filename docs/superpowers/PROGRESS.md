@@ -36,6 +36,52 @@
     CRLF-safe split, then ran the rollback-wrapped verification script to a
     successful `VERIFICATION OK` notice.
 
+## Latest update — 2026-08-21g (coalitions phase 3: shared map visibility)
+
+- **Implemented backlog item #30 phase 3** from the shared-map-visibility
+  spec/plan, completing the coalition/intelligence follow-up on top of the
+  earlier coalition core and troop-lending phases.
+  - **SQL / live DB**:
+    - `0070_coalition_map_visibility.sql` + verification: added
+      `_coalition_member_ids(p_player_id uuid)`,
+      `get_coalition_movements()`,
+      `get_incoming_attacks_on_coalition_territories()`, and widened
+      `get_movement_cards(uuid)` authorization so current coalition members
+      can inspect an ally's in-transit movement composition.
+    - Applied live to Supabase via temporary local Node + `pg` script
+      reading `SUPABASE_DB_URL` from `.env.local` with a CRLF-safe
+      `/\r?\n/` split, then ran
+      `0070_coalition_map_visibility.verification.sql` successfully
+      (`VERIFICATION OK`).
+    - Important migration-number follow-up: this phase originally used
+      `0068`, but was renamed to `0070` after a sibling troop-lending
+      worktree independently claimed `0068`; `0068` and `0069` are now left
+      reserved for troop-lending and any follow-up there.
+  - **Frontend**:
+    - `lib/territories/api.ts` now exposes
+      `getCoalitionMovements()` and
+      `getIncomingAttacksOnCoalitionTerritories()` typed wrappers.
+    - `useMapMovementArrows` now merges the new coalition RPCs into map
+      arrow state and produces 3 new categories:
+      `ally-transfer`, `ally-offensive`, and `ally-incoming`.
+    - `MapMovementArrows` renders the ally categories in distinct colors
+      from both own arrows and incoming-enemy arrows, and the hover tooltip
+      now shows a small ally identity line
+      (`Spojenec: {display_name} ({kingdom_name})`) where relevant.
+    - `MovementDetailModal` now shows the same ally identity block for ally
+      arrows while reusing the existing `get_movement_cards()` modal flow.
+  - **Testing / verification**:
+    - Added/extended focused Jest coverage for the new hook mappings,
+      ally-arrow rendering, tooltip identity, modal identity, and ally
+      modal-opening flows.
+    - Final clean verification in the worktree after the migration rename +
+      live apply:
+      - `npx tsc --noEmit` ✅
+      - `npx jest --runInBand --silent` ✅ (**93 suites / 652 tests passed**)
+- **Backlog item #30 is now fully complete across all 3 phases**:
+  coalition core + non-aggression, troop lending/shared forces, and shared
+  map visibility/intelligence.
+
 ## Latest update — 2026-08-21e (coalitions core + non-aggression pacts)
 
 - **Implemented backlog item #30 phase 1** from the approved coalitions
@@ -78,9 +124,9 @@
     - Final full verification in the worktree:
       - `npx tsc --noEmit` ✅
       - `npx jest --runInBand --silent` ✅ (**93 suites / 642 tests passed**)
-- **Remaining future scope for item #30**: phase 2 troop lending / shared
-  forces, and phase 3 shared coalition visibility/intelligence are still
-  intentionally unimplemented follow-on work.
+- **Follow-on scope note (historical)**: the "remaining future scope" named
+  here (phase 2 troop lending / shared forces and phase 3 shared
+  visibility/intelligence) has since been completed by later work.
 
 ## Latest update — 2026-08-21d (map movement arrows end-to-end)
 
@@ -1703,7 +1749,7 @@ status inline as items are picked up.
 | 27 | Card limit per player scaling with level; ability to "return a card to the central deck" (common/uncommon burn, rare+ recycles back into circulation since supply is limited) | 6 | 5 | pending | New card-economy mechanic |
 | 28 | Add a "King" card that establishes a royal home city | 5 | 3 | **done, applied to live DB 2026-08-19** | `supabase/migrations/0024_king_relocate_home.sql`: new `players.king_relocation_used_at` + `relocate_home(p_new_territory_id)` RPC. Design choice: **not** a tradeable `card_instance` — existing catalog is unit-only and the real mechanic is a once-per-player strategic unlock, so `lib/players/king.ts` defines a pure ability card (`Král`) gated at **level 15** (10500 XP: late-midgame, high but reachable). RPC validates auth, level, ownership, unused state, unresolved-battle/claim safety, then atomically flips `territories.is_home` from the old home to the selected owned territory and stamps the usage timestamp. Client: `relocateHome()` in `lib/territories/api.ts`; `GarrisonModal` shows a one-time confirm action on owned non-home territories only when the caller is eligible; `app/map/page.tsx` wires it from session player state. Targeted Jest: 59/59 pass; `tsc` clean; `npm run build` succeeds (existing unrelated warnings only). |
 | 29 | Diplomacy module: default neutral relations, attacking declares war, diplomacy resolves it (e.g. tribute) | 8 | 3 | pending | Idea only, needs its own brainstorming, large scope |
-| 30 | Coalition module: leader roles, combined armies for bigger battles | 9 | 2 | **done (phase 1 core)** | Implemented 2026-08-21e: coalition core + non-aggression pacts now live (schema/RLS, RPCs, attack/claim guardrails, diplomacy/map/world-feed UI). Remaining follow-on phases only: (2) troop lending / shared forces, (3) shared visibility/intelligence. |
+| 30 | Coalition module: leader roles, combined armies for bigger battles | 9 | 2 | **done (all 3 phases complete)** | Phase 1 coalition core + non-aggression shipped in 2026-08-21e; phase 2 troop lending / shared forces completed separately afterward; phase 3 shared visibility/intelligence shipped in 2026-08-21g via live-applied `0070_coalition_map_visibility.sql` plus ally map-arrow UI. Coalition backlog item is now fully complete end-to-end. |
 | 31 | Chat / messaging module between players/kingdoms | 5 | 4 | pending | Medium scope, needs realtime infra |
 | 32 | NPCs should cancel in-transit attacks when defender reinforcements drop their win chance below 45% | 7 | 6 | **done** (applied to live DB 2026-08-21) | Design: `docs/superpowers/specs/2026-08-21-npc-attack-cancellation-design.md`. `lib/npc/kingdoms.ts` now exposes the shared cancellation-threshold helpers, and `supabase/migrations/0067_npc_attack_cancellation.sql` adds per-attack `npc_reeval_at`, `_movement_unit_power(...)`, `_recall_attack_core(...)`, the lazy `resolve_due_npc_attack_reevaluations()` loop, `attack_cancelled` notifications, and the two `resolve_due_npc_actions()` call-site updates that stamp new NPC attack movements for reevaluation. Live verification confirmed: timely reinforcements cancel the NPC attack with defender notification + `attack_recalled` world event, late reinforcements do not, and the public `recall_attack()` RPC still behaves unchanged. |
 

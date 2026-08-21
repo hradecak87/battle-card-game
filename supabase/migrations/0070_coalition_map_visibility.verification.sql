@@ -50,7 +50,7 @@ begin
 
   perform _complete_kingdom_onboarding_core(v_viewer_id, 'Viewer Crown', 'lion-gold');
   perform _complete_kingdom_onboarding_core(v_ally_id, 'Ally Crown', 'cross-white');
-  perform _complete_kingdom_onboarding_core(v_outsider_id, 'Outsider Horde', 'wolf-black');
+  perform _complete_kingdom_onboarding_core(v_outsider_id, 'Outsider Horde', 'lion-gold');
 
   select id into v_viewer_home_id
   from territories
