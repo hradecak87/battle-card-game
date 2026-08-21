@@ -174,7 +174,6 @@ describe('GarrisonModal', () => {
 
   it("shows the transfer button for the viewer's own territory and wires it correctly", () => {
     const onTransfer = jest.fn()
-    const onLend = jest.fn()
     render(
       <GarrisonModal
         territory={{ ...baseTerritory, owner_id: 'me' }}
@@ -184,18 +183,98 @@ describe('GarrisonModal', () => {
         onRename={jest.fn()}
         myPlayerId="me"
         onTransfer={onTransfer}
-        onLend={onLend}
       />
     )
 
     const button = screen.getByRole('button', { name: /Přesunout vojska/ })
-    const lendButton = screen.getByRole('button', { name: /Půjčit vojska/ })
     expect(screen.queryByRole('button', { name: /Zaútočit/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Poslat vojska na pomoc/ })).not.toBeInTheDocument()
 
     fireEvent.click(button)
-    fireEvent.click(lendButton)
     expect(onTransfer).toHaveBeenCalled()
+  })
+
+  it('shows "Poslat vojska na pomoc" (not "Zaútočit") for a coalition ally territory', () => {
+    const onLend = jest.fn()
+    const onAttack = jest.fn()
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'ally-1' }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+        onLend={onLend}
+        onAttack={onAttack}
+        relationState="coalition"
+        relationLoading={false}
+      />
+    )
+
+    const lendButton = screen.getByRole('button', { name: /Poslat vojska na pomoc/ })
+    expect(screen.queryByRole('button', { name: /Zaútočit/ })).not.toBeInTheDocument()
+
+    fireEvent.click(lendButton)
     expect(onLend).toHaveBeenCalled()
+  })
+
+  it('shows "Zaútočit" (not "Poslat vojska na pomoc") for a non-ally territory', () => {
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'enemy-1' }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+        onLend={jest.fn()}
+        onAttack={jest.fn()}
+        relationState="war"
+        relationLoading={false}
+      />
+    )
+
+    expect(screen.getByRole('button', { name: /Zaútočit/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Poslat vojska na pomoc/ })).not.toBeInTheDocument()
+  })
+
+  it('shows neither "Zaútočit" nor "Poslat vojska na pomoc" while the relation is still loading', () => {
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'unknown-1' }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+        onLend={jest.fn()}
+        onAttack={jest.fn()}
+        relationState={null}
+        relationLoading={true}
+      />
+    )
+
+    expect(screen.queryByRole('button', { name: /Zaútočit/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Poslat vojska na pomoc/ })).not.toBeInTheDocument()
+  })
+
+  it('still shows "Poslat vojska na pomoc" for a coalition ally territory under incoming attack', () => {
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'ally-1', battle_locked_by: 'attacker-1' }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+        onLend={jest.fn()}
+        relationState="coalition"
+        relationLoading={false}
+      />
+    )
+
+    expect(screen.getByRole('button', { name: /Poslat vojska na pomoc/ })).toBeInTheDocument()
   })
 
   it('shows a loan badge on borrowed stationed units', () => {

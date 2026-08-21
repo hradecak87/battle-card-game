@@ -1,30 +1,19 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { TradingCard } from '@/components/cards/TradingCard'
 import { CardZoomIconButton, CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
-import { getMyCoalition } from '@/lib/diplomacy/api'
 import { applyRank } from '@/lib/cards/combat'
 import { Rank, UnitType, UnitCardTemplate } from '@/lib/cards/types'
 import { NationId } from '@/lib/players/nations'
 import { formatEta } from '@/lib/time/formatEta'
 import { chebyshevDistance, transferHours } from '@/lib/territories/formulas'
-import type { CardInstanceWithTemplate, Territory } from '@/lib/territories/api'
-import { getMyTerritories, getPlayerPublicInfo, lendTroops } from '@/lib/territories/api'
-
-interface DestinationOption {
-  id: number
-  x: number
-  y: number
-  name?: string | null
-  ownerId: string
-  ownerDisplayName: string
-}
+import type { CardInstanceWithTemplate, MyTerritory, Territory } from '@/lib/territories/api'
+import { getCardInstancesAtTerritory, getMyTerritories, getPlayerPublicInfo, lendTroops } from '@/lib/territories/api'
 
 export interface LendModalProps {
-  originTerritory: Territory
+  destinationTerritory: Territory
   myPlayerId: string | null
-  instances: CardInstanceWithTemplate[] | null
   onClose: () => void
   onLent?: () => void
 }
@@ -43,17 +32,20 @@ function toUnitTemplate(row: NonNullable<CardInstanceWithTemplate['card_template
   }
 }
 
-export default function LendModal({ originTerritory, myPlayerId, instances, onClose, onLent }: LendModalProps) {
+export default function LendModal({ destinationTerritory, myPlayerId, onClose, onLent }: LendModalProps) {
   const { zoomedCard, openZoom, closeZoom } = useCardZoom()
-  const [destinationTerritories, setDestinationTerritories] = useState<DestinationOption[]>([])
-  const [destinationTerritoryId, setDestinationTerritoryId] = useState('')
+  const [myTerritories, setMyTerritories] = useState<MyTerritory[] | null>(null)
+  const [territoriesError, setTerritoriesError] = useState<string | null>(null)
+  const [originTerritoryId, setOriginTerritoryId] = useState('')
+  const [originInstances, setOriginInstances] = useState<CardInstanceWithTemplate[] | null>(null)
   const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([])
   const [durationHours, setDurationHours] = useState('24')
-  const [loadingDestinations, setLoadingDestinations] = useState(true)
-  const [loadingError, setLoadingError] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [playerNation, setPlayerNation] = useState<NationId | null>(null)
+  const loadRequestIdRef = useRef(0)
 
   useEffect(() => {
     if (!myPlayerId) return
@@ -64,73 +56,54 @@ export default function LendModal({ originTerritory, myPlayerId, instances, onCl
 
   useEffect(() => {
     if (!myPlayerId) return
-    let ignore = false
-
-    async function load() {
-      setLoadingDestinations(true)
-      setLoadingError(null)
-
-      const { data: coalitionRows, error: coalitionError } = await getMyCoalition()
-      if (ignore) return
-      if (coalitionError) {
-        setLoadingError(coalitionError.message)
-        setLoadingDestinations(false)
+    let cancelled = false
+    getMyTerritories(myPlayerId).then(({ data, error }) => {
+      if (cancelled) return
+      if (error) {
+        setTerritoriesError(error.message)
         return
       }
-
-      const coalition = coalitionRows?.[0]
-      const members = coalition?.members.filter((member) => member.player_id !== myPlayerId) ?? []
-      const territoryResults = await Promise.all(
-        members.map(async (member) => {
-          const { data, error } = await getMyTerritories(member.player_id)
-          if (error) throw new Error(error.message)
-          return (data ?? []).map((territory) => ({
-            id: territory.id,
-            x: territory.x,
-            y: territory.y,
-            name: territory.name ?? null,
-            ownerId: member.player_id,
-            ownerDisplayName: member.display_name,
-          }))
-        }),
-      ).catch((error: Error) => {
-        if (!ignore) setLoadingError(error.message)
-        return []
-      })
-
-      if (ignore) return
-      setDestinationTerritories(territoryResults.flat())
-      setLoadingDestinations(false)
-    }
-
-    void load()
+      setMyTerritories(data ?? [])
+    })
     return () => {
-      ignore = true
+      cancelled = true
     }
   }, [myPlayerId])
 
-  const eligibleInstances = useMemo(
-    () =>
-      (instances ?? []).filter((instance) => {
-        if (instance.owner_id !== myPlayerId || instance.status !== 'stationed' || instance.loaned_from_id) return false
-        return Boolean(instance.card_templates && toUnitTemplate(instance.card_templates))
-      }),
-    [instances, myPlayerId],
-  )
+  async function handleLoadOrigin(originId: number) {
+    const requestId = loadRequestIdRef.current + 1
+    loadRequestIdRef.current = requestId
+    setLoading(true)
+    setLoadError(null)
+    setOriginInstances(null)
+    setSelectedInstanceIds([])
+    const { data, error } = await getCardInstancesAtTerritory(originId)
+    if (loadRequestIdRef.current !== requestId) return
+    setLoading(false)
+    if (error) {
+      setLoadError(error.message)
+      return
+    }
+    const eligible = (data ?? []).filter((ci) => {
+      if (ci.owner_id !== myPlayerId || ci.status !== 'stationed' || ci.loaned_from_id || !ci.card_templates) return false
+      return Boolean(toUnitTemplate(ci.card_templates))
+    })
+    setOriginInstances(eligible)
+  }
 
-  const destination = destinationTerritories.find((territory) => territory.id === Number(destinationTerritoryId)) ?? null
-
-  const etaText = useMemo(() => {
-    if (!destination) return null
-    const distance = chebyshevDistance(originTerritory, destination)
-    const selectedSpeeds = eligibleInstances
-      .filter((instance) => selectedInstanceIds.includes(instance.instance_id))
-      .map((instance) => instance.card_templates?.base_stats?.speed)
-      .filter((speed): speed is number => typeof speed === 'number')
-    const groupSpeed = selectedSpeeds.length > 0 ? Math.min(...selectedSpeeds) : undefined
-    const hours = transferHours(distance, playerNation ?? undefined, groupSpeed)
-    return formatEta(new Date(Date.now() + hours * 3600000).toISOString())
-  }, [destination, eligibleInstances, originTerritory, playerNation, selectedInstanceIds])
+  function handleSelectOrigin(value: string) {
+    setOriginTerritoryId(value)
+    const originId = Number(value)
+    if (value && Number.isFinite(originId)) {
+      handleLoadOrigin(originId)
+    } else {
+      loadRequestIdRef.current += 1
+      setLoading(false)
+      setLoadError(null)
+      setOriginInstances(null)
+      setSelectedInstanceIds([])
+    }
+  }
 
   function toggleInstance(instanceId: string) {
     setSelectedInstanceIds((current) =>
@@ -138,16 +111,33 @@ export default function LendModal({ originTerritory, myPlayerId, instances, onCl
     )
   }
 
+  const originTerritory = myTerritories?.find((t) => t.id === Number(originTerritoryId)) ?? null
+
+  const groupSpeed = useMemo(() => {
+    if (!originInstances || selectedInstanceIds.length === 0) return undefined
+    const speeds = originInstances
+      .filter((ci) => selectedInstanceIds.includes(ci.instance_id))
+      .map((ci) => ci.card_templates?.base_stats?.speed)
+      .filter((s): s is number => typeof s === 'number')
+    return speeds.length > 0 ? Math.min(...speeds) : undefined
+  }, [originInstances, selectedInstanceIds])
+
+  const etaText = useMemo(() => {
+    if (!originTerritory) return null
+    const distance = chebyshevDistance(originTerritory, destinationTerritory)
+    const hours = transferHours(distance, playerNation ?? undefined, groupSpeed)
+    return formatEta(new Date(Date.now() + hours * 3600000).toISOString())
+  }, [originTerritory, destinationTerritory, playerNation, groupSpeed])
+
   async function handleSubmit() {
-    const parsedDestinationId = Number(destinationTerritoryId)
     const parsedDuration = Number(durationHours)
-    if (!Number.isFinite(parsedDestinationId) || selectedInstanceIds.length === 0 || !Number.isFinite(parsedDuration)) {
+    if (selectedInstanceIds.length === 0 || !Number.isFinite(parsedDuration)) {
       return
     }
 
     setSubmitting(true)
     setSubmitError(null)
-    const { error } = await lendTroops(parsedDestinationId, selectedInstanceIds, parsedDuration)
+    const { error } = await lendTroops(destinationTerritory.id, selectedInstanceIds, parsedDuration)
     setSubmitting(false)
     if (error) {
       setSubmitError(error.message)
@@ -164,7 +154,8 @@ export default function LendModal({ originTerritory, myPlayerId, instances, onCl
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold">
-            Půjčit vojska — {originTerritory.name ? `${originTerritory.name} ` : ''}({originTerritory.x}, {originTerritory.y})
+            Poslat vojska na pomoc — {destinationTerritory.name ? `${destinationTerritory.name} ` : ''}(
+            {destinationTerritory.x}, {destinationTerritory.y})
           </h2>
           <button
             type="button"
@@ -178,18 +169,18 @@ export default function LendModal({ originTerritory, myPlayerId, instances, onCl
 
         <div className="flex flex-col gap-3">
           <label className="flex flex-col gap-1 text-sm text-zinc-400">
-            Kam půjčuješ
+            Odkud posíláš
             <select
-              aria-label="Kam půjčuješ"
-              value={destinationTerritoryId}
-              onChange={(event) => setDestinationTerritoryId(event.target.value)}
-              disabled={loadingDestinations}
+              aria-label="Odkud posíláš"
+              value={originTerritoryId}
+              onChange={(event) => handleSelectOrigin(event.target.value)}
+              disabled={myTerritories === null}
               className="rounded border border-zinc-700 bg-zinc-900 px-2 py-1"
             >
-              <option value="">{loadingDestinations ? 'Načítám cíle…' : '— vyber cílové území —'}</option>
-              {destinationTerritories.map((territory) => (
-                <option key={territory.id} value={territory.id}>
-                  {territory.ownerDisplayName} — {territory.name ? `${territory.name} ` : ''}({territory.x}, {territory.y})
+              <option value="">{myTerritories === null ? 'Načítám tvá území…' : '— vyber území —'}</option>
+              {myTerritories?.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.is_home ? 'Domov' : 'Území'} ({t.x}, {t.y})
                 </option>
               ))}
             </select>
@@ -214,18 +205,19 @@ export default function LendModal({ originTerritory, myPlayerId, instances, onCl
             </p>
           ) : null}
 
-          {loadingError ? <p className="text-sm text-red-400">{loadingError}</p> : null}
-          {!loadingDestinations && destinationTerritories.length === 0 ? (
-            <p className="text-sm text-zinc-400">V koalici teď není žádné spojenecké území pro půjčku.</p>
+          {loading ? <p className="text-sm text-zinc-400">Načítám vojska…</p> : null}
+          {territoriesError ? <p className="text-sm text-red-400">{territoriesError}</p> : null}
+          {loadError ? <p className="text-sm text-red-400">{loadError}</p> : null}
+
+          {originInstances !== null && originInstances.length === 0 ? (
+            <p className="text-sm text-zinc-400">Na tomto území nemáš žádná dostupná vojska.</p>
           ) : null}
 
-          {eligibleInstances.length === 0 ? (
-            <p className="text-sm text-zinc-400">Na tomto území nemáš žádná vlastní dostupná vojska k půjčení.</p>
-          ) : (
+          {originInstances !== null && originInstances.length > 0 && (
             <fieldset className="flex flex-col gap-2">
               <legend className="text-sm text-zinc-400">Vyber vojska k půjčení</legend>
               <div className="grid max-h-64 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4">
-                {eligibleInstances.map((instance) => {
+                {originInstances.map((instance) => {
                   const unitTemplate = instance.card_templates ? toUnitTemplate(instance.card_templates) : null
                   if (!unitTemplate) return null
                   const checked = selectedInstanceIds.includes(instance.instance_id)
@@ -261,13 +253,7 @@ export default function LendModal({ originTerritory, myPlayerId, instances, onCl
 
           <button
             type="button"
-            disabled={
-              submitting ||
-              !destinationTerritoryId ||
-              selectedInstanceIds.length === 0 ||
-              !durationHours.trim() ||
-              destinationTerritories.length === 0
-            }
+            disabled={submitting || !originTerritoryId || selectedInstanceIds.length === 0 || !durationHours.trim()}
             onClick={() => void handleSubmit()}
             className="rounded bg-sky-700 px-3 py-2 font-semibold text-white disabled:opacity-50"
           >

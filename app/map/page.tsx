@@ -102,6 +102,7 @@ function MapPageContent() {
   const [incomingAttackInfo, setIncomingAttackInfo] = useState<IncomingAttackInfo | null>(null)
   const [claimInfo, setClaimInfo] = useState<ClaimInfo | null>(null)
   const [relationState, setRelationState] = useState<DiplomacyRelationState | null>(null)
+  const [relationLoading, setRelationLoading] = useState(false)
   const [homeStatus, setHomeStatus] = useState<'idle' | 'searching' | 'not-found'>('idle')
   const [ownedTerritories, setOwnedTerritories] = useState<MyTerritory[] | null>(null)
   const [structureCardInstances, setStructureCardInstances] = useState<CardInstanceWithTemplate[] | null>(null)
@@ -342,9 +343,11 @@ function MapPageContent() {
     setShowTransferModal(false)
     const shouldLoadOwnerInfo = Boolean(tile.owner_id && tile.owner_id !== user?.id)
     setOwnerInfoLoading(shouldLoadOwnerInfo)
+    setRelationLoading(shouldLoadOwnerInfo)
     if (shouldLoadOwnerInfo && tile.owner_id) {
       getRelation(tile.owner_id).then(({ data }) => {
         if (selectionRequestIdRef.current !== requestId) return
+        setRelationLoading(false)
         setRelationState(
           data === 'war' || data === 'peace' || data === 'non_aggression' || data === 'coalition'
             ? data
@@ -366,6 +369,7 @@ function MapPageContent() {
       })
     } else {
       setOwnerInfoLoading(false)
+      setRelationLoading(false)
     }
     if (tile.battle_locked_by) {
       // battle_locked_by is set the instant declare_attack is called,
@@ -555,6 +559,7 @@ function MapPageContent() {
             ownerInfoLoading={ownerInfoLoading}
             ownerInfoError={ownerInfoError}
             relationState={relationState}
+            relationLoading={relationLoading}
             incomingAttackInfo={incomingAttackInfo}
             claimInfo={claimInfo}
             onNavigateToTerritory={(x, y) => {
@@ -618,9 +623,8 @@ function MapPageContent() {
 
         {selectedTile && showLendModal && (
           <LendModal
-            originTerritory={selectedTile}
+            destinationTerritory={selectedTile}
             myPlayerId={user?.id ?? null}
-            instances={garrison}
             onClose={() => setShowLendModal(false)}
             onLent={() => {
               setShowLendModal(false)

@@ -37,6 +37,8 @@ export interface GarrisonModalProps {
   ownerInfoLoading?: boolean
   ownerInfoError?: string | null
   relationState?: DiplomacyRelationState | null
+  /** True while `relationState` is still being fetched for the selected territory's owner. */
+  relationLoading?: boolean
   /**
    * Identity + ETA of the in-transit attack currently converging on this
    * territory, if any (fetched separately since `battle_locked_by` is
@@ -140,6 +142,7 @@ export default function GarrisonModal({
   ownerInfoLoading,
   ownerInfoError,
   relationState,
+  relationLoading,
   incomingAttackInfo,
   claimInfo,
   onNavigateToTerritory,
@@ -172,7 +175,13 @@ export default function GarrisonModal({
     Boolean(myPlayerId) &&
     territory.owner_id !== myPlayerId &&
     territory.claim_locked_by !== myPlayerId &&
-    !territory.battle_locked_by
+    !territory.battle_locked_by &&
+    !relationLoading &&
+    relationState !== 'coalition'
+  const canLend =
+    Boolean(myPlayerId) &&
+    territory.owner_id !== myPlayerId &&
+    relationState === 'coalition'
   const canTransfer = Boolean(myPlayerId) && territory.owner_id === myPlayerId
   const canAbandon = canTransfer && !territory.is_home && Boolean(onAbandon)
   const canRelocateHome =
@@ -279,15 +288,6 @@ export default function GarrisonModal({
                 Přesunout vojska
               </button>
             )}
-            {canTransfer && onLend && (
-              <button
-                type="button"
-                onClick={onLend}
-                className="rounded bg-sky-700 hover:bg-sky-600 px-3 py-1 text-sm font-semibold text-white"
-              >
-                Půjčit vojska
-              </button>
-            )}
             {canTransfer && !renaming && (
               <button
                 type="button"
@@ -306,6 +306,15 @@ export default function GarrisonModal({
                 className="rounded bg-red-700 hover:bg-red-600 px-3 py-1 text-sm font-semibold text-white"
               >
                 ⚔️ Zaútočit
+              </button>
+            )}
+            {canLend && onLend && (
+              <button
+                type="button"
+                onClick={onLend}
+                className="rounded bg-sky-700 hover:bg-sky-600 px-3 py-1 text-sm font-semibold text-white"
+              >
+                Poslat vojska na pomoc
               </button>
             )}
             {canAbandon && !confirmingAbandon && (

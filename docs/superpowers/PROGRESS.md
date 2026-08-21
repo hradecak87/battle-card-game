@@ -14,6 +14,61 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-21j (lend-flow unification: destination-first, matching attack/transfer)
+
+- **Unified the troop-lending UX with attack/transfer**: lending troops to
+  a coalition ally now follows the same "click destination first, pick
+  origin inside the modal" pattern as `DeclareAttackModal`/`TransferModal`,
+  instead of the old "click your own territory first, pick destination in
+  modal" flow. No backend/RPC/migration changes — `lend_troops` already
+  took `(destination_territory_id, card_instance_ids, duration_hours)` and
+  derived origin from the selected cards.
+- Went through brainstorming → spec (4 review rounds, spec at
+  `docs/superpowers/specs/2026-08-21-lend-flow-unification-design.md`) →
+  plan (1 review round, no chunks, plan at
+  `docs/superpowers/plans/2026-08-21-lend-flow-unification.md`) → implementation,
+  per project process rules.
+- `app/map/page.tsx`: added a `relationLoading` state (tracks the
+  `getRelation` fetch specifically, separate from `ownerInfoLoading` which
+  tracks the independent `getPlayerPublicInfo` fetch), reset/set alongside
+  the existing tile-selection handler logic; `LendModal` now receives
+  `destinationTerritory={selectedTile}` instead of `originTerritory`/`instances`.
+- `GarrisonModal.tsx`: `canAttack` now also requires `!relationLoading &&
+  relationState !== 'coalition'` (so the attack button no longer appears —
+  even transiently while the relation is loading — on coalition-ally
+  territories, where the backend already rejects the attack per
+  `0065_coalition_attack_enforcement.sql`). Added `canLend` (true for any
+  non-owned territory currently in `coalition` relation state) which
+  deliberately does **not** check `battle_locked_by` — that flag is set at
+  `declare_attack` time before any `battles` row exists, and lending must
+  keep working while an ally is under incoming attack (their moment of
+  greatest need). Swapped the old always-on-own-territory "Půjčit vojska"
+  button for a "Poslat vojska na pomoc" button shown only on coalition-ally
+  territories, next to the attack button.
+- `LendModal.tsx`: fully rewritten to mirror `TransferModal.tsx`'s
+  origin-picker structure — `destinationTerritory` prop (was
+  `originTerritory`), no more `instances` prop, loads `getMyTerritories`
+  for an "Odkud posíláš" origin dropdown, loads/filters
+  `getCardInstancesAtTerritory(originId)` on selection (staleness-guarded
+  via `loadRequestIdRef`, same pattern as `TransferModal`), computes
+  ETA/`groupSpeed` from the chosen origin, and calls
+  `lendTroops(destinationTerritory.id, selectedInstanceIds, durationHours)`.
+  The old "load all coalition members' territories as destination options"
+  effect (`getMyCoalition` + per-member `getMyTerritories`) was removed
+  entirely.
+- Updated `GarrisonModal.test.tsx` (removed own-territory lend-button
+  assertions, added 4 new tests for `canLend`/`canAttack` visibility across
+  coalition/war/loading/battle-locked combinations) and rewrote
+  `LendModal.test.tsx` to mock `getMyTerritories`/`getCardInstancesAtTerritory`
+  instead of `getMyCoalition`.
+- Verified: `npx tsc --noEmit` clean; full `npx jest --silent` — 96/96
+  suites, 671/671 tests (one `app/catalog/page.test.tsx` flaky-under-parallelism
+  failure reproduced then confirmed passing in isolation, same known
+  pre-existing issue as prior updates, unrelated to this change).
+- **Not yet committed/pushed** — awaiting user review/approval per project
+  commit rules (implemented but untested-by-user, no functional-testing
+  confirmation yet).
+
 ## Latest update — 2026-08-21i (player search restored + critical `resolve_due_movements()` hotfix)
 
 - **Restored and finished the "player search for diplomacy targets" feature**
