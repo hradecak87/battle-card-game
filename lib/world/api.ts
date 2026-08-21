@@ -12,6 +12,7 @@ export type WorldEventType =
   | 'player_joined'
   | 'war_declared'
   | 'peace_signed'
+  | 'claim_started'
 
 export interface AttackInTransitRow {
   movement_id: string

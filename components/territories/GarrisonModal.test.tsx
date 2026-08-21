@@ -260,6 +260,59 @@ describe('GarrisonModal', () => {
     expect(screen.getByTestId('garrison-war-badge')).toHaveAttribute('href', '/diplomacy')
   })
 
+  it('shows a "Vyhlásit válku" button for foreign owners currently at peace, and calls onDeclareWar on click', async () => {
+    const onDeclareWar = jest.fn().mockResolvedValue(undefined)
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'enemy-1' }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        ownerInfo={{
+          id: 'enemy-1',
+          display_name: 'Nepřítel',
+          nation: 'england',
+          kingdom_name: 'Nepřátelé',
+          xp: 1000,
+          level: 5,
+        }}
+        relationState="peace"
+        onDeclareWar={onDeclareWar}
+      />
+    )
+
+    expect(screen.queryByTestId('garrison-war-badge')).not.toBeInTheDocument()
+    const declareWarButton = screen.getByRole('button', { name: '⚔️ Vyhlásit válku' })
+    fireEvent.click(declareWarButton)
+    expect(onDeclareWar).toHaveBeenCalledWith('enemy-1')
+  })
+
+  it('does not show a "Vyhlásit válku" button for NPC owners even at peace', () => {
+    render(
+      <GarrisonModal
+        territory={{ ...baseTerritory, owner_id: 'npc-1' }}
+        instances={[]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        ownerInfo={{
+          id: 'npc-1',
+          display_name: 'NPC Král',
+          nation: 'england',
+          kingdom_name: 'NPC říše',
+          xp: 1000,
+          level: 5,
+          is_npc: true,
+        }}
+        relationState="peace"
+        onDeclareWar={jest.fn()}
+      />
+    )
+
+    expect(screen.queryByRole('button', { name: '⚔️ Vyhlásit válku' })).not.toBeInTheDocument()
+  })
+
   it('shows the claim-in-progress ETA when a claim is underway', () => {
     const completesAt = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString()
     render(

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import MovementDetailModal from '@/components/territories/MovementDetailModal'
+import { formatEta } from '@/lib/time/formatEta'
 import { type MapMovementArrow, useMapMovementArrows } from '@/lib/territories/useMapMovementArrows'
 
 export type { MapMovementArrow } from '@/lib/territories/useMapMovementArrows'
@@ -85,6 +86,19 @@ function describeArrow(arrow: MapMovementArrow) {
   return `${arrow.movementKind === 'transfer' ? 'Přesun' : 'Útok'} ${arrow.originName ?? `${arrow.originX}, ${arrow.originY}`} → ${arrow.destinationName ?? `${arrow.destX}, ${arrow.destY}`}`
 }
 
+function arrowKindLabel(arrow: MapMovementArrow) {
+  if (arrow.category === 'incoming') return 'Příchozí útok'
+  return arrow.movementKind === 'transfer' ? 'Přesun' : 'Útok'
+}
+
+function arrowOriginLabel(arrow: MapMovementArrow) {
+  return arrow.originName ?? `(${arrow.originX}, ${arrow.originY})`
+}
+
+function arrowDestinationLabel(arrow: MapMovementArrow) {
+  return arrow.destinationName ?? `(${arrow.destX}, ${arrow.destY})`
+}
+
 export default function MapMovementArrows({
   centerX,
   centerY,
@@ -104,11 +118,13 @@ export default function MapMovementArrows({
   const arrows = arrowsOverride ?? loadedArrows
   const [selectedArrow, setSelectedArrow] = useState<MapMovementArrow | null>(null)
   const [focusedArrowId, setFocusedArrowId] = useState<string | null>(null)
+  const [hoveredArrowId, setHoveredArrowId] = useState<string | null>(null)
   const [nowMs, setNowMs] = useState(() => Date.now())
 
   useEffect(() => {
     if (!visible) {
       setSelectedArrow(null)
+      setHoveredArrowId(null)
       return
     }
     const interval = setInterval(() => setNowMs(Date.now()), 250)
@@ -136,6 +152,10 @@ export default function MapMovementArrows({
   }, [arrows, viewSize, x1, x2, y1, y2])
 
   if (!visible) return null
+
+  const hoveredEntry = hoveredArrowId
+    ? renderableArrows.find((entry) => entry.arrow.id === hoveredArrowId)
+    : undefined
 
   return (
     <>
@@ -197,6 +217,8 @@ export default function MapMovementArrows({
                 }}
                 onFocus={() => setFocusedArrowId(arrow.id)}
                 onBlur={() => setFocusedArrowId((current) => (current === arrow.id ? null : current))}
+                onMouseEnter={() => setHoveredArrowId(arrow.id)}
+                onMouseLeave={() => setHoveredArrowId((current) => (current === arrow.id ? null : current))}
               >
                 <line
                   x1={clipped.startX}
@@ -228,6 +250,22 @@ export default function MapMovementArrows({
           })}
         </svg>
       </div>
+      {hoveredEntry && (
+        <div
+          className="pointer-events-none absolute z-30 w-44 -translate-x-1/2 -translate-y-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-left text-xs text-zinc-100 shadow-lg"
+          style={{
+            left: `${((hoveredEntry.clipped.startX + hoveredEntry.clipped.endX) / 2 / viewSize) * 100}%`,
+            top: `${((hoveredEntry.clipped.startY + hoveredEntry.clipped.endY) / 2 / viewSize) * 100}%`,
+            marginTop: '-6px',
+          }}
+        >
+          <p className="font-semibold text-zinc-50">{arrowKindLabel(hoveredEntry.arrow)}</p>
+          <p>
+            {arrowOriginLabel(hoveredEntry.arrow)} → {arrowDestinationLabel(hoveredEntry.arrow)}
+          </p>
+          <p>{formatEta(hoveredEntry.arrow.arrivesAt)}</p>
+        </div>
+      )}
       {selectedArrow && (
         <MovementDetailModal
           arrow={selectedArrow}

@@ -94,6 +94,45 @@ describe('MyMovementsPanel', () => {
     expect(screen.getByText(/za 10 min/)).toBeInTheDocument()
   })
 
+  it('lets you navigate to either the origin or destination territory of an in-progress movement', async () => {
+    // Regression: the origin/destination coordinates in the "Přesun (x,y)
+    // → (x,y)" line were plain text with no click handler at all.
+    getMyMovements.mockResolvedValue({
+      data: [
+        {
+          id: 'm1',
+          player_id: 'me',
+          kind: 'transfer',
+          origin_territory_id: 80,
+          destination_territory_id: 81,
+          started_at: new Date().toISOString(),
+          transfer_arrives_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+          status: 'in_transit',
+          cancelled_at: null,
+        },
+      ],
+      error: null,
+    })
+    getTerritoriesByIds.mockResolvedValue({
+      data: [
+        { id: 80, x: 0, y: 82 },
+        { id: 81, x: 0, y: 77 },
+      ],
+      error: null,
+    })
+
+    const onNavigateToTerritory = jest.fn()
+    render(<MyMovementsPanel myPlayerId="me" onNavigateToTerritory={onNavigateToTerritory} />)
+
+    await screen.findByText('Moje probíhající akce')
+
+    await userEvent.click(screen.getByRole('button', { name: '(0, 82)' }))
+    expect(onNavigateToTerritory).toHaveBeenCalledWith(0, 82)
+
+    await userEvent.click(screen.getByRole('button', { name: '(0, 77)' }))
+    expect(onNavigateToTerritory).toHaveBeenCalledWith(0, 77)
+  })
+
   it('shows a link to the battle screen once the attack has resolved into an active battle', async () => {
     getMyMovements.mockResolvedValue({
       data: [

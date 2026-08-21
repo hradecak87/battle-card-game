@@ -98,6 +98,14 @@ describe('formatWorldEventText', () => {
         },
         'N a O uzavřeli mír za tribut',
       ],
+      [
+        {
+          ...base,
+          event_type: 'claim_started',
+          payload: { player_display_name: 'P', territory_x: 16, territory_y: 17 },
+        },
+        'P zahájil zábor území (16, 17)',
+      ],
     ]
 
     expect(cases.map(([event]) => formatWorldEventText(event))).toEqual(cases.map(([, text]) => text))
@@ -193,6 +201,38 @@ describe('WorldEventsFeed', () => {
     expect(screen.getByText('vyhlásil válku hráči', { exact: false })).toBeInTheDocument()
     expect(screen.getByText('uzavřeli bílý mír', { exact: false })).toBeInTheDocument()
   })
+
+  it('renders a claim_started event with links to the claimant and the claimed territory', () => {
+    render(
+      <WorldEventsFeed
+        events={[
+          {
+            event_type: 'claim_started',
+            created_at: '2026-08-20T11:55:00.000Z',
+            payload: {
+              player_display_name: 'NPC Král',
+              player_home_x: 20,
+              player_home_y: 30,
+              territory_id: 99,
+              territory_x: 40,
+              territory_y: 50,
+            },
+            total_count: 1,
+          },
+        ]}
+        page={0}
+        pageSize={10}
+        totalCount={1}
+        now={new Date('2026-08-20T12:00:00.000Z')}
+        onPageChange={jest.fn()}
+      />
+    )
+
+    expect(screen.getByRole('link', { name: 'NPC Král' })).toHaveAttribute('href', '/map?x=20&y=30')
+    expect(screen.getByRole('link', { name: 'Území (40, 50)' })).toHaveAttribute('href', '/map?x=40&y=50')
+    expect(screen.getByText('zahájil zábor', { exact: false })).toBeInTheDocument()
+  })
+
 
   it('disables pagination controls at the edges and shows an empty state', () => {
     const onPageChange = jest.fn()

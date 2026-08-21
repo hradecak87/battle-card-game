@@ -39,6 +39,8 @@ export function formatWorldEventText(event: WorldEventRow) {
   switch (event.event_type) {
     case 'attack_declared':
       return `${asString(payload.attacker_display_name) ?? 'Někdo'} zahájil tažení na území (${asNumber(payload.territory_x) ?? '?'}, ${asNumber(payload.territory_y) ?? '?'})`
+    case 'claim_started':
+      return `${asString(payload.player_display_name) ?? 'Někdo'} zahájil zábor území (${asNumber(payload.territory_x) ?? '?'}, ${asNumber(payload.territory_y) ?? '?'})`
     case 'territory_claimed':
       return `${asString(payload.player_display_name) ?? 'Někdo'} obsadil území (${asNumber(payload.territory_x) ?? '?'}, ${asNumber(payload.territory_y) ?? '?'})`
     case 'battle_won': {
@@ -102,6 +104,17 @@ function renderEventText(event: WorldEventRow): ReactNode {
             payload.attacker_home_y
           )}{' '}
           zahájil tažení na {territoryLink}
+        </>
+      )
+    case 'claim_started':
+      return (
+        <>
+          {mapLink(
+            asString(payload.player_display_name) ?? 'Někdo',
+            payload.player_home_x,
+            payload.player_home_y
+          )}{' '}
+          zahájil zábor {territoryLink}
         </>
       )
     case 'territory_claimed':

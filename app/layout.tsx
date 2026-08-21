@@ -31,9 +31,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-950 text-zinc-100`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-950 text-zinc-100 pt-1.5`}
       >
         <HeartbeatBeacon />
+        {/* The notification bell's unread-count badge is absolutely
+            positioned via -top-1 relative to the bell button, which sits
+            flush against the very top of the page (AuthStatusBar is the
+            first visible element). Without this top padding on <body>,
+            the badge had nowhere to render above the button and got
+            clipped by the viewport edge. */}
         <div className="relative pr-12">
           <AuthStatusBar />
           <div className="absolute inset-y-0 right-4 flex items-center">

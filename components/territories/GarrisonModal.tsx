@@ -75,6 +75,12 @@ export interface GarrisonModalProps {
   kingRelocationAvailable?: boolean
   /** Called when the owner confirms moving their home territory here. */
   onRelocateHome?: (territoryId: number) => Promise<void>
+  /**
+   * Called when the viewer manually declares war on this territory's
+   * owner from the peace state, without first launching an attack.
+   * Receives the owner's player id.
+   */
+  onDeclareWar?: (targetPlayerId: string) => Promise<void>
 }
 
 /** Rebuilds the `UnitCardTemplate` shape `TradingCard` expects from the flat DB row. */
@@ -141,6 +147,7 @@ export default function GarrisonModal({
   onAbandon,
   kingRelocationAvailable,
   onRelocateHome,
+  onDeclareWar,
 }: GarrisonModalProps) {
   const { zoomedCard, openZoom, closeZoom } = useCardZoom()
   const [renaming, setRenaming] = useState(false)
@@ -156,6 +163,8 @@ export default function GarrisonModal({
   const [confirmingRelocateHome, setConfirmingRelocateHome] = useState(false)
   const [relocateHomeLoading, setRelocateHomeLoading] = useState(false)
   const [relocateHomeError, setRelocateHomeError] = useState<string | null>(null)
+  const [declareWarLoading, setDeclareWarLoading] = useState(false)
+  const [declareWarError, setDeclareWarError] = useState<string | null>(null)
 
   const canAttack =
     Boolean(myPlayerId) &&
@@ -608,6 +617,29 @@ export default function GarrisonModal({
                         ⚔️ Válka
                       </Link>
                     </p>
+                  )}
+                  {relationState === 'peace' && !ownerInfo.is_npc && onDeclareWar && (
+                    <div className="sm:col-span-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setDeclareWarError(null)
+                          setDeclareWarLoading(true)
+                          try {
+                            await onDeclareWar(ownerInfo.id)
+                          } catch (err) {
+                            setDeclareWarError(err instanceof Error ? err.message : 'Vyhlášení války selhalo.')
+                          } finally {
+                            setDeclareWarLoading(false)
+                          }
+                        }}
+                        disabled={declareWarLoading}
+                        className="inline-flex rounded-full border border-red-500/60 bg-red-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-red-200 disabled:opacity-50"
+                      >
+                        {declareWarLoading ? 'Vyhlašuji válku…' : '⚔️ Vyhlásit válku'}
+                      </button>
+                      {declareWarError && <p className="mt-1 text-xs text-red-400">{declareWarError}</p>}
+                    </div>
                   )}
                   {ownerInfo.is_npc && (
                     <p className="font-semibold text-fuchsia-300">Typ: NPC říše</p>

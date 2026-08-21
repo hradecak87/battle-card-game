@@ -739,7 +739,7 @@ export default function MapViewport({
                   </span>
                 )}
                 {isHovered && (
-                  <div className="pointer-events-none absolute left-1/2 top-0 z-20 w-40 -translate-x-1/2 -translate-y-[calc(100%+6px)] rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-left text-xs text-zinc-100 shadow-lg">
+                  <div className="pointer-events-none absolute left-1/2 top-0 z-30 w-40 -translate-x-1/2 -translate-y-[calc(100%+6px)] rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-left text-xs text-zinc-100 shadow-lg">
                     <p className="font-semibold">
                       ({x}, {y})
                     </p>

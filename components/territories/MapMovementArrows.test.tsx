@@ -135,6 +135,105 @@ describe('MapMovementArrows', () => {
     expect(line).toHaveAttribute('stroke-width', '0.08')
   })
 
+  it('shows a hover tooltip with the origin, destination, kind and ETA when hovering an arrow', () => {
+    const arrows: MapMovementArrow[] = [
+      {
+        id: 'transfer-1',
+        category: 'transfer',
+        movementId: 'movement-1',
+        movementKind: 'transfer',
+        originTerritoryId: 1,
+        destinationTerritoryId: 2,
+        originX: 10,
+        originY: 10,
+        destX: 12,
+        destY: 12,
+        originName: 'Domov',
+        destinationName: 'Cíl',
+        startedAt: '2026-08-21T11:00:00.000Z',
+        arrivesAt: '2026-08-21T13:00:00.000Z',
+      },
+    ]
+
+    render(
+      <MapMovementArrows
+        arrows={arrows}
+        centerX={11}
+        centerY={11}
+        viewSize={5}
+        onSelectArrow={jest.fn()}
+      />
+    )
+
+    expect(screen.queryByText('Přesun')).not.toBeInTheDocument()
+
+    const group = screen.getByRole('button', { name: /Cíl/ })
+    fireEvent.mouseEnter(group)
+
+    expect(screen.getByText('Přesun')).toBeInTheDocument()
+    expect(screen.getByText('Domov → Cíl')).toBeInTheDocument()
+    expect(screen.getByText('za 1 h 0 min')).toBeInTheDocument()
+
+    fireEvent.mouseLeave(group)
+    expect(screen.queryByText('Přesun')).not.toBeInTheDocument()
+  })
+
+  it('labels an offensive movement and an incoming attack correctly in the hover tooltip', () => {
+    const arrows: MapMovementArrow[] = [
+      {
+        id: 'offensive-1',
+        category: 'offensive',
+        movementId: 'movement-2',
+        movementKind: 'attack',
+        originTerritoryId: 3,
+        destinationTerritoryId: 4,
+        originX: 10,
+        originY: 11,
+        destX: 10,
+        destY: 12,
+        originName: null,
+        destinationName: null,
+        startedAt: '2026-08-21T11:00:00.000Z',
+        arrivesAt: '2026-08-21T13:00:00.000Z',
+      },
+      {
+        id: 'incoming-1',
+        category: 'incoming',
+        originX: 12,
+        originY: 12,
+        destX: 11,
+        destY: 11,
+        destinationName: 'Moje pole',
+        startedAt: '2026-08-21T11:00:00.000Z',
+        arrivesAt: '2026-08-21T13:00:00.000Z',
+        attackerId: 'enemy-1',
+        attackerDisplayName: 'Nepřítel',
+        attackerKingdomName: 'Stín',
+        attackerIsNpc: false,
+        attackerHomeX: 12,
+        attackerHomeY: 12,
+      },
+    ]
+
+    render(
+      <MapMovementArrows
+        arrows={arrows}
+        centerX={11}
+        centerY={11}
+        viewSize={5}
+        onSelectArrow={jest.fn()}
+      />
+    )
+
+    fireEvent.mouseEnter(screen.getByTestId('movement-arrow-line-offensive-1').closest('g') as SVGGElement)
+    expect(screen.getByText('Útok')).toBeInTheDocument()
+    expect(screen.getByText('(10, 11) → (10, 12)')).toBeInTheDocument()
+
+    fireEvent.mouseEnter(screen.getByTestId('movement-arrow-line-incoming-1').closest('g') as SVGGElement)
+    expect(screen.getByText('Příchozí útok')).toBeInTheDocument()
+    expect(screen.getByText('(12, 12) → Moje pole')).toBeInTheDocument()
+  })
+
   it('clips an arrow to the viewport edge when only one endpoint is visible', () => {
     const arrows: MapMovementArrow[] = [
       {

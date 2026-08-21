@@ -101,6 +101,20 @@ describe('MapViewport', () => {
     expect(screen.getByText('Tvé území')).toBeInTheDocument()
   })
 
+  it('renders the hover tooltip above the movement-arrows overlay layer (z-30 vs z-20)', () => {
+    // Regression: the arrows overlay (rendered later in the DOM, at z-20)
+    // used to visually cover the hover tooltip since both were at the
+    // same z-20 stacking level and later DOM order wins ties. The
+    // tooltip must sit at a strictly higher z-index so it stays on top
+    // regardless of arrow overlay presence.
+    renderViewport([makeTerritory({ owner_id: 'me' })], 'me')
+
+    fireEvent.mouseEnter(screen.getByRole('button', { name: 'Území 10,10' }))
+
+    const tooltip = screen.getByText('Tvé území').closest('div.z-30')
+    expect(tooltip).not.toBeNull()
+  })
+
   it('shows "Cizí hráč" when hovering a tile owned by someone else', () => {
     renderViewport([makeTerritory({ owner_id: 'other-player' })], 'me')
 

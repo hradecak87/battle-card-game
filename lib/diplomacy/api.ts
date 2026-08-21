@@ -58,3 +58,9 @@ export async function cancelPeace(offerId: string) {
     p_offer_id: offerId,
   }) as unknown as Promise<{ data: null; error: { message: string } | null }>
 }
+
+export async function declareWar(targetPlayerId: string) {
+  return supabase.rpc('diplomacy_declare_war', {
+    p_target_id: targetPlayerId,
+  }) as unknown as Promise<{ data: null; error: { message: string } | null }>
+}

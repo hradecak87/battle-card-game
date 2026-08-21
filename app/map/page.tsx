@@ -38,7 +38,7 @@ import {
 import { canUseKingRelocation } from '@/lib/players/king'
 import { levelForXp } from '@/lib/players/leveling'
 import { useSession } from '@/lib/supabase/useSession'
-import { getRelation } from '@/lib/diplomacy/api'
+import { declareWar, getRelation } from '@/lib/diplomacy/api'
 import type { DiplomacyRelationState } from '@/lib/diplomacy/types'
 
 // `get_viewport` (migration 0049) now returns one aggregated jsonb row
@@ -585,6 +585,11 @@ function MapPageContent() {
               setSelectedTile(null)
               loadViewport(centerX, centerY, viewSize)
               refreshOwnedTerritories()
+            }}
+            onDeclareWar={async (targetPlayerId) => {
+              const { error: declareWarErr } = await declareWar(targetPlayerId)
+              if (declareWarErr) throw new Error(declareWarErr.message)
+              setRelationState('war')
             }}
           />
         )}

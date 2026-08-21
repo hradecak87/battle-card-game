@@ -1,6 +1,7 @@
 import {
   acceptPeace,
   cancelPeace,
+  declareWar,
   getRelation,
   listOffers,
   listWars,
@@ -94,5 +95,15 @@ describe('diplomacy api wrappers', () => {
     expect(rpc).toHaveBeenNthCalledWith(1, 'diplomacy_accept_peace', { p_offer_id: 'offer-a' })
     expect(rpc).toHaveBeenNthCalledWith(2, 'diplomacy_reject_peace', { p_offer_id: 'offer-b' })
     expect(rpc).toHaveBeenNthCalledWith(3, 'diplomacy_cancel_peace', { p_offer_id: 'offer-c' })
+  })
+
+  it('calls diplomacy_declare_war with the target player id', async () => {
+    const response = { data: null, error: null }
+    rpc.mockResolvedValue(response)
+
+    await expect(declareWar('player-4')).resolves.toEqual(response)
+    expect(rpc).toHaveBeenCalledWith('diplomacy_declare_war', {
+      p_target_id: 'player-4',
+    })
   })
 })

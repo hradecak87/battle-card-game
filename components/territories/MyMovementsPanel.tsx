@@ -262,8 +262,29 @@ export default function MyMovementsPanel({ myPlayerId, refreshKey, onNavigateToT
                 <div className="flex items-center justify-between">
                   <span>
                     <span className="font-semibold">{KIND_LABELS[m.kind]}</span>{' '}
-                    {origin ? `(${origin.x}, ${origin.y})` : '?'} →{' '}
-                    {destination ? `(${destination.x}, ${destination.y})` : '?'}
+                    {origin && onNavigateToTerritory ? (
+                      <button
+                        type="button"
+                        onClick={() => onNavigateToTerritory(origin.x, origin.y)}
+                        className="underline hover:text-zinc-100"
+                      >
+                        ({origin.x}, {origin.y})
+                      </button>
+                    ) : (
+                      <>{origin ? `(${origin.x}, ${origin.y})` : '?'}</>
+                    )}{' '}
+                    →{' '}
+                    {destination && onNavigateToTerritory ? (
+                      <button
+                        type="button"
+                        onClick={() => onNavigateToTerritory(destination.x, destination.y)}
+                        className="underline hover:text-zinc-100"
+                      >
+                        ({destination.x}, {destination.y})
+                      </button>
+                    ) : (
+                      <>{destination ? `(${destination.x}, ${destination.y})` : '?'}</>
+                    )}
                   </span>
                   {battle ? (
                     <Link href={`/battles/${battle.id}`} className="text-red-400 underline">
