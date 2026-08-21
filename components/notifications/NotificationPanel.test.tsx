@@ -64,6 +64,17 @@ describe('NotificationPanel', () => {
           },
           is_read: true,
         }),
+        createNotification({
+          id: 13,
+          type: 'attack_cancelled',
+          payload: {
+            territory_id: 44,
+            territory_x: 8,
+            territory_y: 12,
+            territory_name: 'Hraniční pevnost',
+            attacker_display_name: 'Severské NPC',
+          },
+        }),
         ]}
         refresh={jest.fn()}
         onClose={jest.fn()}
@@ -72,6 +83,8 @@ describe('NotificationPanel', () => {
 
     expect(screen.getByText('Útok na tvé území')).toBeInTheDocument()
     expect(screen.getByText('Obchodní nabídka přijata')).toBeInTheDocument()
+    expect(screen.getByText('NPC útok zrušen')).toBeInTheDocument()
+    expect(screen.getByText('Severské NPC')).toBeInTheDocument()
     expect(screen.getByTestId('notification-panel')).toHaveClass(
       'fixed',
       'inset-0',

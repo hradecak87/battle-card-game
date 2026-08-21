@@ -10,6 +10,15 @@ function hasMapCoordinates(payload: unknown): payload is { x: number; y: number 
   )
 }
 
+function hasTerritoryCoordinates(payload: unknown): payload is { territory_x: number; territory_y: number } {
+  return (
+    typeof payload === 'object' &&
+    payload !== null &&
+    typeof (payload as { territory_x?: unknown }).territory_x === 'number' &&
+    typeof (payload as { territory_y?: unknown }).territory_y === 'number'
+  )
+}
+
 export function getDeepLink(notification: NotificationRow): string {
   switch (notification.type) {
     case 'attack_incoming':
@@ -17,6 +26,10 @@ export function getDeepLink(notification: NotificationRow): string {
     case 'territory_lost':
       return hasMapCoordinates(notification.payload)
         ? `/map?x=${notification.payload.x}&y=${notification.payload.y}`
+        : '/notifications'
+    case 'attack_cancelled':
+      return hasTerritoryCoordinates(notification.payload)
+        ? `/map?x=${notification.payload.territory_x}&y=${notification.payload.territory_y}`
         : '/notifications'
     case 'war_declared':
     case 'peace_offer_received':

@@ -46,6 +46,15 @@ function hasMapCoordinates(payload) {
   )
 }
 
+function hasTerritoryCoordinates(payload) {
+  return (
+    typeof payload === 'object' &&
+    payload !== null &&
+    typeof payload.territory_x === 'number' &&
+    typeof payload.territory_y === 'number'
+  )
+}
+
 function getDeepLinkForServiceWorker(data) {
   if (!data) {
     return '/notifications'
@@ -57,6 +66,10 @@ function getDeepLinkForServiceWorker(data) {
     case 'territory_lost':
       return hasMapCoordinates(data.payload)
         ? `/map?x=${data.payload.x}&y=${data.payload.y}`
+        : '/notifications'
+    case 'attack_cancelled':
+      return hasTerritoryCoordinates(data.payload)
+        ? `/map?x=${data.payload.territory_x}&y=${data.payload.territory_y}`
         : '/notifications'
     case 'war_declared':
     case 'peace_offer_received':

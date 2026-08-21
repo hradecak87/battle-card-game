@@ -155,6 +155,51 @@ describe('POST /api/push/send', () => {
     await expect(response.json()).resolves.toEqual({ ok: true, delivered: 2 })
   })
 
+
+  it('formats attack_cancelled pushes with the NPC attacker name and map payload', async () => {
+    sendPush.mockResolvedValue({ statusCode: 201 })
+
+    const { POST } = await import('./route')
+    const response = await POST(
+      new Request('http://localhost/api/push/send', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-push-webhook-secret': 'super-secret-value',
+        },
+        body: JSON.stringify({
+          type: 'INSERT',
+          table: 'notifications',
+          record: {
+            id: 2,
+            player_id: 'player-1',
+            type: 'attack_cancelled',
+            payload: {
+              territory_id: 9,
+              territory_x: 2,
+              territory_y: 7,
+              territory_name: 'Pohraničí',
+              attacker_display_name: 'Severské NPC',
+            },
+            is_read: false,
+            created_at: '2026-08-20T12:00:00.000Z',
+          },
+        }),
+      }),
+    )
+
+    expect(sendPush).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ id: 1 }),
+      expect.objectContaining({
+        title: 'NPC útok zrušen',
+        body: 'Severské NPC',
+        type: 'attack_cancelled',
+      }),
+    )
+    expect(response.status).toBe(200)
+  })
+
   it('deletes only the expired subscription when a push service returns 410', async () => {
     sendPush
       .mockRejectedValueOnce(Object.assign(new Error('Gone'), { statusCode: 410 }))

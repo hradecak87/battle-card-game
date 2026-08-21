@@ -22,6 +22,8 @@ export function notificationLabel(notification: NotificationRow): string {
       return 'Postoupil jsi na vyšší úroveň!'
     case 'dm_message':
       return 'Nová zpráva'
+    case 'attack_cancelled':
+      return 'NPC útok zrušen'
     default:
       return 'Nové oznámení'
   }

@@ -9,6 +9,7 @@ export type NotificationType =
   | 'peace_offer_received'
   | 'level_up'
   | 'dm_message'
+  | 'attack_cancelled'
 
 export interface AttackIncomingNotificationPayload {
   territory_id: number
@@ -61,6 +62,14 @@ export interface DmMessageNotificationPayload {
   other_display_name: string
 }
 
+export interface AttackCancelledNotificationPayload {
+  territory_id: number
+  territory_x: number
+  territory_y: number
+  territory_name: string | null
+  attacker_display_name: string
+}
+
 export interface NotificationPayloadByType {
   attack_incoming: AttackIncomingNotificationPayload
   war_declared: WarDeclaredNotificationPayload
@@ -72,6 +81,7 @@ export interface NotificationPayloadByType {
   peace_offer_received: PeaceOfferReceivedNotificationPayload
   level_up: LevelUpNotificationPayload
   dm_message: DmMessageNotificationPayload
+  attack_cancelled: AttackCancelledNotificationPayload
 }
 
 interface NotificationRowBase<TType extends NotificationType> {
