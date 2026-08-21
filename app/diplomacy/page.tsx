@@ -258,45 +258,19 @@ export default function DiplomacyPage() {
                 invites={coalitionInvites}
                 joinRequests={coalitionJoinRequests}
                 currentPlayerId={user.id}
-                onCreate={async (name) => {
-                  await runAction(() => createCoalition(name))
-                }}
-                onRequestJoin={async (coalitionId) => {
-                  await runAction(() => requestJoinCoalition(coalitionId))
-                }}
-                onAcceptInvite={async (inviteId) => {
-                  await runAction(() => acceptCoalitionInvite(inviteId))
-                }}
-                onRejectInvite={async (inviteId) => {
-                  await runAction(() => rejectCoalitionInvite(inviteId))
-                }}
-                onInvite={async (coalitionId, playerId) => {
-                  await runAction(() => inviteToCoalition(coalitionId, playerId))
-                }}
-                onAcceptJoinRequest={async (requestId) => {
-                  await runAction(() => acceptCoalitionJoinRequest(requestId))
-                }}
-                onRejectJoinRequest={async (requestId) => {
-                  await runAction(() => rejectCoalitionJoinRequest(requestId))
-                }}
-                onKickMember={async (playerId) => {
-                  await runAction(() => kickCoalitionMember(playerId))
-                }}
-                onTransferLeadership={async (playerId) => {
-                  await runAction(() => transferCoalitionLeadership(playerId))
-                }}
-                onLeave={async () => {
-                  await runAction(() => leaveCoalition())
-                }}
-                onDisband={async () => {
-                  await runAction(() => disbandCoalition())
-                }}
-                onDeclareWar={async (targetPlayerId) => {
-                  await runAction(() => declareCoalitionWar(targetPlayerId))
-                }}
-                onDeclarePeace={async (targetPlayerId) => {
-                  await runAction(() => declareCoalitionPeace(targetPlayerId))
-                }}
+                onCreate={(name) => runAction(() => createCoalition(name))}
+                onRequestJoin={(coalitionId) => runAction(() => requestJoinCoalition(coalitionId))}
+                onAcceptInvite={(inviteId) => runAction(() => acceptCoalitionInvite(inviteId))}
+                onRejectInvite={(inviteId) => runAction(() => rejectCoalitionInvite(inviteId))}
+                onInvite={(coalitionId, playerId) => runAction(() => inviteToCoalition(coalitionId, playerId))}
+                onAcceptJoinRequest={(requestId) => runAction(() => acceptCoalitionJoinRequest(requestId))}
+                onRejectJoinRequest={(requestId) => runAction(() => rejectCoalitionJoinRequest(requestId))}
+                onKickMember={(playerId) => runAction(() => kickCoalitionMember(playerId))}
+                onTransferLeadership={(playerId) => runAction(() => transferCoalitionLeadership(playerId))}
+                onLeave={() => runAction(() => leaveCoalition())}
+                onDisband={() => runAction(() => disbandCoalition())}
+                onDeclareWar={(targetPlayerId) => runAction(() => declareCoalitionWar(targetPlayerId))}
+                onDeclarePeace={(targetPlayerId) => runAction(() => declareCoalitionPeace(targetPlayerId))}
               />
             </section>
           )}
@@ -308,18 +282,10 @@ export default function DiplomacyPage() {
                 pacts={pacts}
                 offers={pactOffers}
                 currentPlayerId={user.id}
-                onPropose={async (targetPlayerId) => {
-                  await runAction(() => proposeNonAggression(targetPlayerId))
-                }}
-                onAccept={async (offerId) => {
-                  await runAction(() => acceptNonAggression(offerId))
-                }}
-                onReject={async (offerId) => {
-                  await runAction(() => rejectNonAggression(offerId))
-                }}
-                onCancel={async (offerId) => {
-                  await runAction(() => cancelNonAggression(offerId))
-                }}
+                onPropose={(targetPlayerId) => runAction(() => proposeNonAggression(targetPlayerId))}
+                onAccept={(offerId) => runAction(() => acceptNonAggression(offerId))}
+                onReject={(offerId) => runAction(() => rejectNonAggression(offerId))}
+                onCancel={(offerId) => runAction(() => cancelNonAggression(offerId))}
               />
             </section>
           )}

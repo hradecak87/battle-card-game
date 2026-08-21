@@ -4,14 +4,16 @@ import { useState } from 'react'
 import Link from 'next/link'
 import type { DiplomacyOfferRow, NonAggressionPactRow } from '@/lib/diplomacy/types'
 
+type ActionResult = void | boolean | Promise<void | boolean>
+
 interface PactListProps {
   pacts: NonAggressionPactRow[]
   offers: DiplomacyOfferRow[]
   currentPlayerId: string
-  onPropose: (targetPlayerId: string) => void | Promise<void>
-  onAccept: (offerId: string) => void | Promise<void>
-  onReject: (offerId: string) => void | Promise<void>
-  onCancel: (offerId: string) => void | Promise<void>
+  onPropose: (targetPlayerId: string) => ActionResult
+  onAccept: (offerId: string) => ActionResult
+  onReject: (offerId: string) => ActionResult
+  onCancel: (offerId: string) => ActionResult
 }
 
 function pactLink(pact: NonAggressionPactRow) {
@@ -44,8 +46,8 @@ export function PactList({ pacts, offers, currentPlayerId, onPropose, onAccept, 
             type="button"
             onClick={async () => {
               if (!targetPlayerId.trim()) return
-              await onPropose(targetPlayerId.trim())
-              setTargetPlayerId('')
+              const ok = await onPropose(targetPlayerId.trim())
+              if (ok !== false) setTargetPlayerId('')
             }}
             className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white"
           >

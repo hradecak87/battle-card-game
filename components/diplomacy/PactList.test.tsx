@@ -80,4 +80,27 @@ describe('PactList', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Zrušit návrh' }))
     await waitFor(() => expect(onCancel).toHaveBeenCalledWith('offer-outgoing'))
   })
+
+  it('keeps the pact proposal input populated when proposing fails', async () => {
+    const onPropose = jest.fn().mockResolvedValue(false)
+
+    render(
+      <PactList
+        pacts={[]}
+        offers={[]}
+        currentPlayerId="me"
+        onPropose={onPropose}
+        onAccept={jest.fn()}
+        onReject={jest.fn()}
+        onCancel={jest.fn()}
+      />
+    )
+
+    const input = screen.getByPlaceholderText('ID cílového hráče') as HTMLInputElement
+    fireEvent.change(input, { target: { value: 'player-5' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Navrhnout pakt' }))
+
+    await waitFor(() => expect(onPropose).toHaveBeenCalledWith('player-5'))
+    expect(input.value).toBe('player-5')
+  })
 })

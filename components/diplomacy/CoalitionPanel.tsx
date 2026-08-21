@@ -9,25 +9,27 @@ import type {
   CoalitionSummary,
 } from '@/lib/diplomacy/types'
 
+type ActionResult = void | boolean | Promise<void | boolean>
+
 interface CoalitionPanelProps {
   myCoalition: CoalitionDetail | null
   coalitions: CoalitionSummary[]
   invites: CoalitionInviteRow[]
   joinRequests: CoalitionJoinRequestRow[]
   currentPlayerId: string
-  onCreate: (name: string) => void | Promise<void>
-  onRequestJoin: (coalitionId: string) => void | Promise<void>
-  onAcceptInvite: (inviteId: string) => void | Promise<void>
-  onRejectInvite: (inviteId: string) => void | Promise<void>
-  onInvite: (coalitionId: string, playerId: string) => void | Promise<void>
-  onAcceptJoinRequest: (requestId: string) => void | Promise<void>
-  onRejectJoinRequest: (requestId: string) => void | Promise<void>
-  onKickMember: (playerId: string) => void | Promise<void>
-  onTransferLeadership: (playerId: string) => void | Promise<void>
-  onLeave: () => void | Promise<void>
-  onDisband: () => void | Promise<void>
-  onDeclareWar: (targetPlayerId: string) => void | Promise<void>
-  onDeclarePeace: (targetPlayerId: string) => void | Promise<void>
+  onCreate: (name: string) => ActionResult
+  onRequestJoin: (coalitionId: string) => ActionResult
+  onAcceptInvite: (inviteId: string) => ActionResult
+  onRejectInvite: (inviteId: string) => ActionResult
+  onInvite: (coalitionId: string, playerId: string) => ActionResult
+  onAcceptJoinRequest: (requestId: string) => ActionResult
+  onRejectJoinRequest: (requestId: string) => ActionResult
+  onKickMember: (playerId: string) => ActionResult
+  onTransferLeadership: (playerId: string) => ActionResult
+  onLeave: () => ActionResult
+  onDisband: () => ActionResult
+  onDeclareWar: (targetPlayerId: string) => ActionResult
+  onDeclarePeace: (targetPlayerId: string) => ActionResult
 }
 
 function MemberRow({
@@ -40,8 +42,8 @@ function MemberRow({
   member: CoalitionMember
   currentPlayerId: string
   isLeader: boolean
-  onKick: (playerId: string) => void | Promise<void>
-  onTransfer: (playerId: string) => void | Promise<void>
+  onKick: (playerId: string) => ActionResult
+  onTransfer: (playerId: string) => ActionResult
 }) {
   return (
     <li className="flex flex-col gap-2 rounded-xl border border-zinc-800 bg-zinc-950/70 p-3 sm:flex-row sm:items-center sm:justify-between">
@@ -130,8 +132,8 @@ export function CoalitionPanel({
               type="button"
               onClick={async () => {
                 if (!newCoalitionName.trim()) return
-                await onCreate(newCoalitionName.trim())
-                setNewCoalitionName('')
+                const ok = await onCreate(newCoalitionName.trim())
+                if (ok !== false) setNewCoalitionName('')
               }}
               className="rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white"
             >
@@ -260,8 +262,8 @@ export function CoalitionPanel({
                 type="button"
                 onClick={async () => {
                   if (!invitePlayerId.trim()) return
-                  await onInvite(coalitionId, invitePlayerId.trim())
-                  setInvitePlayerId('')
+                  const ok = await onInvite(coalitionId, invitePlayerId.trim())
+                  if (ok !== false) setInvitePlayerId('')
                 }}
                 className="rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white"
               >
@@ -283,8 +285,8 @@ export function CoalitionPanel({
                 type="button"
                 onClick={async () => {
                   if (!warTargetId.trim()) return
-                  await onDeclareWar(warTargetId.trim())
-                  setWarTargetId('')
+                  const ok = await onDeclareWar(warTargetId.trim())
+                  if (ok !== false) setWarTargetId('')
                 }}
                 className="rounded-full bg-red-700 px-4 py-2 text-sm font-semibold text-white"
               >
@@ -306,8 +308,8 @@ export function CoalitionPanel({
                 type="button"
                 onClick={async () => {
                   if (!peaceTargetId.trim()) return
-                  await onDeclarePeace(peaceTargetId.trim())
-                  setPeaceTargetId('')
+                  const ok = await onDeclarePeace(peaceTargetId.trim())
+                  if (ok !== false) setPeaceTargetId('')
                 }}
                 className="rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white"
               >
