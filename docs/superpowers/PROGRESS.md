@@ -14,6 +14,21 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-21h (troop lending wild-garrison cleanup follow-up)
+
+- **Closed the remaining troop-lending edge case** in `_resolve_round(...)`
+  for **wild/NPC defender wins** (`v_winner_owner is null`):
+  - `0068_troop_lending.sql` now redefines `_resolve_round(...)` and clears
+    `loaned_from_id` / `loan_return_at` in all three direct
+    `owner_id = null` update paths inside the wild-garrison branch.
+  - This prevents a loaned unit that loses to an ownerless/wild defender
+    from later being auto-recalled by the expiry sweep after it has already
+    become a wild garrison card.
+  - `0068_troop_lending.verification.sql` now includes a live regression
+    case that reproduces the old bug (borrowed unit loses to a wild
+    defender with an overdue `loan_return_at`) and proves the loan fields
+    stay null afterward; the updated verification passed live after the fix.
+
 ## Latest update — 2026-08-21g (coalition troop lending / shared forces)
 
 - **Implemented backlog item #30 phase 2** from the approved troop-lending

@@ -12,6 +12,7 @@ declare
   v_destination_territory_id integer;
   v_lender_alt_home_id integer;
   v_outsider_territory_id integer;
+  v_wild_territory_id integer;
   v_card_1 uuid := gen_random_uuid();
   v_card_2 uuid := gen_random_uuid();
   v_card_3 uuid := gen_random_uuid();
@@ -19,15 +20,20 @@ declare
   v_card_5 uuid := gen_random_uuid();
   v_card_6 uuid := gen_random_uuid();
   v_card_7 uuid := gen_random_uuid();
+  v_card_8 uuid := gen_random_uuid();
   v_borrowed_card uuid := gen_random_uuid();
+  v_wild_defender_card uuid := gen_random_uuid();
   v_dummy_attack_id uuid := gen_random_uuid();
   v_dummy_battle_movement_id uuid := gen_random_uuid();
+  v_wild_battle_id uuid := gen_random_uuid();
+  v_wild_battle_movement_id uuid := gen_random_uuid();
   v_loan_movement_id uuid;
   v_return_movement_id uuid;
   v_count integer;
   v_before_count integer;
   v_current_lender_home integer;
   v_now text;
+  v_strong_unit_template_id text;
 begin
   assert to_regprocedure('lend_troops(integer,uuid[],numeric)') is not null,
     'missing lend_troops(integer,uuid[],numeric)';
@@ -98,16 +104,17 @@ begin
         where ci.stationed_territory_id = territories.id
       )
     order by id
-    limit 4
+    limit 5
   ) free_tiles;
 
-  assert coalesce(array_length(v_free_territories, 1), 0) = 4,
-    'need four free territories for 0068 verification';
+  assert coalesce(array_length(v_free_territories, 1), 0) = 5,
+    'need five free territories for 0068 verification';
 
   v_origin_territory_id := v_free_territories[1];
   v_destination_territory_id := v_free_territories[2];
   v_lender_alt_home_id := v_free_territories[3];
   v_outsider_territory_id := v_free_territories[4];
+  v_wild_territory_id := v_free_territories[5];
 
   update territories
   set owner_id = v_lender_id,
@@ -142,10 +149,32 @@ begin
   select id into v_unit_template_id
   from card_templates
   where category = 'unit'
-  order by id
+  order by
+    (
+      coalesce((base_stats ->> 'str')::numeric, 0)
+      + coalesce((base_stats ->> 'lng')::numeric, 0)
+      + coalesce((base_stats ->> 'def')::numeric, 0)
+      + coalesce((base_stats ->> 'hp')::numeric, 0)
+    ) asc,
+    id
   limit 1;
 
   assert v_unit_template_id is not null, 'need a unit template for 0068 verification';
+
+  select id into v_strong_unit_template_id
+  from card_templates
+  where category = 'unit'
+  order by
+    (
+      coalesce((base_stats ->> 'str')::numeric, 0)
+      + coalesce((base_stats ->> 'lng')::numeric, 0)
+      + coalesce((base_stats ->> 'def')::numeric, 0)
+      + coalesce((base_stats ->> 'hp')::numeric, 0)
+    ) desc,
+    id
+  limit 1;
+
+  assert v_strong_unit_template_id is not null, 'need a strong unit template for 0068 verification';
 
   insert into card_instances (instance_id, template_id, owner_id, stationed_territory_id, status)
   values
@@ -156,6 +185,7 @@ begin
     (v_card_5, v_unit_template_id, v_lender_id, v_origin_territory_id, 'stationed'),
     (v_card_6, v_unit_template_id, v_lender_id, v_origin_territory_id, 'stationed'),
     (v_card_7, v_unit_template_id, v_lender_id, v_origin_territory_id, 'stationed'),
+    (v_card_8, v_unit_template_id, v_lender_id, v_origin_territory_id, 'stationed'),
     (v_borrowed_card, v_unit_template_id, v_borrower_id, v_destination_territory_id, 'stationed');
 
   update card_instances
@@ -387,6 +417,84 @@ begin
     and tm.kind = 'loan_return';
 
   assert v_count = 0, 'captured loaned cards must not be auto-recalled later';
+
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub', v_lender_id::text, true);
+  perform lend_troops(v_destination_territory_id, array[v_card_8], 24);
+  execute 'reset role';
+  select tm.id
+  into v_loan_movement_id
+  from troop_movements tm
+  join troop_movement_units tmu on tmu.movement_id = tm.id
+  where tmu.card_instance_id = v_card_8
+    and tm.kind = 'loan'
+    and tm.status = 'in_transit'
+  order by tm.started_at desc
+  limit 1;
+
+  update troop_movements set transfer_arrives_at = now() - interval '1 minute' where id = v_loan_movement_id;
+  perform resolve_due_movements();
+  update card_instances
+  set loan_return_at = now() - interval '1 minute'
+  where instance_id = v_card_8;
+
+  insert into card_instances (instance_id, template_id, owner_id, stationed_territory_id, status)
+  values (v_wild_defender_card, v_strong_unit_template_id, null, v_wild_territory_id, 'stationed');
+
+  insert into troop_movements (id, player_id, kind, origin_territory_id, destination_territory_id, transfer_arrives_at, status)
+  values (v_wild_battle_movement_id, v_borrower_id, 'attack', v_destination_territory_id, v_wild_territory_id, now() + interval '1 hour', 'in_transit');
+
+  insert into battles (
+    id,
+    territory_id,
+    attacker_id,
+    defender_id,
+    is_home_target,
+    movement_id,
+    status,
+    ready_deadline,
+    round_deadline
+  )
+  values (
+    v_wild_battle_id,
+    v_wild_territory_id,
+    v_borrower_id,
+    null,
+    false,
+    v_wild_battle_movement_id,
+    'active',
+    now() + interval '1 hour',
+    now() + interval '1 hour'
+  );
+
+  insert into battle_attacker_roster (battle_id, card_instance_id)
+  values (v_wild_battle_id, v_card_8);
+
+  insert into battle_rounds (battle_id, round_number, attacker_card_instance_id)
+  values (v_wild_battle_id, 1, v_card_8);
+
+  perform setseed(0.99);
+  perform _resolve_round(v_wild_battle_id, v_card_8, v_wild_defender_card, false);
+
+  assert exists (
+    select 1
+    from card_instances
+    where instance_id = v_card_8
+      and owner_id is null
+      and stationed_territory_id = v_wild_territory_id
+      and loaned_from_id is null
+      and loan_return_at is null
+  ), 'wild-defeated loaned cards must clear loan metadata when ownership becomes null';
+
+  perform resolve_due_movements();
+
+  select count(*) into v_count
+  from troop_movements tm
+  join troop_movement_units tmu on tmu.movement_id = tm.id
+  where tmu.card_instance_id = v_card_8
+    and tm.kind = 'loan_return';
+
+  assert v_count = 0, 'wild-defeated loaned cards must not be auto-recalled later';
 
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub', v_lender_id::text, true);
