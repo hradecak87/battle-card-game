@@ -47,6 +47,9 @@ const getMyStructureCardInstances = jest.fn().mockResolvedValue({ data: [], erro
 const buildStructure = jest.fn().mockResolvedValue({ data: null, error: null })
 const relocateHome = jest.fn().mockResolvedValue({ data: null, error: null })
 const getRelation = jest.fn().mockResolvedValue({ data: null, error: null })
+const mapMovementArrowsMock = jest.fn(({ visible }: { visible?: boolean }) => (
+  <div data-testid="map-movement-arrows">{visible ? 'visible' : 'hidden'}</div>
+))
 
 jest.mock('@/lib/territories/api', () => ({
   getViewport: (...args: unknown[]) => getViewport(...args),
@@ -93,6 +96,11 @@ jest.mock('@/lib/battles/useMyTerritoriesBattleChannel', () => ({
 jest.mock('@/components/territories/MyMovementsPanel', () => ({
   __esModule: true,
   default: ({ refreshKey }: { refreshKey?: number }) => <div data-testid="movements-refresh-key">{refreshKey ?? 0}</div>,
+}))
+
+jest.mock('@/components/territories/MapMovementArrows', () => ({
+  __esModule: true,
+  default: (props: { visible?: boolean }) => mapMovementArrowsMock(props),
 }))
 
 describe('MapPage', () => {
@@ -198,6 +206,17 @@ describe('MapPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Přejít' }))
 
     await waitFor(() => expect(getViewport).toHaveBeenCalledWith(3, 13, 17, 27))
+  })
+
+  it('toggles the map movement arrows overlay from the page control', async () => {
+    render(<MapPage />)
+    await waitFor(() => expect(screen.getByTestId('map-viewport')).toBeInTheDocument())
+
+    expect(screen.getByTestId('map-movement-arrows')).toHaveTextContent('hidden')
+
+    fireEvent.click(screen.getByRole('button', { name: /Zobrazit pohyby/ }))
+
+    expect(screen.getByTestId('map-movement-arrows')).toHaveTextContent('visible')
   })
 
   it('re-requests a shifted window when a pan arrow is clicked', async () => {

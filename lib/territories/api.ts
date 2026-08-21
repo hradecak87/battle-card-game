@@ -311,9 +311,11 @@ export interface IncomingAttackOnMyTerritory {
   territory_name: string | null
   attacker_id: string
   attacker_display_name: string | null
+  attacker_kingdom_name: string | null
   attacker_is_npc: boolean
   attacker_home_x: number | null
   attacker_home_y: number | null
+  started_at: string
   transfer_arrives_at: string
 }
 
@@ -451,6 +453,25 @@ export interface CardInstanceWithTemplate {
     pct_def?: number | null
     pct_hp?: number | null
   } | null
+}
+
+export interface MovementCard {
+  instance_id: string
+  template_id: string
+  owner_id: string | null
+  stationed_territory_id: number | null
+  status: 'stationed' | 'in_transit' | 'deposit'
+  origin_territory_id: number | null
+  card_templates: CardInstanceWithTemplate['card_templates']
+}
+
+export async function getMovementCards(movementId: string) {
+  return supabase.rpc('get_movement_cards', {
+    p_movement_id: movementId,
+  }) as unknown as Promise<{
+    data: MovementCard[] | null
+    error: { message: string } | null
+  }>
 }
 
 export async function getCardInstancesAtTerritory(territoryId: number) {

@@ -29,6 +29,7 @@ import GarrisonModal from '@/components/territories/GarrisonModal'
 import DeclareAttackModal from '@/components/territories/DeclareAttackModal'
 import TransferModal from '@/components/territories/TransferModal'
 import MyMovementsPanel from '@/components/territories/MyMovementsPanel'
+import MapMovementArrows from '@/components/territories/MapMovementArrows'
 import { useTerritoryBattleChannel } from '@/lib/battles/useTerritoryBattleChannel'
 import {
   IncomingOwnedTerritoryBattle,
@@ -104,6 +105,7 @@ function MapPageContent() {
   const [structureCardInstances, setStructureCardInstances] = useState<CardInstanceWithTemplate[] | null>(null)
   const [showAttackModal, setShowAttackModal] = useState(false)
   const [showTransferModal, setShowTransferModal] = useState(false)
+  const [showMovementArrows, setShowMovementArrows] = useState(false)
   const [movementsRefreshKey, setMovementsRefreshKey] = useState(0)
   const [incomingBattleAlerts, setIncomingBattleAlerts] = useState<IncomingBattleAlert[]>([])
   const [kingRelocationUsedAt, setKingRelocationUsedAt] = useState<string | null>(null)
@@ -502,6 +504,31 @@ function MapPageContent() {
             onZoomOut={handleZoomOut}
             canZoomIn={zoomIndex > 0}
             canZoomOut={zoomIndex < ZOOM_LEVELS.length - 1}
+            toolbarContent={
+              <button
+                type="button"
+                aria-pressed={showMovementArrows}
+                onClick={() => setShowMovementArrows((current) => !current)}
+                className={`shrink-0 rounded border px-3 py-1 text-sm font-semibold transition-colors ${
+                  showMovementArrows
+                    ? 'border-fuchsia-500 bg-fuchsia-500/10 text-fuchsia-200'
+                    : 'border-zinc-700 bg-zinc-900 text-zinc-200 hover:border-zinc-500'
+                }`}
+              >
+                Zobrazit pohyby
+              </button>
+            }
+            overlay={
+              <MapMovementArrows
+                visible={showMovementArrows}
+                myPlayerId={user?.id ?? null}
+                refreshKey={movementsRefreshKey}
+                centerX={centerX}
+                centerY={centerY}
+                viewSize={viewSize}
+                onNavigateToTerritory={handleJump}
+              />
+            }
           />
         )}
 

@@ -14,6 +14,60 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-21d (map movement arrows end-to-end)
+
+- **Implemented the full `/map` movement-arrows feature** from
+  `docs/superpowers/specs/2026-08-21-map-movement-arrows-design.md`:
+  - `supabase/migrations/0059_map_movement_arrows.sql` +
+    `.verification.sql`:
+    - extended `get_incoming_attacks_on_my_territories()` with
+      `attacker_kingdom_name` and `started_at` (the latter added so the
+      client can animate incoming-attack progress from real movement timing,
+      matching the spec's unified arrow-descriptor shape),
+    - added `get_movement_cards(uuid)` as a `security definer` RPC for
+      owner-only movement composition access,
+    - tightened `troop_movement_units` direct-select RLS from public read to
+      `using (false)`.
+  - **Applied the migration live** via a one-off local Node + `pg` script
+    reading `SUPABASE_DB_URL` from `.env.local` (script deleted afterwards;
+    not committed). Verified live by:
+    - checking `pg_get_functiondef(...)` for both modified/new functions,
+    - confirming `pg_policies.qual = false` for
+      `troop_movement_units_select_all`,
+    - running `0059_map_movement_arrows.verification.sql`, which returned
+      `VERIFICATION OK`.
+  - `lib/territories/api.ts`:
+    - `IncomingAttackOnMyTerritory` now includes
+      `attacker_kingdom_name` + `started_at`,
+    - added `MovementCard` + `getMovementCards()` thin RPC wrapper.
+  - Added `lib/territories/useMapMovementArrows.ts`: combines
+    `getMyMovements()` + `getIncomingAttacksOnMyTerritories()` +
+    `getTerritoriesByIds()`, filters to in-transit rows, polls every 15s,
+    and reloads on `refreshKey` exactly like `MyMovementsPanel`.
+  - Added `components/territories/MapMovementArrows.tsx`:
+    SVG overlay with category colors (amber transfer / red offensive /
+    fuchsia incoming), viewport-edge clipping, animated progress dot, and
+    click-through modal wiring.
+  - Added `components/territories/MovementDetailModal.tsx`:
+    own-movement detail includes full card list via `getMovementCards()`;
+    incoming-attack detail preserves fog-of-war (identity/home/ETA only).
+  - `components/territories/MapViewport.tsx` now accepts optional
+    `toolbarContent` + `overlay`, letting the page place the
+    "Zobrazit pohyby" toggle next to the existing map controls while keeping
+    the SVG aligned with the translated grid during drag/pan.
+  - `app/map/page.tsx` now owns the plain `showMovementArrows` state and
+    wires the toggle + overlay using the existing `handleJump` recenter
+    convention for modal navigation.
+- Added Jest coverage for the new hook, overlay, modal, and page toggle:
+  - `lib/territories/useMapMovementArrows.test.tsx`
+  - `components/territories/MapMovementArrows.test.tsx`
+  - `components/territories/MovementDetailModal.test.tsx`
+  - `app/map/page.test.tsx` extended with the toggle regression test.
+- Verification completed:
+  - `npx jest components\\territories lib\\territories app\\map --runInBand --silent`
+    → **16 suites / 224 tests passed**
+  - `npx tsc --noEmit` → **clean**
+
 ## Latest update — 2026-08-21b (mobile chat widget scroll fix + battle-territory map link)
 
 - **Mobile chat widget (bottom-right floating "Chat" panel) wasn't scrolling**:

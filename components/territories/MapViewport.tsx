@@ -127,6 +127,8 @@ export interface MapViewportProps {
   centerY: number
   viewSize?: number
   currentUserId?: string | null
+  toolbarContent?: ReactNode
+  overlay?: ReactNode
   onPan: (dx: number, dy: number) => void
   onJump: (x: number, y: number) => void
   onSelectTile?: (territory: Territory) => void
@@ -267,6 +269,8 @@ export default function MapViewport({
   centerY,
   viewSize = 15,
   currentUserId,
+  toolbarContent,
+  overlay,
   onPan,
   onJump,
   onSelectTile,
@@ -484,6 +488,8 @@ export default function MapViewport({
             Přejít
           </button>
         </form>
+
+        {toolbarContent}
       </div>
 
       <div
@@ -499,18 +505,22 @@ export default function MapViewport({
         className={`w-full ${isDragging ? 'overflow-hidden' : 'overflow-visible'}`}
       >
         <div
-          data-testid="map-grid"
-          className={`grid select-none cursor-grab active:cursor-grabbing overflow-visible border-l border-t ${cellPx ? '' : 'w-full'}`}
-          style={{
-            gridTemplateColumns: cellPx ? `repeat(${viewSize}, ${cellPx}px)` : `repeat(${viewSize}, minmax(0, 1fr))`,
-            width: cellPx ? `${cellPx * viewSize}px` : undefined,
-            transform: visualDragOffset ? `translate(${visualDragOffset.x}px,${visualDragOffset.y}px)` : undefined,
-            transition: visualDragOffset ? 'none' : 'transform 0.1s ease-out',
-            ...gridBorderStyle,
-          }}
+          className="relative inline-block max-w-full align-top"
+          style={{ width: cellPx ? `${cellPx * viewSize}px` : '100%' }}
         >
-          {Array.from({ length: viewSize }).map((_, row) =>
-            Array.from({ length: viewSize }).map((_, col) => {
+          <div
+            data-testid="map-grid"
+            className={`grid select-none cursor-grab active:cursor-grabbing overflow-visible border-l border-t ${cellPx ? '' : 'w-full'}`}
+            style={{
+              gridTemplateColumns: cellPx ? `repeat(${viewSize}, ${cellPx}px)` : `repeat(${viewSize}, minmax(0, 1fr))`,
+              width: cellPx ? `${cellPx * viewSize}px` : undefined,
+              transform: visualDragOffset ? `translate(${visualDragOffset.x}px,${visualDragOffset.y}px)` : undefined,
+              transition: visualDragOffset ? 'none' : 'transform 0.1s ease-out',
+              ...gridBorderStyle,
+            }}
+          >
+            {Array.from({ length: viewSize }).map((_, row) =>
+              Array.from({ length: viewSize }).map((_, col) => {
             const x = x1 + col
             const y = y1 + row
             const isVoid = !isWithinBounds(x, y)
@@ -652,7 +662,7 @@ export default function MapViewport({
               })
             }
 
-              return (
+                  return (
                 <button
                 key={`${x},${y}`}
                 type="button"
@@ -746,10 +756,22 @@ export default function MapViewport({
                     ) : null}
                   </div>
                 )}
-                </button>
-              )
-            })
-          )}
+                    </button>
+                  )
+                })
+              )}
+            </div>
+            {overlay && (
+              <div
+                className="absolute inset-0 overflow-visible"
+                style={{
+                  transform: visualDragOffset ? `translate(${visualDragOffset.x}px,${visualDragOffset.y}px)` : undefined,
+                  transition: visualDragOffset ? 'none' : 'transform 0.1s ease-out',
+                }}
+              >
+                {overlay}
+              </div>
+            )}
         </div>
       </div>
     </div>
