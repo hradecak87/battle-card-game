@@ -45,15 +45,21 @@ destination id — it has no directional assumption baked in.
   tile** as the destination territory instead of the caller's own
   territory. The `instances` prop passed to `LendModal` is no longer
   needed (see below) and is dropped.
-- Add a new `relationLoading` state, set `true` alongside `ownerInfoLoading`
-  when tile selection triggers `getRelation(...)` and set `false` in that
-  fetch's own `.then()` (mirroring the existing `ownerInfoLoading`
-  pattern, but tracking `getRelation` specifically instead of
-  `getPlayerPublicInfo`). Today these two fetches are independent and only
+- Add a new `relationLoading` state, reset on every tile selection exactly
+  like `ownerInfoLoading` is today (`setRelationLoading(shouldLoadOwnerInfo)`
+  right alongside the existing `setOwnerInfoLoading(shouldLoadOwnerInfo)`
+  call, so a selection with no owner also clears it to `false`), then set
+  `false` again once `getRelation(...)`'s own `.then()` resolves — separate
+  from `getPlayerPublicInfo`'s completion, which is what `ownerInfoLoading`
+  tracks. Today these two fetches are independent and only
   `getPlayerPublicInfo`'s completion clears `ownerInfoLoading`, so
   `ownerInfoLoading` becoming `false` does **not** guarantee
-  `relationState` has resolved — `relationLoading` closes that gap. Pass
-  `relationLoading` down to `GarrisonModal` as a new prop.
+  `relationState` has resolved — `relationLoading` closes that gap.
+  Guard the `.then()` update with the existing
+  `selectionRequestIdRef.current !== requestId` staleness check, same as
+  the other tile-selection fetches, so a fast follow-up selection can't
+  have its `relationLoading` reset clobbered by a stale in-flight
+  response. Pass `relationLoading` down to `GarrisonModal` as a new prop.
 
 ### `components/territories/GarrisonModal.tsx`
 
