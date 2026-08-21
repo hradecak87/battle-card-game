@@ -67,6 +67,26 @@ export function formatWorldEventText(event: WorldEventRow) {
       return `${asString(payload.player_a_display_name) ?? 'Někdo'} a ${asString(payload.player_b_display_name) ?? 'někdo'} uzavřeli ${
         payload.had_tribute ? 'mír za tribut' : 'bílý mír'
       }`
+    case 'coalition_created':
+      return `${asString(payload.leader_display_name) ?? 'Někdo'} založil koalici ${asString(payload.coalition_name) ?? 'bez názvu'}`
+    case 'coalition_member_joined':
+      return `${asString(payload.player_display_name) ?? 'Někdo'} vstoupil do koalice ${asString(payload.coalition_name) ?? 'bez názvu'}`
+    case 'coalition_member_left':
+      return `${asString(payload.player_display_name) ?? 'Někdo'} opustil koalici ${asString(payload.coalition_name) ?? 'bez názvu'}`
+    case 'coalition_member_kicked':
+      return `${asString(payload.player_display_name) ?? 'Někdo'} byl vyhozen z koalice ${asString(payload.coalition_name) ?? 'bez názvu'}`
+    case 'coalition_leadership_transferred':
+      return `${asString(payload.old_leader_display_name) ?? 'Někdo'} předal vedení koalice ${asString(payload.coalition_name) ?? 'bez názvu'} hráči ${asString(payload.new_leader_display_name) ?? 'někomu'}`
+    case 'coalition_disbanded':
+      return `${asString(payload.leader_display_name) ?? 'Někdo'} rozpustil koalici ${asString(payload.coalition_name) ?? 'bez názvu'}`
+    case 'coalition_war_declared':
+      return `Koalice ${asString(payload.coalition_name) ?? 'bez názvu'} vyhlásila válku hráči ${asString(payload.target_display_name) ?? 'neznámý hráč'}`
+    case 'coalition_peace_signed':
+      return `Koalice ${asString(payload.coalition_name) ?? 'bez názvu'} navrhla mír hráči ${asString(payload.target_display_name) ?? 'neznámý hráč'}`
+    case 'non_aggression_signed':
+      return `${asString(payload.player_a_display_name) ?? 'Někdo'} uzavřel pakt o neútočení s hráčem ${asString(payload.player_b_display_name) ?? 'neznámý hráč'}`
+    case 'non_aggression_broken':
+      return `${asString(payload.player_a_display_name) ?? 'Někdo'} zrušil pakt o neútočení s hráčem ${asString(payload.player_b_display_name) ?? 'neznámý hráč'}`
     default:
       return 'Ve světě se stalo něco nového.'
   }
@@ -254,6 +274,131 @@ function renderEventText(event: WorldEventRow): ReactNode {
             payload.player_b_home_y
           )}{' '}
           uzavřeli {payload.had_tribute ? 'mír za tribut' : 'bílý mír'}
+        </>
+      )
+    case 'coalition_created':
+      return (
+        <>
+          {mapLink(
+            asString(payload.leader_display_name) ?? 'Někdo',
+            payload.leader_home_x,
+            payload.leader_home_y
+          )}{' '}
+          založil koalici {asString(payload.coalition_name) ?? 'bez názvu'}
+        </>
+      )
+    case 'coalition_member_joined':
+      return (
+        <>
+          {mapLink(
+            asString(payload.player_display_name) ?? 'Někdo',
+            payload.player_home_x,
+            payload.player_home_y
+          )}{' '}
+          vstoupil do koalice {asString(payload.coalition_name) ?? 'bez názvu'}
+        </>
+      )
+    case 'coalition_member_left':
+      return (
+        <>
+          {mapLink(
+            asString(payload.player_display_name) ?? 'Někdo',
+            payload.player_home_x,
+            payload.player_home_y
+          )}{' '}
+          opustil koalici {asString(payload.coalition_name) ?? 'bez názvu'}
+        </>
+      )
+    case 'coalition_member_kicked':
+      return (
+        <>
+          {mapLink(
+            asString(payload.player_display_name) ?? 'Někdo',
+            payload.player_home_x,
+            payload.player_home_y
+          )}{' '}
+          byl vyhozen z koalice {asString(payload.coalition_name) ?? 'bez názvu'}
+        </>
+      )
+    case 'coalition_leadership_transferred':
+      return (
+        <>
+          {mapLink(
+            asString(payload.old_leader_display_name) ?? 'Někdo',
+            payload.old_leader_home_x,
+            payload.old_leader_home_y
+          )}{' '}
+          předal vedení koalice {asString(payload.coalition_name) ?? 'bez názvu'} hráči{' '}
+          {mapLink(
+            asString(payload.new_leader_display_name) ?? 'někomu',
+            payload.new_leader_home_x,
+            payload.new_leader_home_y
+          )}
+        </>
+      )
+    case 'coalition_disbanded':
+      return (
+        <>
+          {mapLink(
+            asString(payload.leader_display_name) ?? 'Někdo',
+            payload.leader_home_x,
+            payload.leader_home_y
+          )}{' '}
+          rozpustil koalici {asString(payload.coalition_name) ?? 'bez názvu'}
+        </>
+      )
+    case 'coalition_war_declared':
+      return (
+        <>
+          Koalice {asString(payload.coalition_name) ?? 'bez názvu'} vyhlásila válku hráči{' '}
+          {mapLink(
+            asString(payload.target_display_name) ?? 'neznámý hráč',
+            payload.target_home_x,
+            payload.target_home_y
+          )}
+        </>
+      )
+    case 'coalition_peace_signed':
+      return (
+        <>
+          Koalice {asString(payload.coalition_name) ?? 'bez názvu'} navrhla mír hráči{' '}
+          {mapLink(
+            asString(payload.target_display_name) ?? 'neznámý hráč',
+            payload.target_home_x,
+            payload.target_home_y
+          )}
+        </>
+      )
+    case 'non_aggression_signed':
+      return (
+        <>
+          {mapLink(
+            asString(payload.player_a_display_name) ?? 'Někdo',
+            payload.player_a_home_x,
+            payload.player_a_home_y
+          )}{' '}
+          uzavřel pakt o neútočení s hráčem{' '}
+          {mapLink(
+            asString(payload.player_b_display_name) ?? 'neznámý hráč',
+            payload.player_b_home_x,
+            payload.player_b_home_y
+          )}
+        </>
+      )
+    case 'non_aggression_broken':
+      return (
+        <>
+          {mapLink(
+            asString(payload.player_a_display_name) ?? 'Někdo',
+            payload.player_a_home_x,
+            payload.player_a_home_y
+          )}{' '}
+          zrušil pakt o neútočení s hráčem{' '}
+          {mapLink(
+            asString(payload.player_b_display_name) ?? 'neznámý hráč',
+            payload.player_b_home_x,
+            payload.player_b_home_y
+          )}
         </>
       )
     default:
