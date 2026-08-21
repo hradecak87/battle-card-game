@@ -5,6 +5,7 @@ import { listDmMessages, markRead, sendMessage } from '@/lib/chat/api'
 import type { ChatListedMessage } from '@/lib/chat/types'
 import { MessageInput } from './MessageInput'
 import { MessageList } from './MessageList'
+import { useStickToBottom } from './useStickToBottom'
 import { useVisiblePolling } from './useVisiblePolling'
 
 export interface DmChatPanelProps {
@@ -27,6 +28,7 @@ export function DmChatPanel({
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [lastSentAt, setLastSentAt] = useState<number | null>(null)
+  const { containerRef, handleScroll, resetStickToBottom } = useStickToBottom(messages)
 
   const loadMessages = useCallback(async () => {
     if (!conversationId) {
@@ -53,7 +55,8 @@ export function DmChatPanel({
     setMessages([])
     setError(null)
     setLoading(Boolean(conversationId))
-  }, [conversationId])
+    resetStickToBottom()
+  }, [conversationId, resetStickToBottom])
 
   useVisiblePolling(loadMessages, 4000, currentPlayerId !== null && conversationId !== null)
 
@@ -95,7 +98,11 @@ export function DmChatPanel({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4" data-testid="dm-chat-panel">
-      <div className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
+      <div
+        ref={containerRef}
+        onScroll={handleScroll}
+        className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-900/40 p-4"
+      >
         {recipientName && <p className="mb-3 text-sm font-semibold text-zinc-200">{recipientName}</p>}
         {loading ? (
           <p className="text-sm text-zinc-400">Načítám konverzaci…</p>

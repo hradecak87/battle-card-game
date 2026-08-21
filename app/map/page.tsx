@@ -185,6 +185,25 @@ function MapPageContent() {
     loadViewport(centerX, centerY, viewSize)
   }, [centerX, centerY, viewSize, loadViewport])
 
+  // `centerX`/`centerY` are only seeded from the URL's `x`/`y` query params
+  // once, via the useState initializer above. Next.js's App Router doesn't
+  // remount this component on a same-route navigation that only changes the
+  // search params (e.g. clicking a `/map?x=&y=` link while already on
+  // `/map`), so without this effect those subsequent link clicks silently
+  // did nothing — the center state never picked up the new coordinates.
+  const rawSearchX = searchParams.get('x')
+  const rawSearchY = searchParams.get('y')
+  useEffect(() => {
+    if (rawSearchX === null || rawSearchY === null) return
+    const x = Number.parseInt(rawSearchX, 10)
+    const y = Number.parseInt(rawSearchY, 10)
+    if (!Number.isFinite(x) || !Number.isFinite(y) || x < MAP_MIN || x > MAP_MAX || y < MAP_MIN || y > MAP_MAX) {
+      return
+    }
+    handleJump(x, y)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawSearchX, rawSearchY])
+
   useEffect(() => {
     if (!user?.id) {
       setIncomingBattleAlerts([])

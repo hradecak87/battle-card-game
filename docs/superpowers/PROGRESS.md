@@ -66,10 +66,49 @@
     `lib/territories`/`components/territories`/`app/map` suite (215 tests)
     and `tsc --noEmit` all pass.
 
-- **Not yet committed** — this and the earlier notification-bell fix in
-  this session are both still pending the user's final review/approval
-  before commit+push (per this project's strict rule), plus the user may
-  have more items to review together in one batch.
+## Latest update — 2026-08-21c (desktop chat overflow, chat auto-scroll-to-bottom, map deep-link recenter fix)
+
+- **Desktop chat panel (floating widget + `/chat` page) overflowed past its
+  bounds with no scrollbar in the DM tab** — the mobile→desktop fix in
+  2026-08-21b switched mobile to `flex`, but desktop still used `md:grid`
+  with no explicit row height, so the implicit `auto` row grew to fit all
+  messages instead of respecting the panel's fixed size, and the grid
+  child's `min-h-0`/`overflow-y-auto` chain never got a bounded height to
+  clip/scroll against — messages simply spilled below the "Zavřít" button.
+  Fixed in `components/chat/ChatWidget.tsx` and `app/chat/page.tsx` by
+  adding `md:grid-rows-[minmax(0,1fr)] md:items-stretch` to the grid
+  container, and changing the DM-panel column wrapper from `md:block` to
+  `md:flex` (flex utilities like `flex-1`/`min-h-0` only take effect on an
+  element whose *own* `display` is `flex`, not `block`). Also changed the
+  standalone `/chat` page's `<main>` from `min-h-[calc(100vh-8rem)]`
+  (unbounded — lets content grow the whole page) to
+  `h-[calc(100vh-8rem)]` (bounded) so the same flex/overflow chain works
+  there too.
+- **Chat message list reset to the top on every poll update instead of
+  staying at the newest message** — added
+  `components/chat/useStickToBottom.ts`, a small hook that: auto-scrolls
+  the message container to the bottom on mount/conversation switch and
+  after every messages update, tracks via `onScroll` whether the user is
+  within ~48px of the bottom (if so, keeps auto-following; if the user
+  scrolled up to read history, stops auto-scrolling so it doesn't yank them
+  back down), and exposes `resetStickToBottom()` to force back-to-bottom
+  behavior when switching DM conversations. Wired into both
+  `DmChatPanel.tsx` and `GlobalChatPanel.tsx`.
+- **`/map?x=&y=` deep links (e.g. `MyMovementsPanel`'s "Bitva dokončena"
+  line) did nothing when clicked while already on `/map`** — `centerX`/
+  `centerY` were only ever seeded from the URL's `x`/`y` query params once,
+  inside the `useState` initializer. Next.js's App Router doesn't remount
+  `MapPageContent` on a same-route navigation that only changes search
+  params, so subsequent link clicks left the center state stale. Fixed in
+  `app/map/page.tsx` by adding a `useEffect` keyed on the raw `x`/`y`
+  search-param strings that calls `handleJump(x, y)` whenever they change
+  (validates range/finiteness the same way the initial-center helper
+  does). Added a regression test in `app/map/page.test.tsx` (`rerender`
+  with new `searchParams` without unmounting) confirming `getViewport` is
+  called with the new recentered window.
+- Full chat suite (7 suites/16 tests), `app/map` suite (20 tests, +1 new),
+  and `tsc --noEmit` all pass. Committed and pushed together with the user's
+  approval.
 
 ## Latest update — 2026-08-21 (notification bell root cause found & fixed: `refreshInFlightRef` was permanently wedged)
 

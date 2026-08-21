@@ -5,6 +5,7 @@ import { listGlobalMessages, sendMessage } from '@/lib/chat/api'
 import type { ChatListedMessage } from '@/lib/chat/types'
 import { MessageInput } from './MessageInput'
 import { MessageList } from './MessageList'
+import { useStickToBottom } from './useStickToBottom'
 import { useVisiblePolling } from './useVisiblePolling'
 
 export interface GlobalChatPanelProps {
@@ -17,6 +18,7 @@ export function GlobalChatPanel({ currentPlayerId }: GlobalChatPanelProps) {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [lastSentAt, setLastSentAt] = useState<number | null>(null)
+  const { containerRef, handleScroll } = useStickToBottom(messages)
 
   const loadMessages = useCallback(async () => {
     const { data, error: loadError } = await listGlobalMessages()
@@ -60,7 +62,11 @@ export function GlobalChatPanel({ currentPlayerId }: GlobalChatPanelProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4" data-testid="global-chat-panel">
-      <div className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
+      <div
+        ref={containerRef}
+        onScroll={handleScroll}
+        className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-900/40 p-4"
+      >
         {loading ? (
           <p className="text-sm text-zinc-400">Načítám globální chat…</p>
         ) : (

@@ -74,7 +74,7 @@ export default function ChatPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-6xl flex-col gap-4 px-4 py-6">
+    <main className="mx-auto flex h-[calc(100vh-8rem)] max-w-6xl flex-col gap-4 px-4 py-6">
       <div
         data-testid="chat-tab-bar"
         className="flex flex-col gap-2 sm:flex-row"
@@ -108,7 +108,7 @@ export default function ChatPage() {
           <GlobalChatPanel currentPlayerId={user.id} />
         </div>
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col gap-4 md:grid md:grid-cols-[18rem_minmax(0,1fr)]">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 md:grid md:grid-cols-[18rem_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)] md:items-stretch">
           <div
             className={`${mobileDetailOpen ? 'hidden md:block' : 'flex min-h-0 flex-1 flex-col md:block'}`}
           >
@@ -143,7 +143,7 @@ export default function ChatPage() {
             />
           </div>
           <div
-            className={`${mobileDetailOpen ? 'flex min-h-0 flex-1 flex-col md:block' : 'hidden md:block'} min-h-0`}
+            className={`${mobileDetailOpen ? 'flex' : 'hidden md:flex'} min-h-0 flex-1 flex-col`}
           >
             <div className="mb-2 md:hidden">
               <button

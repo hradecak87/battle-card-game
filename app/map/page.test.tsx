@@ -172,6 +172,22 @@ describe('MapPage', () => {
     expect(getMyHomeTerritory).not.toHaveBeenCalled()
   })
 
+  it('recenters the map when the ?x=&y= query params change without a remount', async () => {
+    // Regression test: Next.js's App Router does not remount this component
+    // on a same-route navigation that only changes the search params (e.g.
+    // clicking a `/map?x=&y=` deep link while already on `/map`), so the
+    // center must react to searchParams changing after the initial mount,
+    // not just seed a useState initializer once.
+    searchParams = new URLSearchParams('x=100&y=50')
+    const { rerender } = render(<MapPage />)
+    await waitFor(() => expect(getViewport).toHaveBeenCalledWith(93, 43, 107, 57))
+
+    searchParams = new URLSearchParams('x=1&y=78')
+    rerender(<MapPage />)
+
+    await waitFor(() => expect(getViewport).toHaveBeenCalledWith(0, 71, 8, 85))
+  })
+
   it('updates the requested window when the coordinate-jump form is submitted', async () => {
     render(<MapPage />)
     await waitFor(() => expect(screen.getByTestId('map-viewport')).toBeInTheDocument())
