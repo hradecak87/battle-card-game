@@ -47,6 +47,23 @@ destination id — it has no directional assumption baked in.
   && relationState === 'coalition' && !territory.battle_locked_by` (mirrors
   the existing `canAttack` guard shape) and show the new "Poslat vojska na
   pomoc" button when true, calling the existing `onLend` callback.
+- **Also hide the attack button for coalition allies**: add `&&
+  relationState !== 'coalition'` to the existing `canAttack` condition.
+  Today `canAttack` shows "⚔️ Zaútočit" for any non-owned territory
+  regardless of relation (the backend already blocks attacking a coalition
+  ally at the `declare_attack` RPC level — see coalition-attack-enforcement,
+  `0065_coalition_attack_enforcement.sql`); leaving that button visible
+  next to the new "Poslat vojska na pomoc" button would present a
+  confusing, guaranteed-to-fail action. This is the only change to attack
+  visibility; `declare_attack`'s own server-side enforcement is unchanged.
+- **`relationState` availability**: `relationState` is fetched
+  asynchronously after tile selection (starts `null`, same as `ownerInfo`)
+  and is already used to gate other relation-dependent UI in this modal
+  (the coalition badge, the "Vyhlásit válku" button). `canLend` follows the
+  same existing pattern: while `relationState` is loading, the button
+  simply isn't shown yet (no new loading state to build), and it appears
+  once the fetch resolves to `'coalition'`. No spec changes needed here
+  beyond noting this is expected, pre-existing behavior.
 
 ### `app/map/page.tsx`
 
@@ -76,6 +93,12 @@ Reworked to mirror `TransferModal`'s structure:
 - ETA calculation and submission (`lendTroops(destinationTerritory.id,
   selectedInstanceIds, durationHours)`) keep their existing logic, just
   with origin/destination swapped relative to today's variable names.
+- **Copy updates** (currently origin-first framing): heading changes from
+  "Půjčit vojska — {originTerritory.name} ({x}, {y})" to something
+  destination-first, e.g. "Poslat vojska na pomoc — {destinationTerritory.name}
+  ({x}, {y})"; the origin picker label changes from an implicit "kam
+  půjčuješ" destination dropdown to an explicit "odkud posíláš" origin
+  dropdown (mirroring `TransferModal`'s "Odkud" origin-select copy).
 
 ### Tests
 
@@ -89,8 +112,9 @@ Reworked to mirror `TransferModal`'s structure:
 
 ## Out of scope
 
-- No change to `canAttack` (already shows regardless of relation state;
-  the backend blocks attacking coalition allies). Not touched here.
+- `declare_attack`'s server-side enforcement against coalition allies is
+  unchanged (already correct) — only the client-side `canAttack` button
+  visibility is adjusted, per above.
 - No change to `MyLoansPanel` or the recall flow.
 - No change to `lend_troops` or any other RPC — this is a pure frontend
   interaction rework.
