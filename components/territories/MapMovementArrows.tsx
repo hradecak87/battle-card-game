@@ -33,10 +33,6 @@ export interface MapMovementArrowsProps {
   onSelectArrow?: (arrow: MapMovementArrow) => void
 }
 
-function isVisibleCoordinate(value: number, min: number, max: number) {
-  return value >= min && value <= max
-}
-
 function clipLineToRect(
   startX: number,
   startY: number,
@@ -127,14 +123,6 @@ export default function MapMovementArrows({
   const renderableArrows = useMemo(() => {
     return arrows
       .map((arrow) => {
-        const originVisible =
-          isVisibleCoordinate(arrow.originX, x1, x2) &&
-          isVisibleCoordinate(arrow.originY, y1, y2)
-        const destVisible =
-          isVisibleCoordinate(arrow.destX, x1, x2) &&
-          isVisibleCoordinate(arrow.destY, y1, y2)
-        if (!originVisible && !destVisible) return null
-
         const localStartX = arrow.originX - x1 + 0.5
         const localStartY = arrow.originY - y1 + 0.5
         const localEndX = arrow.destX - x1 + 0.5

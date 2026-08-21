@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import MovementDetailModal from './MovementDetailModal'
 import type { MapMovementArrow } from './MapMovementArrows'
@@ -113,5 +113,44 @@ describe('MovementDetailModal', () => {
     })
     expect(screen.queryByText('Královští lučištníci')).not.toBeInTheDocument()
     expect(getMovementCards).not.toHaveBeenCalled()
+  })
+
+  it('stays clickable when rendered inside a pointer-events-none ancestor (map overlay regression)', async () => {
+    // MovementDetailModal is rendered as a sibling inside MapMovementArrows'
+    // output, which itself sits inside a pointer-events-none wrapper in
+    // MapViewport (so the arrows overlay doesn't swallow tile hover/click).
+    // Without an explicit pointer-events-auto override, the modal (and its
+    // close button/backdrop) would inherit pointer-events: none and become
+    // visually present but completely unclickable.
+    const arrow: MapMovementArrow = {
+      id: 'incoming-1',
+      category: 'incoming',
+      originX: 20,
+      originY: 21,
+      destX: 12,
+      destY: 13,
+      destinationName: 'Moje hranice',
+      startedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+      arrivesAt: new Date(Date.now() + 20 * 60 * 1000).toISOString(),
+      attackerId: 'enemy-1',
+      attackerDisplayName: 'Nepřítel',
+      attackerKingdomName: 'Temný hvozd',
+      attackerIsNpc: false,
+      attackerHomeX: 20,
+      attackerHomeY: 21,
+    }
+
+    const onClose = jest.fn()
+    const { container } = render(
+      <div className="pointer-events-none">
+        <MovementDetailModal arrow={arrow} onClose={onClose} onNavigateToTerritory={jest.fn()} />
+      </div>
+    )
+
+    const backdrop = container.querySelector('.fixed.inset-0.z-50')
+    expect(backdrop).toHaveClass('pointer-events-auto')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zavřít detail pohybu' }))
+    expect(onClose).toHaveBeenCalled()
   })
 })

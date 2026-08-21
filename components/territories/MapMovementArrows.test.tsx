@@ -125,4 +125,63 @@ describe('MapMovementArrows', () => {
     expect(Number(line.getAttribute('x1'))).toBeLessThanOrEqual(100)
     expect(Number(line.getAttribute('x2'))).toBeLessThanOrEqual(100)
   })
+
+  it('still draws an arrow clipped to the viewport edge even when BOTH endpoints are off-screen, as long as the path crosses the visible area', () => {
+    // Regression: previously any movement where neither endpoint fell
+    // inside the current viewport was skipped entirely, so panning away
+    // from a visible destination made the whole arrow vanish even though
+    // its path still crossed the viewport. Only a line that truly misses
+    // the viewport rectangle should be omitted.
+    const arrows: MapMovementArrow[] = [
+      {
+        id: 'transfer-far',
+        category: 'transfer',
+        movementId: 'transfer-far',
+        movementKind: 'transfer',
+        originTerritoryId: 1,
+        destinationTerritoryId: 2,
+        originX: -20,
+        originY: 10,
+        destX: 40,
+        destY: 10,
+        originName: null,
+        destinationName: null,
+        startedAt: '2026-08-21T11:00:00.000Z',
+        arrivesAt: '2026-08-21T13:00:00.000Z',
+      },
+    ]
+
+    render(
+      <MapMovementArrows arrows={arrows} centerX={10} centerY={10} viewSize={5} onSelectArrow={jest.fn()} />
+    )
+
+    expect(screen.getByTestId('movement-arrow-line-transfer-far')).toBeInTheDocument()
+  })
+
+  it('omits an arrow whose path never crosses the visible viewport at all', () => {
+    const arrows: MapMovementArrow[] = [
+      {
+        id: 'transfer-unrelated',
+        category: 'transfer',
+        movementId: 'transfer-unrelated',
+        movementKind: 'transfer',
+        originTerritoryId: 1,
+        destinationTerritoryId: 2,
+        originX: 100,
+        originY: 100,
+        destX: 120,
+        destY: 100,
+        originName: null,
+        destinationName: null,
+        startedAt: '2026-08-21T11:00:00.000Z',
+        arrivesAt: '2026-08-21T13:00:00.000Z',
+      },
+    ]
+
+    render(
+      <MapMovementArrows arrows={arrows} centerX={10} centerY={10} viewSize={5} onSelectArrow={jest.fn()} />
+    )
+
+    expect(screen.queryByTestId('movement-arrow-line-transfer-unrelated')).not.toBeInTheDocument()
+  })
 })

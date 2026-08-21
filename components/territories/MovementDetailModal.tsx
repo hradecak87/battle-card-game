@@ -82,7 +82,10 @@ export default function MovementDetailModal({ arrow, onClose, onNavigateToTerrit
   const etaText = useMemo(() => formatEta(arrow.arrivesAt, now), [arrow.arrivesAt, now])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 sm:p-6" onClick={onClose}>
+    <div
+      className="pointer-events-auto fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 sm:p-6"
+      onClick={onClose}
+    >
       <div
         className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-950 p-4 sm:p-6"
         onClick={(event) => event.stopPropagation()}

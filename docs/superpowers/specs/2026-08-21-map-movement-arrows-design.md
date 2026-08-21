@@ -44,15 +44,18 @@ publicly visible, not the underlying movement details.
   - Amber/orange — my transfer.
   - Red — my attack or claim.
   - Fuchsia/purple — incoming attack on me.
-- **Viewport clipping:** a movement is drawn only if at least one of its
-  two endpoints falls within the currently loaded viewport window
-  (`[x1,x2] × [y1,y2]`, the same bounds `loadViewport` already fetches).
-  If only one endpoint is visible, the line is clipped to the viewport's
-  edge, with the arrowhead/dot still indicating the direction of travel
-  (into or out of view). If neither endpoint is visible, the movement is
-  skipped entirely — no general line/viewport intersection test, by
-  design (YAGNI; a movement passing *through* an unrelated visible area
-  without either endpoint present is not drawn).
+- **Viewport clipping:** a movement's line is clipped to the viewport
+  rectangle (`[x1,x2] × [y1,y2]`, the same bounds `loadViewport` already
+  fetches) using a standard line/rectangle intersection test, so it's
+  drawn whenever its path crosses the visible area at all — regardless of
+  whether either endpoint itself is currently on-screen. The
+  arrowhead/dot still indicates the direction of travel (into or out of
+  view). A movement whose path never crosses the visible rectangle at
+  all is not drawn. (Revised 2026-08-21: the original "skip if neither
+  endpoint visible" YAGNI rule caused a reported bug — panning away from
+  a visible destination made a still-relevant in-flight arrow vanish
+  entirely even though its path still crossed the viewport — so this was
+  generalized to a full clip test instead.)
 - **Toggle:** a "Zobrazit pohyby" button/checkbox near the existing map
   controls (pan/zoom/jump) shows or hides all arrows at once. Plain
   component state for this iteration — no persistence across sessions or
