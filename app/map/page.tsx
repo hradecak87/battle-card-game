@@ -341,7 +341,11 @@ function MapPageContent() {
     if (shouldLoadOwnerInfo && tile.owner_id) {
       getRelation(tile.owner_id).then(({ data }) => {
         if (selectionRequestIdRef.current !== requestId) return
-        setRelationState(data ?? null)
+        setRelationState(
+          data === 'war' || data === 'peace' || data === 'non_aggression' || data === 'coalition'
+            ? data
+            : null
+        )
       })
       getPlayerPublicInfo(tile.owner_id).then(({ data, error: playerError }) => {
         if (selectionRequestIdRef.current !== requestId) return
