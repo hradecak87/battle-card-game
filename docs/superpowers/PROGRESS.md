@@ -14,6 +14,52 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-21e (coalitions core + non-aggression pacts)
+
+- **Implemented backlog item #30 phase 1** from the approved coalitions
+  spec/plan: coalition core + non-aggression pacts on top of the existing
+  diplomacy module.
+  - **SQL / live DB**:
+    - `0062_coalitions_schema.sql` + verification: added coalition tables,
+      RLS/policies, widened diplomacy/world-event CHECK constraints, and
+      introduced the `non_aggression` relation / offer kinds.
+    - `0063_non_aggression.sql` + verification: added propose/accept/
+      reject/cancel/list RPCs for non-aggression pacts, extended
+      `diplomacy_get_relation()` to return `coalition | war |
+      non_aggression | peace`, and updated `diplomacy_declare_war()` to
+      break pacts and emit `non_aggression_broken`.
+    - `0064_coalition_rpcs.sql` + verification: added coalition read +
+      lifecycle RPCs (`create`, `invite`, `request_join`, accepts,
+      reject/cancel, `kick`, `transfer_leadership`, `leave`, `disband`,
+      coalition-wide war / peace initiation), plus shared helper extraction
+      for `_diplomacy_declare_war_core`.
+    - `0065_coalition_attack_enforcement.sql` + verification: added the
+      additive hostile-action guard in `_declare_attack_core()` and
+      `_start_claim_core()` so coalition members and non-aggression-pact
+      holders cannot attack/claim each other's owned territory.
+    - All four migrations were applied live to Supabase via temporary local
+      Node + `pg` scripts reading `.env.local`, with each verification SQL
+      run transaction-wrapped and rolled back cleanly.
+  - **Frontend**:
+    - `lib/diplomacy/types.ts` / `api.ts` now expose coalition +
+      non-aggression types and thin RPC wrappers.
+    - `GarrisonModal` is relation-aware for `coalition` + `non_aggression`
+      (new badge / button behavior).
+    - `WorldEventsFeed` renders all new coalition / pact event types.
+    - `/diplomacy` now has four tabs (**Moje války**, **Nabídky míru**,
+      **Koalice**, **Pakty**) via new `DiplomacyTabs`, `CoalitionPanel`,
+      and `PactList` components.
+    - `app/map/page.tsx` now threads the wider relation-state set through
+      to `GarrisonModal`.
+  - **Testing / verification**:
+    - Targeted Jest + `tsc` were run after each frontend task.
+    - Final full verification in the worktree:
+      - `npx tsc --noEmit` ✅
+      - `npx jest --runInBand --silent` ✅ (**93 suites / 642 tests passed**)
+- **Remaining future scope for item #30**: phase 2 troop lending / shared
+  forces, and phase 3 shared coalition visibility/intelligence are still
+  intentionally unimplemented follow-on work.
+
 ## Latest update — 2026-08-21d (map movement arrows end-to-end)
 
 - **Implemented the full `/map` movement-arrows feature** from
@@ -1635,7 +1681,7 @@ status inline as items are picked up.
 | 27 | Card limit per player scaling with level; ability to "return a card to the central deck" (common/uncommon burn, rare+ recycles back into circulation since supply is limited) | 6 | 5 | pending | New card-economy mechanic |
 | 28 | Add a "King" card that establishes a royal home city | 5 | 3 | **done, applied to live DB 2026-08-19** | `supabase/migrations/0024_king_relocate_home.sql`: new `players.king_relocation_used_at` + `relocate_home(p_new_territory_id)` RPC. Design choice: **not** a tradeable `card_instance` — existing catalog is unit-only and the real mechanic is a once-per-player strategic unlock, so `lib/players/king.ts` defines a pure ability card (`Král`) gated at **level 15** (10500 XP: late-midgame, high but reachable). RPC validates auth, level, ownership, unused state, unresolved-battle/claim safety, then atomically flips `territories.is_home` from the old home to the selected owned territory and stamps the usage timestamp. Client: `relocateHome()` in `lib/territories/api.ts`; `GarrisonModal` shows a one-time confirm action on owned non-home territories only when the caller is eligible; `app/map/page.tsx` wires it from session player state. Targeted Jest: 59/59 pass; `tsc` clean; `npm run build` succeeds (existing unrelated warnings only). |
 | 29 | Diplomacy module: default neutral relations, attacking declares war, diplomacy resolves it (e.g. tribute) | 8 | 3 | pending | Idea only, needs its own brainstorming, large scope |
-| 30 | Coalition module: leader roles, combined armies for bigger battles | 9 | 2 | pending | Large scope, depends on diplomacy |
+| 30 | Coalition module: leader roles, combined armies for bigger battles | 9 | 2 | **done (phase 1 core)** | Implemented 2026-08-21e: coalition core + non-aggression pacts now live (schema/RLS, RPCs, attack/claim guardrails, diplomacy/map/world-feed UI). Remaining follow-on phases only: (2) troop lending / shared forces, (3) shared visibility/intelligence. |
 | 31 | Chat / messaging module between players/kingdoms | 5 | 4 | pending | Medium scope, needs realtime infra |
 
 **Also still open from earlier roadmap discussions** (tracked in the session
