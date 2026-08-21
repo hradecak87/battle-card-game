@@ -72,7 +72,7 @@ git commit -m "feat: add coalition movement visibility RPCs"
 
 - [ ] **Step 3: Extend `MapMovementArrows` rendering** with distinct styling for the 3 new categories (reuse the existing color/style scheme's structure, pick colors that don't collide with existing categories).
 
-- [ ] **Step 4: Clicking an ally arrow opens the existing `MovementDetailModal` unchanged** — verify it just needs the `movementId`, which `get_movement_cards` now authorizes for coalition members; no modal changes expected, but check `MovementDetailModal.tsx` doesn't have its own separate ownership check that would need widening too.
+- [ ] **Step 4: Clicking an ally arrow opens the existing `MovementDetailModal`, with a small ally-identity addition** — the modal calls `get_movement_cards(arrow.movementId)` directly with no separate ownership check, so authorization is already covered by Task 1 Step 3. However, the modal (and the arrow's hover tooltip) currently show no mover-identity block for "mine" categories (not needed — it's obviously the player's own) and only show attacker identity for the "incoming enemy" category. For the 3 new ally categories, add a small identity line/block (e.g. "Spojenec: {display_name} ({kingdom_name})") using the mover-identity fields threaded through in Steps 1-2 of this task — otherwise a player clicking an ally arrow has no way to tell which ally it belongs to.
 
 - [ ] **Step 5: Write/extend tests** for the new arrow categories (data mapping + rendering) and the modal opening on an ally arrow.
 
