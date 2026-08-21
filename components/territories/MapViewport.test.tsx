@@ -123,6 +123,27 @@ describe('MapViewport', () => {
     expect(screen.getByText('Cizí hráč')).toBeInTheDocument()
   })
 
+  it('shows a coalition-ally badge when hovering a tile owned by a coalition member', () => {
+    renderViewport([makeTerritory({ owner_id: 'ally-player', owner_display_name: 'Spojenec XY' })], 'me', {
+      allyPlayerIds: new Set(['ally-player']),
+    })
+
+    fireEvent.mouseEnter(screen.getByRole('button', { name: 'Území 10,10' }))
+
+    expect(screen.getByText('Vlastník: Spojenec XY')).toBeInTheDocument()
+    expect(screen.getByText('🤝 Spojenec')).toBeInTheDocument()
+  })
+
+  it('does not show the ally badge for a foreign owner who is not a coalition member', () => {
+    renderViewport([makeTerritory({ owner_id: 'other-player' })], 'me', {
+      allyPlayerIds: new Set(['some-other-id']),
+    })
+
+    fireEvent.mouseEnter(screen.getByRole('button', { name: 'Území 10,10' }))
+
+    expect(screen.queryByText('🤝 Spojenec')).not.toBeInTheDocument()
+  })
+
   it('shows the owner display name when hovering a foreign-owned tile', () => {
     renderViewport(
       [makeTerritory({ owner_id: 'other-player', owner_display_name: 'Hráč XY' })],

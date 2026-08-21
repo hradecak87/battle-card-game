@@ -17,9 +17,11 @@ import {
 export type MapMovementArrowCategory =
   | 'transfer'
   | 'offensive'
+  | 'loan'
   | 'incoming'
   | 'ally-transfer'
   | 'ally-offensive'
+  | 'ally-loan'
   | 'ally-incoming'
 
 type BaseArrow = {
@@ -36,7 +38,7 @@ type BaseArrow = {
 }
 
 export type MyMapMovementArrow = BaseArrow & {
-  category: 'transfer' | 'offensive'
+  category: 'transfer' | 'offensive' | 'loan'
   movementId: string
   movementKind: TroopMovement['kind']
   originTerritoryId: number
@@ -66,12 +68,13 @@ type AllyIdentity = {
 
 export type AllyMapMovementArrow = BaseArrow &
   AllyIdentity & {
-    category: 'ally-transfer' | 'ally-offensive'
+    category: 'ally-transfer' | 'ally-offensive' | 'ally-loan'
     movementId: string
     movementKind: TroopMovement['kind']
     originTerritoryId: number
     destinationTerritoryId: number
   }
+
 
 export type AllyIncomingMapMovementArrow = BaseArrow &
   AllyIdentity & {
@@ -106,6 +109,12 @@ export interface UseMapMovementArrowsResult {
   error: string | null
 }
 
+function categoryForMovementKind(kind: TroopMovement['kind']): 'transfer' | 'offensive' | 'loan' {
+  if (kind === 'transfer') return 'transfer'
+  if (kind === 'loan') return 'loan'
+  return 'offensive'
+}
+
 function toMineArrow(movement: TroopMovement, territoriesById: Map<number, TerritoryCoords>): MyMapMovementArrow | null {
   const origin = territoriesById.get(movement.origin_territory_id)
   const destination = territoriesById.get(movement.destination_territory_id)
@@ -114,7 +123,7 @@ function toMineArrow(movement: TroopMovement, territoriesById: Map<number, Terri
   return {
     id: `mine-${movement.id}`,
     movementId: movement.id,
-    category: movement.kind === 'transfer' ? 'transfer' : 'offensive',
+    category: categoryForMovementKind(movement.kind),
     movementKind: movement.kind,
     originTerritoryId: movement.origin_territory_id,
     destinationTerritoryId: movement.destination_territory_id,
@@ -163,7 +172,7 @@ function toAllyArrow(
   return {
     id: `ally-${movement.id}`,
     movementId: movement.id,
-    category: movement.kind === 'transfer' ? 'ally-transfer' : 'ally-offensive',
+    category: movement.kind === 'transfer' ? 'ally-transfer' : movement.kind === 'loan' ? 'ally-loan' : 'ally-offensive',
     movementKind: movement.kind,
     originTerritoryId: movement.origin_territory_id,
     destinationTerritoryId: movement.destination_territory_id,

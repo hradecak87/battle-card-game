@@ -10,9 +10,11 @@ export type { MapMovementArrow } from '@/lib/territories/useMapMovementArrows'
 const COLOR_BY_CATEGORY = {
   transfer: '#f59e0b',
   offensive: '#ef4444',
+  loan: '#a855f7',
   incoming: '#d946ef',
   'ally-transfer': '#22c55e',
   'ally-offensive': '#14b8a6',
+  'ally-loan': '#eab308',
   'ally-incoming': '#3b82f6',
 } as const
 
@@ -86,13 +88,16 @@ function describeArrow(arrow: MapMovementArrow) {
   if (arrow.category === 'incoming' || arrow.category === 'ally-incoming') {
     return `Příchozí útok na ${arrow.destinationName ?? `${arrow.destX}, ${arrow.destY}`}`
   }
-  return `${arrow.movementKind === 'transfer' ? 'Přesun' : 'Útok'} ${arrow.originName ?? `${arrow.originX}, ${arrow.originY}`} → ${arrow.destinationName ?? `${arrow.destX}, ${arrow.destY}`}`
+  const verb = arrow.movementKind === 'transfer' ? 'Přesun' : arrow.movementKind === 'loan' ? 'Půjčka vojsk' : 'Útok'
+  return `${verb} ${arrow.originName ?? `${arrow.originX}, ${arrow.originY}`} → ${arrow.destinationName ?? `${arrow.destX}, ${arrow.destY}`}`
 }
 
 function arrowKindLabel(arrow: MapMovementArrow) {
   if (arrow.category === 'incoming') return 'Příchozí útok'
   if (arrow.category === 'ally-incoming') return 'Příchozí útok na spojence'
-  return arrow.movementKind === 'transfer' ? 'Přesun' : 'Útok'
+  if (arrow.movementKind === 'transfer') return 'Přesun'
+  if (arrow.movementKind === 'loan') return 'Půjčka vojsk'
+  return 'Útok'
 }
 
 function arrowOriginLabel(arrow: MapMovementArrow) {

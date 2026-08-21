@@ -40,7 +40,7 @@ import {
 import { canUseKingRelocation } from '@/lib/players/king'
 import { levelForXp } from '@/lib/players/leveling'
 import { useSession } from '@/lib/supabase/useSession'
-import { declareWar, getRelation } from '@/lib/diplomacy/api'
+import { declareWar, getMyCoalition, getRelation } from '@/lib/diplomacy/api'
 import type { DiplomacyRelationState } from '@/lib/diplomacy/types'
 
 // `get_viewport` (migration 0049) now returns one aggregated jsonb row
@@ -113,6 +113,7 @@ function MapPageContent() {
   const [movementsRefreshKey, setMovementsRefreshKey] = useState(0)
   const [incomingBattleAlerts, setIncomingBattleAlerts] = useState<IncomingBattleAlert[]>([])
   const [kingRelocationUsedAt, setKingRelocationUsedAt] = useState<string | null>(null)
+  const [coalitionMemberIds, setCoalitionMemberIds] = useState<Set<string>>(new Set())
   const selectionRequestIdRef = useRef(0)
   const autoCenteredUserId = useRef<string | null>(null)
 
@@ -213,6 +214,30 @@ function MapPageContent() {
   useEffect(() => {
     if (!user?.id) {
       setIncomingBattleAlerts([])
+    }
+  }, [user?.id])
+
+  useEffect(() => {
+    if (!user?.id) {
+      setCoalitionMemberIds(new Set())
+      return
+    }
+    let cancelled = false
+    getMyCoalition()
+      .then((result) => {
+        if (cancelled) return
+        const coalition = result.data?.find((row) => row && row.id != null) ?? null
+        const ids = new Set<string>()
+        for (const member of coalition?.members ?? []) {
+          if (member.player_id !== user.id) ids.add(member.player_id)
+        }
+        setCoalitionMemberIds(ids)
+      })
+      .catch(() => {
+        if (!cancelled) setCoalitionMemberIds(new Set())
+      })
+    return () => {
+      cancelled = true
     }
   }, [user?.id])
 
@@ -510,6 +535,7 @@ function MapPageContent() {
             centerY={centerY}
             viewSize={viewSize}
             currentUserId={user?.id ?? null}
+            allyPlayerIds={coalitionMemberIds}
             onPan={handlePan}
             onJump={handleJump}
             onSelectTile={handleSelectTile}

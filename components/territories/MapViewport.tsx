@@ -127,6 +127,8 @@ export interface MapViewportProps {
   centerY: number
   viewSize?: number
   currentUserId?: string | null
+  /** Player ids of the viewer's coalition allies, used to flag ally-owned tiles in the hover tooltip. */
+  allyPlayerIds?: ReadonlySet<string>
   toolbarContent?: ReactNode
   overlay?: ReactNode
   onPan: (dx: number, dy: number) => void
@@ -269,6 +271,7 @@ export default function MapViewport({
   centerY,
   viewSize = 15,
   currentUserId,
+  allyPlayerIds,
   toolbarContent,
   overlay,
   onPan,
@@ -747,6 +750,9 @@ export default function MapViewport({
                       <>
                         {tile.name && <p className="font-semibold text-zinc-50">{tile.name}</p>}
                         <p>{getOwnerLabel(tile, currentUserId)}</p>
+                        {tile.owner_id && !tile.owner_is_npc && allyPlayerIds?.has(tile.owner_id) && (
+                          <p className="text-emerald-400">🤝 Spojenec</p>
+                        )}
                         <p>{`Obtížnost: ${tile.difficulty}/5`}</p>
                         {tile.castle_rank && <p>{`Hrad: ${tile.castle_rank}`}</p>}
                         {tile.village_rank && <p>{`Vesnice: ${tile.village_rank}`}</p>}

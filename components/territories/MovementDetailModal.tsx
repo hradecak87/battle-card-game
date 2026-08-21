@@ -20,6 +20,7 @@ function titleForArrow(arrow: MapMovementArrow) {
   if (arrow.category === 'ally-incoming') return 'Příchozí útok na spojence'
   if (arrow.movementKind === 'transfer') return 'Přesun vojsk'
   if (arrow.movementKind === 'claim') return 'Zábor území'
+  if (arrow.movementKind === 'loan') return 'Půjčka vojsk'
   return 'Útočící vojska'
 }
 

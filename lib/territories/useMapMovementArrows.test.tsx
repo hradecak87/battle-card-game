@@ -252,6 +252,76 @@ describe('useMapMovementArrows', () => {
     )
   })
 
+  it('categorizes loan movements distinctly from attacks/transfers, for both mine and ally arrows', async () => {
+    getMyMovements.mockResolvedValue({
+      data: [
+        {
+          id: 'loan-1',
+          player_id: 'me',
+          kind: 'loan',
+          origin_territory_id: 10,
+          destination_territory_id: 11,
+          started_at: '2026-08-21T11:00:00.000Z',
+          transfer_arrives_at: '2026-08-21T13:00:00.000Z',
+          status: 'in_transit',
+          cancelled_at: null,
+        },
+      ],
+      error: null,
+    })
+    getCoalitionMovements.mockResolvedValue({
+      data: [
+        {
+          id: 'ally-loan-1',
+          player_id: 'ally-1',
+          kind: 'loan',
+          origin_territory_id: 14,
+          destination_territory_id: 15,
+          started_at: '2026-08-21T11:10:00.000Z',
+          transfer_arrives_at: '2026-08-21T13:10:00.000Z',
+          status: 'in_transit',
+          cancelled_at: null,
+          display_name: 'Spojenec',
+          kingdom_name: 'Severní koruna',
+          is_npc: false,
+        },
+      ],
+      error: null,
+    })
+    getTerritoriesByIds.mockResolvedValue({
+      data: [
+        { id: 10, x: 1, y: 2, name: 'Sever' },
+        { id: 11, x: 3, y: 4, name: 'Jih' },
+        { id: 14, x: 9, y: 10, name: 'Pevnost spojence' },
+        { id: 15, x: 11, y: 12, name: 'Pomocná cesta' },
+      ],
+      error: null,
+    })
+
+    let result!: { current: ReturnType<typeof useMapMovementArrows> }
+    await act(async () => {
+      ;({ result } = renderHook(() => useMapMovementArrows({ myPlayerId: 'me', refreshKey: 0 })))
+    })
+
+    await waitFor(() => expect(result.current.arrows).toHaveLength(2))
+    expect(result.current.arrows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'mine-loan-1',
+          movementId: 'loan-1',
+          category: 'loan',
+          movementKind: 'loan',
+        }),
+        expect.objectContaining({
+          id: 'ally-ally-loan-1',
+          movementId: 'ally-loan-1',
+          category: 'ally-loan',
+          movementKind: 'loan',
+        }),
+      ])
+    )
+  })
+
   it('polls every 15 seconds and reloads immediately when refreshKey changes', async () => {
     getMyMovements.mockResolvedValue({
       data: [

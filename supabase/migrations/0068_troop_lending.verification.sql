@@ -313,6 +313,10 @@ begin
   where owner_id = v_lender_id
     and is_home = true;
 
+  -- Relocate the lender's home after the loan was sent, to prove that
+  -- recall_loan targets the original loan's ORIGIN territory (v_card_1
+  -- was lent from v_origin_territory_id) rather than the lender's
+  -- (possibly since-relocated) home territory — see 0073.
   update territories set is_home = false where id = v_current_lender_home;
   update territories set is_home = true where id = v_lender_alt_home_id;
 
@@ -344,8 +348,8 @@ begin
     select 1
     from troop_movements
     where id = v_return_movement_id
-      and destination_territory_id = v_lender_alt_home_id
-  ), 'recall_loan should target the lender''s current home territory';
+      and destination_territory_id = v_origin_territory_id
+  ), 'recall_loan should target the territory the loan was originally sent from, not the lender''s (relocated) home';
 
   select count(*) into v_count
   from notifications

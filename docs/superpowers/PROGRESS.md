@@ -14,6 +14,100 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-21l (recall_loan now returns troops to origin, not home)
+
+- **Bug fix: `recall_loan` sent troops back to the lender's HOME territory
+  instead of wherever they were actually lent from.** Reported live: a
+  loan sent from a nearby border territory (1 tile from destination)
+  delivered in under an hour, but recalling it computed a fresh
+  distance/duration from the lender's (far-away) home territory, producing
+  an absurd ~7.5-day return trip. Root cause: `_recall_loan_core`
+  (`0068_troop_lending.sql`) always looked up `territories where owner_id
+  = lender and is_home = true` for the return destination.
+- **Fix (`supabase/migrations/0073_recall_loan_returns_to_origin.sql`,
+  applied live, NOT yet committed — pending user go-ahead)**: `_recall_loan_core` now looks up the
+  `origin_territory_id` of the most recent `loan` movement that carried
+  this card (via `troop_movement_units` → `troop_movements`) and returns
+  troops there instead, falling back to the lender's current home
+  territory only if that original loan movement can't be found or its
+  origin territory is no longer owned by the lender (e.g. lost in
+  battle since). The function's OUT columns were renamed
+  `lender_home_territory_*` → `return_territory_*` to reflect the new,
+  more general meaning (safe — no external caller referenced them by
+  name).
+- Updated `0068_troop_lending.verification.sql`'s existing recall
+  assertion (previously asserted recall targets the lender's *current*
+  home, even after home relocation — that was the old, now-wrong
+  behavior) to instead assert it targets the loan's original origin
+  territory regardless of home relocation. Added a new
+  `0073_recall_loan_returns_to_origin.verification.sql` covering both the
+  new origin-based path and the home-territory fallback when the origin
+  is lost. Both ran successfully (rollback-wrapped) against the live DB.
+- Also confirmed via live-DB investigation that the user's reported "2
+  duplicate movements" were actually 2 *unrelated* movements between the
+  same two territories by coincidence (a fresh long-distance loan still
+  in transit, and a separate already-delivered older loan's recall) — not
+  an actual duplication bug.
+- Verified: full `lib/territories`/`components/territories` Jest suite
+  (17/17 suites, 237/237 tests) unaffected (pure SQL change, no
+  frontend/API surface change).
+- User resolved their specific stuck 7.5-day return manually (via the
+  existing debug "10s" speed-up control) rather than needing a manual DB
+  fix, since the new logic only affects recalls created from now on.
+
+## Latest update — 2026-08-21k (NPC-cancel backfill + lend-arrow color/label + ally hover badge)
+
+- **NPC attack auto-cancel backfill (`supabase/migrations/0072_backfill_npc_reeval_at.sql`,
+  applied live, NOT yet committed — pending user go-ahead)**: root-caused why
+  a live NPC attack on the user's territory (0,77) never auto-cancelled
+  despite the defender reinforcing past the 45% NPC-win-probability
+  threshold (`0067_npc_attack_cancellation.sql`). Cause: `npc_reeval_at` is
+  only ever set once, immediately inside `_declare_attack_core`'s call site
+  in `resolve_due_npc_actions()`; any attack movement created before
+  migration `0067` shipped never got that column populated and was
+  permanently invisible to `resolve_due_npc_attack_reevaluations()` (which
+  filters `where npc_reeval_at is not null`). Migration `0072` is a one-off
+  data backfill: sets `npc_reeval_at = now()` for in-transit NPC attack
+  movements where it's currently null. Applied directly to the live DB via
+  `SUPABASE_DB_URL` + the `pg` npm package (3 rows affected); verified
+  working — the specific movement auto-cancelled shortly after via the
+  existing lazy `get_viewport` → `resolve_due_movements` path (no cron/
+  scheduler exists anywhere in this codebase; all "due" processing is a
+  lazy side-effect of client-facing RPCs).
+- **Bug fix: lend/loan movements no longer render as red "Útok" arrows on
+  the map.** `toMineArrow()`/`toAllyArrow()` in
+  `lib/territories/useMapMovementArrows.ts` only branched on
+  `kind === 'transfer'` vs. "everything else → offensive", lumping
+  `loan`/`loan_return` movements in with real attacks. Added dedicated
+  `loan`/`ally-loan` categories (new `categoryForMovementKind()` helper);
+  `components/territories/MapMovementArrows.tsx` gives loans a distinct
+  color (violet `#a855f7` for mine, yellow `#eab308` for ally) and the
+  label "Půjčka vojsk" instead of "Útok"; same label fix in
+  `MovementDetailModal.tsx`'s `titleForArrow()`. Deliberately left `claim`
+  mapped to `offensive`/`ally-offensive` unchanged (existing tests show
+  that was intentional, not something the user flagged). Added a new test
+  case in `useMapMovementArrows.test.tsx` covering `kind: 'loan'` →
+  `category: 'loan'`/`'ally-loan'` for both mine and ally arrows.
+- **Bug fix: territory hover tooltip now flags coalition allies.** Added
+  `allyPlayerIds?: ReadonlySet<string>` prop to `MapViewport`; when the
+  hovered tile's `owner_id` is in that set (and not an NPC), the tooltip
+  shows an extra "🤝 Spojenec" line below the existing owner label.
+  `app/map/page.tsx` fetches `getMyCoalition()` once whenever `user.id`
+  changes, builds a `Set` of member `player_id`s (excluding self), and
+  passes it down as `allyPlayerIds`. Added 2 new tests in
+  `MapViewport.test.tsx` (badge shown for an ally-owned tile, not shown for
+  a non-ally foreign-owned tile).
+- Verified: `npx tsc --noEmit` clean; `npx jest --silent` full suite —
+  673/674 passed, the 1 failure is the pre-existing flaky
+  `app/catalog/page.test.tsx` timing test (confirmed passing in isolation,
+  674/674 — same known flake noted in earlier entries, unrelated to this
+  change).
+- **Not yet committed/pushed** — user explicitly said "commit ještě
+  nedělej" pending these two fixes; still needs user testing/approval per
+  project rules before commit, and separate approval before push. The
+  `0072` migration (already live-applied) should go in the same eventual
+  commit batch.
+
 ## Latest update — 2026-08-21j (lend-flow unification: destination-first, matching attack/transfer)
 
 - **Unified the troop-lending UX with attack/transfer**: lending troops to
