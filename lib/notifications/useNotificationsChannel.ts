@@ -5,8 +5,13 @@ import { getUnreadCount, listNotifications } from './api'
 import type { NotificationRow } from './types'
 import { supabase } from '@/lib/supabase/client'
 import { useSession } from '@/lib/supabase/useSession'
+import { useVisiblePolling } from '@/components/chat/useVisiblePolling'
 
 const NOTIFICATIONS_PAGE_SIZE = 20
+// Realtime websockets can silently drop (e.g. sleeping/backgrounded tabs) without
+// reconnecting, leaving the bell stuck showing stale data. Poll as a fallback so it
+// self-heals, matching the pattern used elsewhere in the app (chat, MyMovementsPanel).
+const NOTIFICATIONS_POLL_INTERVAL_MS = 30000
 
 export function useNotificationsChannel() {
   const { user } = useSession()
@@ -57,9 +62,9 @@ export function useNotificationsChannel() {
     }
   }, [user?.id])
 
-  useEffect(() => {
-    void refresh()
-  }, [refresh])
+  // Fires once on mount, then again on each poll interval and whenever the tab
+  // regains visibility, so the bell self-heals if the realtime socket drops.
+  useVisiblePolling(refresh, NOTIFICATIONS_POLL_INTERVAL_MS, true)
 
   useEffect(() => {
     if (!user?.id) return
