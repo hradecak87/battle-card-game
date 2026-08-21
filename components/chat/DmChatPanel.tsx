@@ -94,8 +94,8 @@ export function DmChatPanel({
   }
 
   return (
-    <div className="flex h-full flex-col gap-4" data-testid="dm-chat-panel">
-      <div className="min-h-0 flex-1 rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-4" data-testid="dm-chat-panel">
+      <div className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
         {recipientName && <p className="mb-3 text-sm font-semibold text-zinc-200">{recipientName}</p>}
         {loading ? (
           <p className="text-sm text-zinc-400">Načítám konverzaci…</p>

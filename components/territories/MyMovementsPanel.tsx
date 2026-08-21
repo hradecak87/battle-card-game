@@ -68,16 +68,21 @@ export default function MyMovementsPanel({ myPlayerId, refreshKey, onNavigateToT
     const rows = movementRows ?? []
     setMovements(rows)
 
+    const [{ data: battleRows }, { data: recentBattleRows }, { data: incomingAttackRows }] = await Promise.all([
+      getMyActiveBattles(myPlayerId as string),
+      getMyRecentlyResolvedBattles(myPlayerId as string),
+      getIncomingAttacksOnMyTerritories(),
+    ])
+    if (cancelledRef?.current) return
+
     const territoryIds = Array.from(
-      new Set(rows.flatMap((m) => [m.origin_territory_id, m.destination_territory_id]))
-    )
-    const [{ data: territoryRows }, { data: battleRows }, { data: recentBattleRows }, { data: incomingAttackRows }] =
-      await Promise.all([
-        getTerritoriesByIds(territoryIds),
-        getMyActiveBattles(myPlayerId as string),
-        getMyRecentlyResolvedBattles(myPlayerId as string),
-        getIncomingAttacksOnMyTerritories(),
+      new Set([
+        ...rows.flatMap((m) => [m.origin_territory_id, m.destination_territory_id]),
+        ...(battleRows ?? []).map((b) => b.territory_id),
+        ...(recentBattleRows ?? []).map((b) => b.territory_id),
       ])
+    )
+    const { data: territoryRows } = await getTerritoriesByIds(territoryIds)
     if (cancelledRef?.current) return
     setCoordsById(new Map((territoryRows ?? []).map((t) => [t.id, t])))
     setBattleByTerritoryId(new Map((battleRows ?? []).map((b) => [b.territory_id, b])))
@@ -168,14 +173,27 @@ export default function MyMovementsPanel({ myPlayerId, refreshKey, onNavigateToT
       {error && <p className="text-red-400 text-sm">{error}</p>}
       {unseenRecentBattles.length > 0 && (
         <ul className="mb-2 flex flex-col gap-1 border-b border-zinc-800 pb-2">
-          {unseenRecentBattles.map((b) => (
-            <li key={b.id} className="flex items-center justify-between text-sm text-zinc-300">
-              <span>Bitva dokončena (území {b.territory_id})</span>
-              <Link href={`/battles/${b.id}`} className="text-red-400 underline">
-                Zobrazit výsledek →
-              </Link>
-            </li>
-          ))}
+          {unseenRecentBattles.map((b) => {
+            const territory = coordsById.get(b.territory_id)
+            return (
+              <li key={b.id} className="flex items-center justify-between text-sm text-zinc-300">
+                <span>
+                  Bitva dokončena (
+                  {territory ? (
+                    <Link href={`/map?x=${territory.x}&y=${territory.y}`} className="underline hover:text-zinc-100">
+                      {territory.name ?? `${territory.x}, ${territory.y}`}
+                    </Link>
+                  ) : (
+                    `území ${b.territory_id}`
+                  )}
+                  )
+                </span>
+                <Link href={`/battles/${b.id}`} className="text-red-400 underline">
+                  Zobrazit výsledek →
+                </Link>
+              </li>
+            )
+          })}
         </ul>
       )}
       {incomingAttacks.length > 0 && (

@@ -194,6 +194,7 @@ export interface TerritoryCoords {
   id: number
   x: number
   y: number
+  name: string | null
   /**
    * Only meaningful for territories currently being claimed. A claim's
    * actual completion time — separate from the (usually much shorter)
@@ -214,7 +215,7 @@ export async function getTerritoriesByIds(ids: number[]) {
   if (ids.length === 0) return { data: [], error: null }
   return supabase
     .from('territories')
-    .select('id, x, y, claim_occupation_completes_at')
+    .select('id, x, y, name, claim_occupation_completes_at')
     .in('id', ids) as unknown as Promise<{
     data: TerritoryCoords[] | null
     error: { message: string } | null

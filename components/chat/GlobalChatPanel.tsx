@@ -59,8 +59,8 @@ export function GlobalChatPanel({ currentPlayerId }: GlobalChatPanelProps) {
   }
 
   return (
-    <div className="flex h-full flex-col gap-4" data-testid="global-chat-panel">
-      <div className="min-h-0 flex-1 rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-4" data-testid="global-chat-panel">
+      <div className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
         {loading ? (
           <p className="text-sm text-zinc-400">Načítám globální chat…</p>
         ) : (

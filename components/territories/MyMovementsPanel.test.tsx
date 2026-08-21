@@ -180,6 +180,42 @@ describe('MyMovementsPanel', () => {
     expect(screen.getByText(/území 83/)).toBeInTheDocument()
   })
 
+  it('links the recently resolved battle territory to the map, preferring its custom name over coordinates', async () => {
+    getMyMovements.mockResolvedValue({ data: [], error: null })
+    getMyRecentlyResolvedBattles.mockResolvedValue({
+      data: [{ id: 'battle-npc-1', territory_id: 83, current_round: 164, resolved_at: new Date().toISOString() }],
+      error: null,
+    })
+    getTerritoriesByIds.mockResolvedValue({
+      data: [{ id: 83, x: 5, y: 9, name: 'Pevnost Bran' }],
+      error: null,
+    })
+    getLastSeenRound.mockReturnValue(0)
+
+    render(<MyMovementsPanel myPlayerId="me" />)
+
+    const territoryLink = await screen.findByText('Pevnost Bran')
+    expect(territoryLink.closest('a')).toHaveAttribute('href', '/map?x=5&y=9')
+  })
+
+  it('links the recently resolved battle territory to the map by coordinates when it has no custom name', async () => {
+    getMyMovements.mockResolvedValue({ data: [], error: null })
+    getMyRecentlyResolvedBattles.mockResolvedValue({
+      data: [{ id: 'battle-npc-1', territory_id: 83, current_round: 164, resolved_at: new Date().toISOString() }],
+      error: null,
+    })
+    getTerritoriesByIds.mockResolvedValue({
+      data: [{ id: 83, x: 5, y: 9, name: null }],
+      error: null,
+    })
+    getLastSeenRound.mockReturnValue(0)
+
+    render(<MyMovementsPanel myPlayerId="me" />)
+
+    const territoryLink = await screen.findByText('5, 9')
+    expect(territoryLink.closest('a')).toHaveAttribute('href', '/map?x=5&y=9')
+  })
+
   it('hides a recently resolved battle once its rounds have already been fully viewed', async () => {
     getMyMovements.mockResolvedValue({ data: [], error: null })
     getMyRecentlyResolvedBattles.mockResolvedValue({

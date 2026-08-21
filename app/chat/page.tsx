@@ -104,10 +104,14 @@ export default function ChatPage() {
       {!user ? (
         <p className="text-sm text-zinc-400">Pro chat se nejdřív přihlas.</p>
       ) : activeTab === 'global' ? (
-        <GlobalChatPanel currentPlayerId={user.id} />
+        <div className="flex min-h-0 flex-1 flex-col">
+          <GlobalChatPanel currentPlayerId={user.id} />
+        </div>
       ) : (
-        <div className="grid min-h-0 flex-1 gap-4 md:grid-cols-[18rem_minmax(0,1fr)]">
-          <div className={`${mobileDetailOpen ? 'hidden md:block' : 'block'}`}>
+        <div className="flex min-h-0 flex-1 flex-col gap-4 md:grid md:grid-cols-[18rem_minmax(0,1fr)]">
+          <div
+            className={`${mobileDetailOpen ? 'hidden md:block' : 'flex min-h-0 flex-1 flex-col md:block'}`}
+          >
             <label className="mb-2 block text-xs text-zinc-400">
               Nová zpráva
               <select
@@ -138,7 +142,9 @@ export default function ChatPage() {
               }}
             />
           </div>
-          <div className={`${mobileDetailOpen ? 'block' : 'hidden md:block'} min-h-0`}>
+          <div
+            className={`${mobileDetailOpen ? 'flex min-h-0 flex-1 flex-col md:block' : 'hidden md:block'} min-h-0`}
+          >
             <div className="mb-2 md:hidden">
               <button
                 type="button"

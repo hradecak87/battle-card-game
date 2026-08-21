@@ -14,6 +14,125 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-21b (mobile chat widget scroll fix + battle-territory map link)
+
+- **Mobile chat widget (bottom-right floating "Chat" panel) wasn't scrolling**:
+  on mobile the DM/Global tab content used a CSS Grid (`grid` +
+  `md:grid-cols-[...]`) as its mobile layout too. Without an explicit
+  `md:` column split, a single-column grid lays its (visibility-toggled)
+  children out as separate **auto-height rows** rather than one flexible
+  row that fills the remaining viewport height — so the visible child never
+  got a bounded height to scroll within, and just grew until it pushed the
+  message input off-screen / overlapped content (matches the reported
+  screenshot exactly: input overlapping the last message, "Odeslat" clipped
+  at the bottom). Fixed in `components/chat/ChatWidget.tsx` and
+  `app/chat/page.tsx` by switching the mobile layout to `flex flex-col`
+  (only switching to `md:grid` at the desktop breakpoint), and giving the
+  currently-visible child `flex min-h-0 flex-1 flex-col` so it actually
+  gets a bounded height from its flex parent.
+  - **Compounding bug found in the same investigation**: the message list's
+    wrapper `<div>` in both `DmChatPanel.tsx` and `GlobalChatPanel.tsx`
+    (`min-h-0 flex-1 rounded-lg border ... p-4`) was missing
+    `overflow-y-auto` entirely, so even once it had a bounded height, it
+    couldn't scroll its own content (content just overflowed visibly
+    instead of clipping/scrolling). Added `overflow-y-auto` to both.
+  - Verified locally with a headless-Playwright test at a 390×780 mobile
+    viewport with a real injected session: confirmed the message-list
+    container now reports `overflowY: "auto"` with `scrollHeight >
+    clientHeight`, and the message input's bounding box stays fully inside
+    the viewport.
+  - `components/chat/DmChatPanel.tsx` / `GlobalChatPanel.tsx` root
+    container changed from `h-full` to `flex-1 min-h-0` (percentage
+    `h-full` doesn't play well as a flex sibling of the "← Zpět" button on
+    mobile; `flex-1` correctly claims just the remaining space instead).
+  - Full chat test suite (7 suites / 16 tests) and `tsc --noEmit` pass.
+
+- **`MyMovementsPanel`'s "Bitva dokončena (území N)" line made clickable to
+  the map, matching the rest of the app's convention** (`/map?x=..&y=..`),
+  and now prefers the territory's custom name (`territories.name`) over its
+  raw numeric id/coordinates, same as elsewhere (e.g. `ActiveBattlesList`,
+  the incoming-attack line already in this same panel).
+  - `lib/territories/api.ts`: added `name: string | null` to
+    `TerritoryCoords` and its `getTerritoriesByIds()` select.
+  - `MyMovementsPanel.tsx`: the territory-id lookup batch
+    (`getTerritoriesByIds`) now also includes the recently-resolved and
+    active battles' `territory_id`s (previously only movement
+    origins/destinations), so their coordinates/name are available; the
+    "Bitva dokončena" label now renders a `Link` to `/map?x=&y=` with the
+    territory's name if set, else `"x, y"`, falling back to the old
+    `"území N"` text only if the territory lookup somehow has no match.
+  - Added 2 new tests covering the named and unnamed cases; full
+    `MyMovementsPanel` suite (15 tests) + broader
+    `lib/territories`/`components/territories`/`app/map` suite (215 tests)
+    and `tsc --noEmit` all pass.
+
+- **Not yet committed** — this and the earlier notification-bell fix in
+  this session are both still pending the user's final review/approval
+  before commit+push (per this project's strict rule), plus the user may
+  have more items to review together in one batch.
+
+## Latest update — 2026-08-21 (notification bell root cause found & fixed: `refreshInFlightRef` was permanently wedged)
+
+- **Root cause of the notification bell showing nothing, finally found** (the
+  `/notifications` history page always worked fine; only the bell's own
+  fetch never fired). Two compounding bugs in
+  `lib/notifications/useNotificationsChannel.ts`'s `refresh()`:
+  1. **The real bug**: `refreshInFlightRef.current` was set via
+     `refreshInFlightRef.current = (async () => { try {...} finally {
+     refreshInFlightRef.current = null } })()`. When that async body's first
+     call happens before login resolves (`user` still `null`), its branch has
+     **no `await`**, so the whole function body — including the `finally`
+     that clears the ref — runs **synchronously to completion** before the
+     IIFE call even returns a promise. The *outer* assignment
+     (`refreshInFlightRef.current = refreshPromise`) then executes
+     **after** that, clobbering the `null` back to a stale, already-settled
+     promise. Nothing ever clears it again, so every subsequent call
+     (including once the user actually logs in) permanently took the
+     "already in flight, just queue and wait" branch and the real fetch
+     (`list_notifications` / `get_unread_notification_count`) was never
+     called again, forever. Fixed by creating a real pending
+     `Promise`/`resolve` pair and assigning it to the ref **before** the
+     function body runs any code, so ordering can no longer race.
+  2. **A related, compounding bug**: even once (1) is fixed, `refresh` was
+     memoized with `useCallback(..., [user?.id])`. A concurrent "queued"
+     retry recurses via `await refresh()` from *inside* an older closure —
+     but per JS closure semantics, that inner reference always resolves to
+     the version of `refresh` current *at the time that specific closure was
+     created*, not whatever the latest render produced. If the very first
+     call happened before `user` resolved, its queued retry would forever
+     keep re-invoking a `refresh` permanently closed over `user = null`.
+     Fixed by making `refresh` read the current user id from a plain
+     `useRef` (`userIdRef.current`, updated synchronously every render)
+     instead of closing over `user` directly, and dropped `refresh`'s
+     `useCallback` deps to `[]` so it's a single stable function forever —
+     no more "which vintage of the closure is this" ambiguity.
+  - Diagnosed via repeated headless-Playwright runs (real magic-link login
+    session injected into `localStorage`) against a local `npm run dev`
+    server, adding temporary `console.log` instrumentation directly in
+    `refresh()` to trace `inFlight`/`userId` at each call — confirmed
+    `refreshInFlightRef.current` never went back to falsy after the very
+    first call, no matter how long the test waited.
+  - Also kept two smaller resilience fixes to `components/chat/useVisiblePolling.ts`
+    made earlier while chasing this bug (neither was the actual root cause,
+    but both are still worth keeping): the very first poll call now fires
+    unconditionally instead of being gated on `document.visibilityState`
+    (a hidden/prerendering tab could otherwise skip the initial fetch
+    forever), and a `window.addEventListener('focus', ...)` listener was
+    added alongside the existing `visibilitychange` listener, since Chrome
+    can throttle `setInterval` heavily in backgrounded tabs.
+  - Verified fix end-to-end locally: Playwright test against `localhost:3000`
+    with a real injected session now shows `list_notifications` and
+    `get_unread_notification_count` actually firing, and the bell panel
+    shows real content instead of the empty state.
+  - `npx tsc --noEmit` clean; full notifications/chat suite
+    (11 suites / 39 tests) passes.
+  - **Not yet committed** — awaiting the user's confirmation that the fix
+    works against production before committing/pushing, per this project's
+    strict commit/push approval rule.
+  - Cleaned up all temporary `tmp_*.js` Playwright/debug scripts, the stray
+    downloaded `layout.js` bundle chunk, and `dev_server.log`; stopped the
+    background local dev server shell used for testing.
+
 ## Latest update — 2026-08-20y (notifications module merged into main; Database Webhooks platform bug worked around)
 
 - **`feature/notifications-module` merged into `main`** (`--no-ff`). The
