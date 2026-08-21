@@ -37,7 +37,10 @@ const getMyTerritories = jest.fn().mockResolvedValue({ data: [], error: null })
 const getIncomingAttackInfo = jest.fn().mockResolvedValue({ data: null, error: null })
 const getPlayerPublicInfo = jest.fn().mockResolvedValue({ data: null, error: null })
 const startTransfer = jest.fn().mockResolvedValue({ data: null, error: null })
+const lendTroops = jest.fn().mockResolvedValue({ data: null, error: null })
 const getMyMovements = jest.fn().mockResolvedValue({ data: [], error: null })
+const getMyLoans = jest.fn().mockResolvedValue({ data: [], error: null })
+const recallLoan = jest.fn().mockResolvedValue({ data: null, error: null })
 const getTerritoriesByIds = jest.fn().mockResolvedValue({ data: [], error: null })
 const getMyActiveBattles = jest.fn().mockResolvedValue({ data: [], error: null })
 const getMyRecentlyResolvedBattles = jest.fn().mockResolvedValue({ data: [], error: null })
@@ -47,6 +50,7 @@ const getMyStructureCardInstances = jest.fn().mockResolvedValue({ data: [], erro
 const buildStructure = jest.fn().mockResolvedValue({ data: null, error: null })
 const relocateHome = jest.fn().mockResolvedValue({ data: null, error: null })
 const getRelation = jest.fn().mockResolvedValue({ data: null, error: null })
+const getMyCoalition = jest.fn().mockResolvedValue({ data: [], error: null })
 const mapMovementArrowsMock = jest.fn(({ visible }: { visible?: boolean }) => (
   <div data-testid="map-movement-arrows">{visible ? 'visible' : 'hidden'}</div>
 ))
@@ -60,7 +64,10 @@ jest.mock('@/lib/territories/api', () => ({
   getIncomingAttackInfo: (...args: unknown[]) => getIncomingAttackInfo(...args),
   getPlayerPublicInfo: (...args: unknown[]) => getPlayerPublicInfo(...args),
   startTransfer: (...args: unknown[]) => startTransfer(...args),
+  lendTroops: (...args: unknown[]) => lendTroops(...args),
   getMyMovements: (...args: unknown[]) => getMyMovements(...args),
+  getMyLoans: (...args: unknown[]) => getMyLoans(...args),
+  recallLoan: (...args: unknown[]) => recallLoan(...args),
   getTerritoriesByIds: (...args: unknown[]) => getTerritoriesByIds(...args),
   getMyActiveBattles: (...args: unknown[]) => getMyActiveBattles(...args),
   getMyRecentlyResolvedBattles: (...args: unknown[]) => getMyRecentlyResolvedBattles(...args),
@@ -79,6 +86,7 @@ jest.mock('@/lib/supabase/useSession', () => ({
 
 jest.mock('@/lib/diplomacy/api', () => ({
   getRelation: (...args: unknown[]) => getRelation(...args),
+  getMyCoalition: (...args: unknown[]) => getMyCoalition(...args),
 }))
 
 jest.mock('@/lib/battles/api', () => ({
@@ -125,8 +133,14 @@ describe('MapPage', () => {
     getMyTerritories.mockResolvedValue({ data: [], error: null })
     startTransfer.mockReset()
     startTransfer.mockResolvedValue({ data: null, error: null })
+    lendTroops.mockReset()
+    lendTroops.mockResolvedValue({ data: null, error: null })
     getMyMovements.mockReset()
     getMyMovements.mockResolvedValue({ data: [], error: null })
+    getMyLoans.mockReset()
+    getMyLoans.mockResolvedValue({ data: [], error: null })
+    recallLoan.mockReset()
+    recallLoan.mockResolvedValue({ data: null, error: null })
     getTerritoriesByIds.mockReset()
     getTerritoriesByIds.mockResolvedValue({ data: [], error: null })
     getMyActiveBattles.mockReset()
@@ -139,6 +153,8 @@ describe('MapPage', () => {
     relocateHome.mockResolvedValue({ data: null, error: null })
     getRelation.mockReset()
     getRelation.mockResolvedValue({ data: null, error: null })
+    getMyCoalition.mockReset()
+    getMyCoalition.mockResolvedValue({ data: [], error: null })
     sessionUser = null
     sessionPlayer = null
   })

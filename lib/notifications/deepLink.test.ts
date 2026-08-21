@@ -91,6 +91,25 @@ describe('getDeepLink', () => {
       '/map?x=9&y=13',
     ],
     [
+      'loan_arrived',
+      {
+        id: 42,
+        player_id: 'player-1',
+        type: 'loan_arrived',
+        payload: {
+          territory_id: 4,
+          territory_x: 9,
+          territory_y: 13,
+          territory_name: 'Pevnost',
+          other_player_id: 'player-2',
+          other_display_name: 'Spojenec',
+        },
+        is_read: false,
+        created_at: '2026-08-20T12:00:00.000Z',
+      },
+      '/map?x=9&y=13',
+    ],
+    [
       'trade_offer_received',
       {
         id: 5,

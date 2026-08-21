@@ -1,10 +1,13 @@
 import {
   declareAttack,
+  getMyLoans,
   getCardInstancesAtTerritory,
   getMyCardInstances,
   getPlayerPublicInfo,
   getMyStructureCardInstances,
   getMyTerritories,
+  lendTroops,
+  recallLoan,
   relocateHome,
   renameTerritory,
   returnCardToPool,
@@ -89,6 +92,42 @@ describe('renameTerritory', () => {
 describe('declareAttack', () => {
   beforeEach(() => {
     rpc.mockReset()
+  })
+
+  describe('troop lending RPC wrappers', () => {
+    beforeEach(() => {
+      rpc.mockReset()
+    })
+
+    it('calls lend_troops with the typed payload', async () => {
+      rpc.mockResolvedValue({ data: null, error: null })
+
+      await lendTroops(55, ['card-1', 'card-2'], 24)
+
+      expect(rpc).toHaveBeenCalledWith('lend_troops', {
+        p_destination_territory_id: 55,
+        p_card_instance_ids: ['card-1', 'card-2'],
+        p_duration_hours: 24,
+      })
+    })
+
+    it('calls recall_loan with the selected card instance', async () => {
+      rpc.mockResolvedValue({ data: null, error: null })
+
+      await recallLoan('card-3')
+
+      expect(rpc).toHaveBeenCalledWith('recall_loan', {
+        p_card_instance_id: 'card-3',
+      })
+    })
+
+    it('loads current loans through get_my_loans', async () => {
+      rpc.mockResolvedValue({ data: [], error: null })
+
+      await getMyLoans()
+
+      expect(rpc).toHaveBeenCalledWith('get_my_loans')
+    })
   })
 
   it('calls the declare_attack RPC with grouped multi-origin payload', async () => {

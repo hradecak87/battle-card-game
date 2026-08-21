@@ -68,6 +68,7 @@ describe('CollectionPage', () => {
 
   it('shows all 305 cards by default (279 units + 26 castle/village/boost/wall)', async () => {
     render(<CollectionPage />)
+    expect(await screen.findByText('Hrad (common)')).toBeInTheDocument()
     expect(await screen.findByText('305 z 305 karet')).toBeInTheDocument()
   })
 

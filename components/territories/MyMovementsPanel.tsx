@@ -32,6 +32,8 @@ const KIND_LABELS: Record<TroopMovement['kind'], string> = {
   claim: 'Zábor',
   transfer: 'Přesun',
   attack: 'Útok',
+  loan: 'Půjčka',
+  loan_return: 'Návrat půjčky',
 }
 
 /**

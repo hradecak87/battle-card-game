@@ -37,6 +37,142 @@ begin
 end;
 $$;
 
+create or replace function _coalition_auto_recall_loans_between(
+  p_player_a uuid,
+  p_player_b uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_stationed record;
+  v_in_transit record;
+  v_card_id uuid;
+begin
+  if p_player_a is null or p_player_b is null or p_player_a = p_player_b then
+    return;
+  end if;
+
+  for v_stationed in
+    select
+      ci.loaned_from_id as lender_id,
+      ci.owner_id as borrower_id,
+      ci.stationed_territory_id as territory_id,
+      t.x as territory_x,
+      t.y as territory_y,
+      t.name as territory_name,
+      lender.display_name as lender_display_name,
+      borrower.display_name as borrower_display_name,
+      array_agg(ci.instance_id order by ci.instance_id) as card_instance_ids
+    from card_instances ci
+    join territories t on t.id = ci.stationed_territory_id
+    left join players lender on lender.id = ci.loaned_from_id
+    left join players borrower on borrower.id = ci.owner_id
+    where ci.status = 'stationed'
+      and ci.owner_id is not null
+      and (
+        (ci.loaned_from_id = p_player_a and ci.owner_id = p_player_b)
+        or (ci.loaned_from_id = p_player_b and ci.owner_id = p_player_a)
+      )
+    group by
+      ci.loaned_from_id,
+      ci.owner_id,
+      ci.stationed_territory_id,
+      t.x,
+      t.y,
+      t.name,
+      lender.display_name,
+      borrower.display_name
+  loop
+    foreach v_card_id in array v_stationed.card_instance_ids
+    loop
+      perform _recall_loan_core(v_stationed.lender_id, v_card_id);
+    end loop;
+
+    perform _notify(
+      v_stationed.lender_id,
+      'loan_auto_recalled',
+      jsonb_build_object(
+        'territory_id', v_stationed.territory_id,
+        'territory_x', v_stationed.territory_x::integer,
+        'territory_y', v_stationed.territory_y::integer,
+        'territory_name', v_stationed.territory_name,
+        'other_player_id', v_stationed.borrower_id,
+        'other_display_name', coalesce(v_stationed.borrower_display_name, 'Neznámý hráč')
+      )
+    );
+
+    perform _notify(
+      v_stationed.borrower_id,
+      'loan_auto_recalled',
+      jsonb_build_object(
+        'territory_id', v_stationed.territory_id,
+        'territory_x', v_stationed.territory_x::integer,
+        'territory_y', v_stationed.territory_y::integer,
+        'territory_name', v_stationed.territory_name,
+        'other_player_id', v_stationed.lender_id,
+        'other_display_name', coalesce(v_stationed.lender_display_name, 'Neznámý hráč')
+      )
+    );
+  end loop;
+
+  for v_in_transit in
+    select
+      tm.id as movement_id,
+      tm.player_id as lender_id,
+      dest.owner_id as borrower_id,
+      dest.id as territory_id,
+      dest.x as territory_x,
+      dest.y as territory_y,
+      dest.name as territory_name,
+      lender.display_name as lender_display_name,
+      borrower.display_name as borrower_display_name
+    from troop_movements tm
+    join territories dest on dest.id = tm.destination_territory_id
+    left join players lender on lender.id = tm.player_id
+    left join players borrower on borrower.id = dest.owner_id
+    where tm.kind = 'loan'
+      and tm.status = 'in_transit'
+      and dest.owner_id is not null
+      and (
+        (tm.player_id = p_player_a and dest.owner_id = p_player_b)
+        or (tm.player_id = p_player_b and dest.owner_id = p_player_a)
+      )
+    for update of tm skip locked
+  loop
+    perform _recall_movement_to_origin(v_in_transit.movement_id);
+
+    perform _notify(
+      v_in_transit.lender_id,
+      'loan_auto_recalled',
+      jsonb_build_object(
+        'territory_id', v_in_transit.territory_id,
+        'territory_x', v_in_transit.territory_x::integer,
+        'territory_y', v_in_transit.territory_y::integer,
+        'territory_name', v_in_transit.territory_name,
+        'other_player_id', v_in_transit.borrower_id,
+        'other_display_name', coalesce(v_in_transit.borrower_display_name, 'Neznámý hráč')
+      )
+    );
+
+    perform _notify(
+      v_in_transit.borrower_id,
+      'loan_auto_recalled',
+      jsonb_build_object(
+        'territory_id', v_in_transit.territory_id,
+        'territory_x', v_in_transit.territory_x::integer,
+        'territory_y', v_in_transit.territory_y::integer,
+        'territory_name', v_in_transit.territory_name,
+        'other_player_id', v_in_transit.lender_id,
+        'other_display_name', coalesce(v_in_transit.lender_display_name, 'Neznámý hráč')
+      )
+    );
+  end loop;
+end;
+$$;
+
 create or replace function _coalition_disband_core(p_coalition_id uuid)
 returns void
 language plpgsql
@@ -45,6 +181,7 @@ set search_path = public
 as $$
 declare
   v_coalition coalitions%rowtype;
+  v_pair record;
 begin
   select *
   into v_coalition
@@ -55,6 +192,19 @@ begin
   if not found then
     raise exception 'coalition % not found', p_coalition_id;
   end if;
+
+  for v_pair in
+    select
+      a.player_id as player_a_id,
+      b.player_id as player_b_id
+    from coalition_members a
+    join coalition_members b
+      on b.coalition_id = a.coalition_id
+     and a.player_id < b.player_id
+    where a.coalition_id = p_coalition_id
+  loop
+    perform _coalition_auto_recall_loans_between(v_pair.player_a_id, v_pair.player_b_id);
+  end loop;
 
   delete from coalition_members
   where coalition_id = p_coalition_id;
@@ -1147,6 +1297,7 @@ as $$
 declare
   v_caller uuid := diplomacy_require_player();
   v_coalition coalitions%rowtype;
+  v_other_member record;
 begin
   select c.*
   into v_coalition
@@ -1189,6 +1340,15 @@ begin
   ) then
     raise exception 'target player is not a member of this coalition';
   end if;
+
+  for v_other_member in
+    select player_id
+    from coalition_members
+    where coalition_id = v_coalition.id
+      and player_id <> p_player_id
+  loop
+    perform _coalition_auto_recall_loans_between(p_player_id, v_other_member.player_id);
+  end loop;
 
   delete from coalition_members
   where coalition_id = v_coalition.id
@@ -1303,6 +1463,7 @@ declare
   v_caller uuid := diplomacy_require_player();
   v_coalition coalitions%rowtype;
   v_other_member_count integer;
+  v_other_member record;
 begin
   select c.*
   into v_coalition
@@ -1343,6 +1504,15 @@ begin
     perform _coalition_disband_core(v_coalition.id);
     return;
   end if;
+
+  for v_other_member in
+    select player_id
+    from coalition_members
+    where coalition_id = v_coalition.id
+      and player_id <> v_caller
+  loop
+    perform _coalition_auto_recall_loans_between(v_caller, v_other_member.player_id);
+  end loop;
 
   delete from coalition_members
   where coalition_id = v_coalition.id
