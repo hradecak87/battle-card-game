@@ -39,6 +39,22 @@ destination id — it has no directional assumption baked in.
 
 ## Changes
 
+### `app/map/page.tsx`
+
+- `onLend` still opens `LendModal`, but now passes the **selected (ally)
+  tile** as the destination territory instead of the caller's own
+  territory. The `instances` prop passed to `LendModal` is no longer
+  needed (see below) and is dropped.
+- Add a new `relationLoading` state, set `true` alongside `ownerInfoLoading`
+  when tile selection triggers `getRelation(...)` and set `false` in that
+  fetch's own `.then()` (mirroring the existing `ownerInfoLoading`
+  pattern, but tracking `getRelation` specifically instead of
+  `getPlayerPublicInfo`). Today these two fetches are independent and only
+  `getPlayerPublicInfo`'s completion clears `ownerInfoLoading`, so
+  `ownerInfoLoading` becoming `false` does **not** guarantee
+  `relationState` has resolved — `relationLoading` closes that gap. Pass
+  `relationLoading` down to `GarrisonModal` as a new prop.
+
 ### `components/territories/GarrisonModal.tsx`
 
 - Remove the existing `canTransfer && onLend` button (shown for your own
@@ -56,8 +72,9 @@ destination id — it has no directional assumption baked in.
   moment this feature exists for; once an actual battle row exists
   (`battle_id` set), selecting the tile already navigates straight to the
   battle screen instead of opening this modal (existing behavior,
-  unchanged), so no separate guard is needed here — this mirrors
-  `canTransfer`, which likewise has no battle-related guard today.
+  unchanged, confirmed in `app/map/page.tsx`'s tile-click handling), so no
+  separate guard is needed here — this mirrors `canTransfer`, which
+  likewise has no battle-related guard today.
 - **`relationState` availability for `canLend`**: `relationState` is
   fetched asynchronously after tile selection (starts `null`, same as
   `ownerInfo`) and is already used to gate other relation-dependent UI in
@@ -68,31 +85,22 @@ destination id — it has no directional assumption baked in.
   below, there's no "shown by default, then hidden" flash risk here since
   it starts hidden and only appears once confirmed.
 - **Also hide the attack button for coalition allies**: change the
-  existing `canAttack` condition to add
-  `&& !(ownerInfoLoading || relationState === 'coalition')`. Today
-  `canAttack` shows "⚔️ Zaútočit" for any non-owned territory regardless of
-  relation (the backend already blocks attacking a coalition ally at the
-  `declare_attack` RPC level — see coalition-attack-enforcement,
-  `0065_coalition_attack_enforcement.sql`); leaving that button visible
-  next to the new "Poslat vojska na pomoc" button would present a
-  confusing, guaranteed-to-fail action. This is the only change to attack
-  visibility; `declare_attack`'s own server-side enforcement is unchanged.
-  The `!ownerInfoLoading` part avoids a flash-of-wrong-button: `ownerInfo`/
-  `relationState` load asynchronously starting from `null`/`false`, so
-  gating on `relationState !== 'coalition'` alone would show the attack
-  button immediately after tile selection and then hide it once the fetch
-  resolves to `'coalition'`. Requiring `ownerInfoLoading` to be `false`
-  (an existing prop, already used elsewhere in this component to gate the
-  owner-info section) first means the attack button only ever appears
-  once the relation is confirmed not-coalition, never flashes then
-  disappears.
-
-### `app/map/page.tsx`
-
-- `onLend` still opens `LendModal`, but now passes the **selected (ally)
-  tile** as the destination territory instead of the caller's own
-  territory. The `instances` prop passed to `LendModal` is no longer
-  needed (see below) and is dropped.
+  existing `canAttack` condition (today: `Boolean(myPlayerId) &&
+  territory.owner_id !== myPlayerId && territory.claim_locked_by !==
+  myPlayerId && !territory.battle_locked_by` — i.e. it already excludes
+  battle-locked territories, just not coalition allies) to add
+  `&& !relationLoading && relationState !== 'coalition'`, using the new
+  `relationLoading` prop described above (not `ownerInfoLoading`, which
+  tracks a different, independently-resolving fetch and would not
+  actually prevent the flash). The backend already blocks attacking a
+  coalition ally at the `declare_attack` RPC level — see
+  coalition-attack-enforcement, `0065_coalition_attack_enforcement.sql`;
+  leaving the attack button visible next to the new "Poslat vojska na
+  pomoc" button would present a confusing, guaranteed-to-fail action.
+  This is the only change to attack visibility; `declare_attack`'s own
+  server-side enforcement is unchanged. Gating on `relationLoading` (rather
+  than `ownerInfoLoading`) ensures the button never flashes visible before
+  `relationState` itself has resolved.
 
 ### `components/territories/LendModal.tsx`
 
@@ -133,7 +141,8 @@ Reworked to mirror `TransferModal`'s structure:
   transit; absent for own territory, enemy territory, and NPC/unrelated
   territory) and the updated `canAttack` condition (button hidden for
   ally-owned territories once `relationState` resolves to `'coalition'`,
-  and not shown at all while `ownerInfoLoading` is true).
+  and not shown at all while `relationLoading` is true, even if
+  `relationState` is still `null`).
 
 ## Out of scope
 
