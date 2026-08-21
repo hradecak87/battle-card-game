@@ -763,7 +763,7 @@ export default function MapViewport({
             </div>
             {overlay && (
               <div
-                className="absolute inset-0 overflow-visible"
+                className="pointer-events-none absolute inset-0 overflow-visible"
                 style={{
                   transform: visualDragOffset ? `translate(${visualDragOffset.x}px,${visualDragOffset.y}px)` : undefined,
                   transition: visualDragOffset ? 'none' : 'transform 0.1s ease-out',
@@ -777,3 +777,4 @@ export default function MapViewport({
     </div>
   )
 }
+

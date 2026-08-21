@@ -342,6 +342,22 @@ describe('MapViewport', () => {
     expect(onSelectTile).toHaveBeenCalledWith(tile)
   })
 
+  it('still allows clicking/hovering tiles through the overlay wrapper (movement arrows regression)', () => {
+    // The `overlay` prop (used for movement arrows) is rendered in a wrapper
+    // div covering the whole grid. That wrapper must stay pointer-events-none
+    // so it never swallows tile hover/click in a real browser (jsdom's
+    // fireEvent dispatches directly on the queried element and does not do
+    // point-based hit-testing, so it can't itself catch a missing
+    // pointer-events-none — this asserts on the actual class instead).
+    const tile = makeTerritory({ owner_id: 'me' })
+    renderViewport([tile], 'me', {
+      overlay: <div data-testid="fake-overlay" style={{ position: 'absolute', inset: 0 }} />,
+    })
+
+    const overlayWrapper = screen.getByTestId('fake-overlay').parentElement
+    expect(overlayWrapper).toHaveClass('pointer-events-none')
+  })
+
   it('calls onPan with correct tile delta on touch drag', () => {
     const onPan = jest.fn()
     renderViewport([], 'me', { onPan })
