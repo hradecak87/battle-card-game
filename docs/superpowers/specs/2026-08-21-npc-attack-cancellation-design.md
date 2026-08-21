@@ -82,16 +82,32 @@ apod.) — v takovém případě (`status <> 'in_transit'`) řádek prostě
 přeskočit; žádná speciální ošetření navíc nejsou potřeba, `for update`
 zámek na řádku řeší souběh se zbytkem `resolve_due_movements()`.
 
+Vědomá zjednodušení (accepted tradeoffs, ne opomenutí):
+- Diplomacie (koalice/NAP) mezi vysláním a přehodnocením se neřeší —
+  přehodnocení posuzuje čistě poměr sil, nic víc.
+- NPC útoky vždy jedou bez boost karty (`boost_card_instance_id = null`
+  dle `_declare_attack_core` volání v `resolve_due_npc_actions`), takže
+  nový helper na sílu pohybu tento sloupec ignoruje.
+- Posila, která dorazí po posledním 30min tiku, ale ještě před NPC
+  útočníkem, se do přehodnocení promítne až při příštím tiku (nebo
+  vůbec, pokud NPC útočník dorazí dřív) — přijatelná nepřesnost.
+- Chybu/výjimku u jednoho řádku je třeba odchytit (`exception when
+  others`, stejný vzor jako `resolve_due_npc_actions`), aby nespadla
+  celá transakce `resolve_due_movements()`.
+
 ## Zrušení útoku — `_recall_attack_core`
 Extrahovat tělo stávající `recall_attack(p_movement_id uuid)` (RPC
 gated `auth.uid()`) do `_recall_attack_core(p_movement_id uuid,
-p_caller uuid)`. Veřejné `recall_attack` pak jen ověří `auth.uid()` a
-deleguje na `_core` (stejný `_core`-refaktoring vzor jako
-`_declare_attack_core`/`_start_claim_core`). NPC přehodnocení volá
-`_core` přímo s NPC's `id` jako `p_caller` — beze změny chování pro
-reálné hráče. Recall beze změny: vojsko se vrátí jako `transfer` do
-původního (původních) území, movement se označí `cancelled`,
-`battle_locked_by` na cíli se uvolní.
+p_caller uuid)`. **Bootstrap volání `perform resolve_due_movements();
+perform resolve_due_battles();` zůstávají jen ve veřejném `recall_attack`
+wrapperu, do `_core` se nekopírují** — jinak by přehodnocení volané
+zevnitř `resolve_due_movements()` způsobilo rekurzivní re-entry (stejný
+vzor jako `_declare_attack_core`, který tato volání také nemá). Veřejné
+`recall_attack` pak jen ověří `auth.uid()` a deleguje na `_core`. NPC
+přehodnocení volá `_core` přímo s NPC's `id` jako `p_caller` — beze
+změny chování pro reálné hráče. Recall beze změny: vojsko se vrátí jako
+`transfer` do původního (původních) území, movement se označí
+`cancelled`, `battle_locked_by` na cíli se uvolní.
 
 ## Notifikace obránci
 - Nový typ `notifications.type = 'attack_cancelled'` (rozšíření
