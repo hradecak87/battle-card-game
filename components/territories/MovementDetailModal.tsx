@@ -17,6 +17,7 @@ export interface MovementDetailModalProps {
 
 function titleForArrow(arrow: MapMovementArrow) {
   if (arrow.category === 'incoming') return 'Příchozí útok'
+  if (arrow.category === 'ally-incoming') return 'Příchozí útok na spojence'
   if (arrow.movementKind === 'transfer') return 'Přesun vojsk'
   if (arrow.movementKind === 'claim') return 'Zábor území'
   return 'Útočící vojska'
@@ -48,6 +49,12 @@ function formatRank(rank: string | null | undefined) {
   return rank ? (labels[rank] ?? rank) : 'neznámá'
 }
 
+function allyIdentityLabel(arrow: MapMovementArrow) {
+  if (!('allyPlayerId' in arrow)) return null
+  const name = arrow.allyIsNpc ? 'NPC spojenec' : arrow.allyDisplayName ?? 'Neznámý spojenec'
+  return arrow.allyKingdomName ? `Spojenec: ${name} (${arrow.allyKingdomName})` : `Spojenec: ${name}`
+}
+
 /** Rebuilds the `UnitCardTemplate` shape `TradingCard` expects from the flat DB row (mirrors TransferModal/GarrisonModal). */
 function toUnitTemplate(row: NonNullable<MovementCard['card_templates']>): UnitCardTemplate | null {
   if (row.category !== 'unit' || !row.base_stats || !row.unit_type) return null
@@ -75,7 +82,7 @@ export default function MovementDetailModal({ arrow, onClose, onNavigateToTerrit
   }, [])
 
   useEffect(() => {
-    if (arrow.category === 'incoming' || !arrow.movementId) {
+    if ((arrow.category === 'incoming' || arrow.category === 'ally-incoming') || !arrow.movementId) {
       setCards(null)
       setError(null)
       return
@@ -124,8 +131,14 @@ export default function MovementDetailModal({ arrow, onClose, onNavigateToTerrit
           <p className="text-sm text-zinc-400">Dorazí {etaText}</p>
         </div>
 
-        {arrow.category === 'incoming' ? (
+        {arrow.category === 'incoming' || arrow.category === 'ally-incoming' ? (
           <div className="flex flex-col gap-4 text-sm text-zinc-200">
+            {allyIdentityLabel(arrow) && (
+              <div className="rounded-lg border border-cyan-900/70 bg-cyan-950/30 p-3">
+                <p className="font-semibold text-cyan-200">{allyIdentityLabel(arrow)}</p>
+              </div>
+            )}
+
             <div className="rounded-lg border border-fuchsia-900/70 bg-fuchsia-950/30 p-3">
               <p className="font-semibold text-fuchsia-200">
                 {arrow.attackerIsNpc ? 'NPC říše' : arrow.attackerDisplayName ?? 'Neznámý útočník'}
@@ -171,6 +184,12 @@ export default function MovementDetailModal({ arrow, onClose, onNavigateToTerrit
           </div>
         ) : (
           <div className="flex flex-col gap-4 text-sm text-zinc-200">
+            {allyIdentityLabel(arrow) && (
+              <div className="rounded-lg border border-cyan-900/70 bg-cyan-950/30 p-3">
+                <p className="font-semibold text-cyan-200">{allyIdentityLabel(arrow)}</p>
+              </div>
+            )}
+
             <div className="grid gap-3 sm:grid-cols-2">
               <button
                 type="button"

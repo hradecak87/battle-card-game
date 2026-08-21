@@ -87,6 +87,39 @@ describe('MovementDetailModal', () => {
     expect(onNavigateToTerritory).toHaveBeenCalledWith(10, 11)
   })
 
+  it('shows the ally identity block and loads cards for an allied movement', async () => {
+    getMovementCards.mockResolvedValue({
+      data: [],
+      error: null,
+    })
+
+    const arrow: MapMovementArrow = {
+      id: 'ally-1',
+      category: 'ally-offensive',
+      movementId: 'ally-1',
+      movementKind: 'attack',
+      originTerritoryId: 2,
+      destinationTerritoryId: 3,
+      originX: 15,
+      originY: 16,
+      destX: 20,
+      destY: 21,
+      originName: 'Hrad spojence',
+      destinationName: 'Hraniční pevnost',
+      startedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+      arrivesAt: new Date(Date.now() + 20 * 60 * 1000).toISOString(),
+      allyPlayerId: 'ally-player',
+      allyDisplayName: 'Spojenec',
+      allyKingdomName: 'Severní koruna',
+      allyIsNpc: false,
+    }
+
+    render(<MovementDetailModal arrow={arrow} onClose={jest.fn()} onNavigateToTerritory={jest.fn()} />)
+
+    expect(await screen.findByText('Spojenec: Spojenec (Severní koruna)')).toBeInTheDocument()
+    expect(getMovementCards).toHaveBeenCalledWith('ally-1')
+  })
+
   it('keeps incoming attacks under fog of war and does not fetch movement cards', async () => {
     const arrow: MapMovementArrow = {
       id: 'incoming-1',

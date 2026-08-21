@@ -1,9 +1,11 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import MapMovementArrows, { MapMovementArrow } from './MapMovementArrows'
 
+const movementDetailModal = jest.fn((_props: unknown) => null)
+
 jest.mock('@/components/territories/MovementDetailModal', () => ({
   __esModule: true,
-  default: () => null,
+  default: (props: unknown) => movementDetailModal(props),
 }))
 
 jest.mock('@/lib/territories/useMapMovementArrows', () => ({
@@ -19,6 +21,7 @@ describe('MapMovementArrows', () => {
 
   afterEach(() => {
     jest.useRealTimers()
+    movementDetailModal.mockClear()
   })
 
   it('renders one arrow per visible movement with category-specific colors', () => {
@@ -72,6 +75,67 @@ describe('MapMovementArrows', () => {
         attackerHomeX: 12,
         attackerHomeY: 12,
       },
+      {
+        id: 'ally-transfer-1',
+        category: 'ally-transfer',
+        movementId: 'ally-transfer-1',
+        movementKind: 'transfer',
+        originTerritoryId: 20,
+        destinationTerritoryId: 21,
+        originX: 9,
+        originY: 10,
+        destX: 10,
+        destY: 10,
+        originName: 'Spojenecký tábor',
+        destinationName: 'Přívoz',
+        startedAt: '2026-08-21T11:00:00.000Z',
+        arrivesAt: '2026-08-21T13:00:00.000Z',
+        allyPlayerId: 'ally-1',
+        allyDisplayName: 'Spojenec',
+        allyKingdomName: 'Severní koruna',
+        allyIsNpc: false,
+      },
+      {
+        id: 'ally-offensive-1',
+        category: 'ally-offensive',
+        movementId: 'ally-offensive-1',
+        movementKind: 'attack',
+        originTerritoryId: 22,
+        destinationTerritoryId: 23,
+        originX: 9,
+        originY: 8,
+        destX: 9,
+        destY: 9,
+        originName: 'Hrad spojence',
+        destinationName: 'Cizí kraj',
+        startedAt: '2026-08-21T11:00:00.000Z',
+        arrivesAt: '2026-08-21T13:00:00.000Z',
+        allyPlayerId: 'ally-2',
+        allyDisplayName: 'Druhý spojenec',
+        allyKingdomName: 'Jižní koruna',
+        allyIsNpc: false,
+      },
+      {
+        id: 'ally-incoming-1',
+        category: 'ally-incoming',
+        originX: 13,
+        originY: 13,
+        destX: 10,
+        destY: 9,
+        destinationName: 'Spojenecká hranice',
+        startedAt: '2026-08-21T11:00:00.000Z',
+        arrivesAt: '2026-08-21T13:00:00.000Z',
+        attackerId: 'enemy-2',
+        attackerDisplayName: 'Vetřelec',
+        attackerKingdomName: 'Bouře',
+        attackerIsNpc: false,
+        attackerHomeX: 13,
+        attackerHomeY: 13,
+        allyPlayerId: 'ally-2',
+        allyDisplayName: 'Druhý spojenec',
+        allyKingdomName: 'Jižní koruna',
+        allyIsNpc: false,
+      },
     ]
 
     render(
@@ -84,10 +148,13 @@ describe('MapMovementArrows', () => {
       />
     )
 
-    expect(screen.getAllByTestId(/movement-arrow-line-/)).toHaveLength(3)
+    expect(screen.getAllByTestId(/movement-arrow-line-/)).toHaveLength(6)
     expect(screen.getByTestId('movement-arrow-line-transfer-1')).toHaveAttribute('stroke', '#f59e0b')
     expect(screen.getByTestId('movement-arrow-line-offensive-1')).toHaveAttribute('stroke', '#ef4444')
     expect(screen.getByTestId('movement-arrow-line-incoming-1')).toHaveAttribute('stroke', '#d946ef')
+    expect(screen.getByTestId('movement-arrow-line-ally-transfer-1')).toHaveAttribute('stroke', '#22c55e')
+    expect(screen.getByTestId('movement-arrow-line-ally-offensive-1')).toHaveAttribute('stroke', '#14b8a6')
+    expect(screen.getByTestId('movement-arrow-line-ally-incoming-1')).toHaveAttribute('stroke', '#3b82f6')
   })
 
   it('suppresses the default browser focus outline on an arrow and instead thickens its own line when focused', () => {
@@ -232,6 +299,53 @@ describe('MapMovementArrows', () => {
     fireEvent.mouseEnter(screen.getByTestId('movement-arrow-line-incoming-1').closest('g') as SVGGElement)
     expect(screen.getByText('Příchozí útok')).toBeInTheDocument()
     expect(screen.getByText('(12, 12) → Moje pole')).toBeInTheDocument()
+  })
+
+  it('shows ally identity in the hover tooltip and opens the movement detail modal for ally arrows', () => {
+    const arrows: MapMovementArrow[] = [
+      {
+        id: 'ally-transfer-1',
+        category: 'ally-transfer',
+        movementId: 'ally-transfer-1',
+        movementKind: 'transfer',
+        originTerritoryId: 1,
+        destinationTerritoryId: 2,
+        originX: 10,
+        originY: 10,
+        destX: 12,
+        destY: 10,
+        originName: 'Spojenecký tábor',
+        destinationName: 'Říční brod',
+        startedAt: '2026-08-21T11:00:00.000Z',
+        arrivesAt: '2026-08-21T13:00:00.000Z',
+        allyPlayerId: 'ally-1',
+        allyDisplayName: 'Spojenec',
+        allyKingdomName: 'Severní koruna',
+        allyIsNpc: false,
+      },
+    ]
+
+    render(
+      <MapMovementArrows
+        arrows={arrows}
+        centerX={11}
+        centerY={11}
+        viewSize={5}
+        onSelectArrow={jest.fn()}
+      />
+    )
+
+    const group = screen.getByRole('button', { name: /Říční brod/ })
+    fireEvent.mouseEnter(group)
+
+    expect(screen.getByText('Spojenec: Spojenec (Severní koruna)')).toBeInTheDocument()
+
+    fireEvent.click(group)
+    expect(movementDetailModal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        arrow: expect.objectContaining({ id: 'ally-transfer-1', allyDisplayName: 'Spojenec' }),
+      })
+    )
   })
 
   it('clips an arrow to the viewport edge when only one endpoint is visible', () => {

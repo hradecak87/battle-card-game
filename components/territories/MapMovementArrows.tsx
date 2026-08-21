@@ -11,6 +11,9 @@ const COLOR_BY_CATEGORY = {
   transfer: '#f59e0b',
   offensive: '#ef4444',
   incoming: '#d946ef',
+  'ally-transfer': '#22c55e',
+  'ally-offensive': '#14b8a6',
+  'ally-incoming': '#3b82f6',
 } as const
 
 type ClippedArrow = {
@@ -80,7 +83,7 @@ function clipLineToRect(
 }
 
 function describeArrow(arrow: MapMovementArrow) {
-  if (arrow.category === 'incoming') {
+  if (arrow.category === 'incoming' || arrow.category === 'ally-incoming') {
     return `Příchozí útok na ${arrow.destinationName ?? `${arrow.destX}, ${arrow.destY}`}`
   }
   return `${arrow.movementKind === 'transfer' ? 'Přesun' : 'Útok'} ${arrow.originName ?? `${arrow.originX}, ${arrow.originY}`} → ${arrow.destinationName ?? `${arrow.destX}, ${arrow.destY}`}`
@@ -88,6 +91,7 @@ function describeArrow(arrow: MapMovementArrow) {
 
 function arrowKindLabel(arrow: MapMovementArrow) {
   if (arrow.category === 'incoming') return 'Příchozí útok'
+  if (arrow.category === 'ally-incoming') return 'Příchozí útok na spojence'
   return arrow.movementKind === 'transfer' ? 'Přesun' : 'Útok'
 }
 
@@ -97,6 +101,12 @@ function arrowOriginLabel(arrow: MapMovementArrow) {
 
 function arrowDestinationLabel(arrow: MapMovementArrow) {
   return arrow.destinationName ?? `(${arrow.destX}, ${arrow.destY})`
+}
+
+function allyIdentityLabel(arrow: MapMovementArrow) {
+  if (!('allyPlayerId' in arrow)) return null
+  const name = arrow.allyIsNpc ? 'NPC spojenec' : arrow.allyDisplayName ?? 'Neznámý spojenec'
+  return arrow.allyKingdomName ? `Spojenec: ${name} (${arrow.allyKingdomName})` : `Spojenec: ${name}`
 }
 
 export default function MapMovementArrows({
@@ -263,6 +273,7 @@ export default function MapMovementArrows({
           <p>
             {arrowOriginLabel(hoveredEntry.arrow)} → {arrowDestinationLabel(hoveredEntry.arrow)}
           </p>
+          {allyIdentityLabel(hoveredEntry.arrow) && <p>{allyIdentityLabel(hoveredEntry.arrow)}</p>}
           <p>{formatEta(hoveredEntry.arrow.arrivesAt)}</p>
         </div>
       )}
