@@ -184,22 +184,22 @@ export default function MyMovementsPanel({ myPlayerId, refreshKey, onNavigateToT
             <li key={atk.movement_id} className="flex flex-col gap-1 text-sm text-red-300">
               <div className="flex flex-wrap items-center justify-between gap-1">
                 <span>
-                  ⚔️ Útok od {atk.attacker_display_name ?? 'neznámý hráč'} na{' '}
-                  {atk.territory_name ? `${atk.territory_name} ` : ''}
-                  ({atk.territory_x}, {atk.territory_y})
-                </span>
-                <span className="flex items-center gap-2 text-red-400">
-                  {formatEta(atk.transfer_arrives_at)}
-                  {atk.attacker_home_x !== null && atk.attacker_home_y !== null && onNavigateToTerritory && (
+                  ⚔️ Útok od{' '}
+                  {atk.attacker_home_x !== null && atk.attacker_home_y !== null && onNavigateToTerritory ? (
                     <button
                       type="button"
                       onClick={() => onNavigateToTerritory(atk.attacker_home_x as number, atk.attacker_home_y as number)}
-                      className="rounded border border-red-700 px-1.5 py-0.5 text-xs text-red-300 hover:bg-red-900/40"
+                      className="underline hover:text-red-200"
                     >
-                      🏠 Domov útočníka
+                      {atk.attacker_display_name ?? 'neznámý hráč'}
                     </button>
-                  )}
+                  ) : (
+                    atk.attacker_display_name ?? 'neznámý hráč'
+                  )}{' '}
+                  na {atk.territory_name ? `${atk.territory_name} ` : ''}
+                  ({atk.territory_x}, {atk.territory_y})
                 </span>
+                <span className="flex items-center gap-2 text-red-400">{formatEta(atk.transfer_arrives_at)}</span>
               </div>
             </li>
           ))}

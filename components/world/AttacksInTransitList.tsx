@@ -42,10 +42,20 @@ export default function AttacksInTransitList({ attacks, now }: AttacksInTransitL
                   {attack.target_owner_display_name && (
                     <span className="text-zinc-400">
                       hráče{' '}
-                      <span className="text-zinc-200">
-                        {attack.target_owner_display_name}
-                        {attack.target_owner_is_npc ? ' (NPC)' : ''}
-                      </span>
+                      {attack.target_owner_home_x !== null && attack.target_owner_home_y !== null ? (
+                        <Link
+                          href={`/map?x=${attack.target_owner_home_x}&y=${attack.target_owner_home_y}`}
+                          className="text-zinc-200 underline"
+                        >
+                          {attack.target_owner_display_name}
+                          {attack.target_owner_is_npc ? ' (NPC)' : ''}
+                        </Link>
+                      ) : (
+                        <span className="text-zinc-200">
+                          {attack.target_owner_display_name}
+                          {attack.target_owner_is_npc ? ' (NPC)' : ''}
+                        </span>
+                      )}
                     </span>
                   )}
                 </div>

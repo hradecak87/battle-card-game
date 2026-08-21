@@ -25,6 +25,8 @@ export interface AttackInTransitRow {
   target_owner_id: string | null
   target_owner_display_name: string | null
   target_owner_is_npc: boolean
+  target_owner_home_x: number | null
+  target_owner_home_y: number | null
   arrives_at: string
 }
 

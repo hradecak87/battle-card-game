@@ -209,6 +209,7 @@ describe('GarrisonModal', () => {
 
   it('shows the incoming-attack info instead of the generic message when known', () => {
     const arrivesAt = new Date(Date.now() + 5 * 60 * 1000).toISOString()
+    const onNavigateToTerritory = jest.fn()
     render(
       <GarrisonModal
         territory={{ ...baseTerritory, battle_locked_by: 'me' }}
@@ -225,13 +226,15 @@ describe('GarrisonModal', () => {
           attacker_home_x: 10,
           attacker_home_y: 20,
         }}
-        onNavigateToTerritory={jest.fn()}
+        onNavigateToTerritory={onNavigateToTerritory}
       />
     )
 
-    expect(screen.getByText(/Útok od Útočník Karel — vojska dorazí/)).toBeInTheDocument()
+    expect(screen.getByText(/Útok od/)).toBeInTheDocument()
     expect(screen.queryByText('Toto území je právě v boji')).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Domov útočníka/ })).toHaveTextContent('(10, 20)')
+    const attackerLink = screen.getByRole('button', { name: 'Útočník Karel' })
+    fireEvent.click(attackerLink)
+    expect(onNavigateToTerritory).toHaveBeenCalledWith(10, 20)
   })
 
   it('shows a war badge for foreign owners currently at war with the viewer', () => {
@@ -307,7 +310,7 @@ describe('GarrisonModal', () => {
     )
 
     expect(screen.getByText(/Attacker Name/)).toBeInTheDocument()
-    const homeButton = screen.getByRole('button', { name: /Domov útočníka \(12, 34\)/ })
+    const homeButton = screen.getByRole('button', { name: 'Attacker Name' })
     fireEvent.click(homeButton)
     expect(onNavigateToTerritory).toHaveBeenCalledWith(12, 34)
   })

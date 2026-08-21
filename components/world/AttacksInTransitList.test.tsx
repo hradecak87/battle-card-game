@@ -18,6 +18,8 @@ describe('AttacksInTransitList', () => {
             target_owner_id: null,
             target_owner_display_name: null,
             target_owner_is_npc: false,
+            target_owner_home_x: null,
+            target_owner_home_y: null,
             arrives_at: '2026-08-20T12:14:00.000Z',
           },
         ]}
@@ -47,6 +49,8 @@ describe('AttacksInTransitList', () => {
             target_owner_id: 'player-2',
             target_owner_display_name: 'Hráč XY',
             target_owner_is_npc: false,
+            target_owner_home_x: null,
+            target_owner_home_y: null,
             arrives_at: '2026-08-20T12:14:00.000Z',
           },
         ]}
@@ -55,6 +59,37 @@ describe('AttacksInTransitList', () => {
     )
 
     expect(screen.getByText('Hráč XY')).toBeInTheDocument()
+  })
+
+  it('links the target owner name to their home territory when known', () => {
+    render(
+      <AttacksInTransitList
+        attacks={[
+          {
+            movement_id: 'move-3',
+            attacker_id: 'player-npc-1',
+            attacker_display_name: 'NPC Anglie',
+            attacker_home_x: null,
+            attacker_home_y: null,
+            target_territory_id: 2,
+            target_x: 2,
+            target_y: 78,
+            target_owner_id: 'player-3',
+            target_owner_display_name: 'hradecak.1987',
+            target_owner_is_npc: false,
+            target_owner_home_x: 200,
+            target_owner_home_y: 44,
+            arrives_at: '2026-08-20T12:14:00.000Z',
+          },
+        ]}
+        now={new Date('2026-08-20T12:00:00.000Z')}
+      />
+    )
+
+    expect(screen.getByRole('link', { name: 'hradecak.1987' })).toHaveAttribute(
+      'href',
+      '/map?x=200&y=44'
+    )
   })
 
   it('shows an empty state when no attacks are in transit', () => {

@@ -311,12 +311,10 @@ export default function GarrisonModal({
                 {incomingAttackInfo ? (
                   <>
                     <span>
-                      Útok od {incomingAttackInfo.attacker_display_name ?? 'neznámý hráč'} — vojska dorazí{' '}
-                      {formatEta(incomingAttackInfo.transfer_arrives_at)}
-                    </span>
-                    {incomingAttackInfo.attacker_home_x !== null &&
+                      Útok od{' '}
+                      {incomingAttackInfo.attacker_home_x !== null &&
                       incomingAttackInfo.attacker_home_y !== null &&
-                      onNavigateToTerritory && (
+                      onNavigateToTerritory ? (
                         <button
                           type="button"
                           onClick={() =>
@@ -325,11 +323,15 @@ export default function GarrisonModal({
                               incomingAttackInfo.attacker_home_y as number
                             )
                           }
-                          className="rounded border border-red-700 px-1.5 py-0.5 text-[11px] text-red-300 hover:bg-red-900/40"
+                          className="underline hover:text-red-300"
                         >
-                          🏠 Domov útočníka ({incomingAttackInfo.attacker_home_x}, {incomingAttackInfo.attacker_home_y})
+                          {incomingAttackInfo.attacker_display_name ?? 'neznámý hráč'}
                         </button>
-                      )}
+                      ) : (
+                        incomingAttackInfo.attacker_display_name ?? 'neznámý hráč'
+                      )}{' '}
+                      — vojska dorazí {formatEta(incomingAttackInfo.transfer_arrives_at)}
+                    </span>
                   </>
                 ) : (
                   'Toto území je právě v boji'
@@ -624,23 +626,25 @@ export default function GarrisonModal({
         {territory.claim_locked_by && territory.claim_occupation_completes_at && (
           <p className="mb-3 flex flex-wrap items-center gap-1 text-sm text-amber-400">
             <span>
-              🚩 Probíhá zábor tohoto území od {claimInfo?.claimant_display_name ?? 'neznámý hráč'} — dokončí se{' '}
-              {formatEta(territory.claim_occupation_completes_at)}
-            </span>
-            {claimInfo?.claimant_home_x !== undefined &&
+              🚩 Probíhá zábor tohoto území od{' '}
+              {claimInfo?.claimant_home_x !== undefined &&
               claimInfo?.claimant_home_x !== null &&
               claimInfo?.claimant_home_y !== null &&
-              onNavigateToTerritory && (
+              onNavigateToTerritory ? (
                 <button
                   type="button"
                   onClick={() =>
                     onNavigateToTerritory(claimInfo.claimant_home_x as number, claimInfo.claimant_home_y as number)
                   }
-                  className="rounded border border-amber-700 px-1.5 py-0.5 text-[11px] text-amber-300 hover:bg-amber-900/40"
+                  className="underline hover:text-amber-300"
                 >
-                  🏠 Domov útočníka ({claimInfo.claimant_home_x}, {claimInfo.claimant_home_y})
+                  {claimInfo?.claimant_display_name ?? 'neznámý hráč'}
                 </button>
-              )}
+              ) : (
+                claimInfo?.claimant_display_name ?? 'neznámý hráč'
+              )}{' '}
+              — dokončí se {formatEta(territory.claim_occupation_completes_at)}
+            </span>
           </p>
         )}
 

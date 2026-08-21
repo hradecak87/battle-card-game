@@ -40,6 +40,8 @@ describe('WorldPage', () => {
           target_owner_id: null,
           target_owner_display_name: null,
           target_owner_is_npc: false,
+          target_owner_home_x: null,
+          target_owner_home_y: null,
           arrives_at: '2026-08-20T12:30:00.000Z',
         },
       ],
