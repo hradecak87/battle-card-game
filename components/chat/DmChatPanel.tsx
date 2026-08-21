@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { listDmMessages, markRead, sendMessage } from '@/lib/chat/api'
 import type { ChatListedMessage } from '@/lib/chat/types'
 import { MessageInput } from './MessageInput'
@@ -30,6 +30,8 @@ export function DmChatPanel({
   const [lastSentAt, setLastSentAt] = useState<number | null>(null)
   const { containerRef, handleScroll, resetStickToBottom } = useStickToBottom(messages)
 
+  const isInitialLoadRef = useRef(true)
+
   const loadMessages = useCallback(async () => {
     if (!conversationId) {
       setMessages([])
@@ -37,28 +39,31 @@ export function DmChatPanel({
       return
     }
 
-    setLoading(true)
+    if (isInitialLoadRef.current) setLoading(true)
     const { data, error: loadError } = await listDmMessages(conversationId)
     if (loadError) {
       setError(loadError.message)
       setLoading(false)
+      isInitialLoadRef.current = false
       return
     }
 
     setMessages(data ?? [])
     setError(null)
     setLoading(false)
+    isInitialLoadRef.current = false
     await markRead(conversationId)
   }, [conversationId])
 
   useEffect(() => {
+    isInitialLoadRef.current = true
     setMessages([])
     setError(null)
     setLoading(Boolean(conversationId))
     resetStickToBottom()
   }, [conversationId, resetStickToBottom])
 
-  useVisiblePolling(loadMessages, 4000, currentPlayerId !== null && conversationId !== null)
+  useVisiblePolling(loadMessages, 10000, currentPlayerId !== null && conversationId !== null)
 
   const handleSend = useCallback(
     async (body: string) => {

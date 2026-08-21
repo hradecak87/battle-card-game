@@ -34,14 +34,20 @@ export function ChatWidget() {
     const rows = data ?? []
     setConversations(rows)
     setActiveConversationId((current) => {
-      if (current && rows.some((conversation) => conversation.conversation_id === current)) {
-        return current
-      }
+      // Keep an already-selected conversation as-is, even if it's not in the
+      // freshly polled list yet (e.g. it was just created and hasn't shown up
+      // in this fetch), so a background refresh never yanks the user away
+      // from what they're looking at.
+      if (current) return current
+      // Only auto-pick the newest conversation when nothing is selected and
+      // the user isn't mid-draft of a brand new conversation (draftRecipientId
+      // set, activeConversationId intentionally cleared to null).
+      if (draftRecipientId) return current
       return rows[0]?.conversation_id ?? null
     })
-  }, [user?.id])
+  }, [user?.id, draftRecipientId])
 
-  useVisiblePolling(loadConversations, isOpen ? 4000 : 15000, !loading)
+  useVisiblePolling(loadConversations, isOpen ? 10000 : 15000, !loading)
 
   const loadPlayers = useCallback(async () => {
     if (!user?.id) {
