@@ -14,6 +14,55 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-21g (coalition troop lending / shared forces)
+
+- **Implemented backlog item #30 phase 2** from the approved troop-lending
+  spec/plan.
+  - **Core mechanic**: loans work by **temporarily reassigning
+    `card_instances.owner_id` to the borrower on arrival**, while recording
+    the original owner in `loaned_from_id` plus the expiry in
+    `loan_return_at`. That means existing defender/garrison/battle queries
+    keep working unchanged because they already scope to the territory
+    owner's cards; no separate “shared army” battle path was added.
+  - **SQL / live DB**:
+    - `0068_troop_lending.sql` adds `troop_movements.kind` values
+      `loan` / `loan_return`, `troop_movements.loan_duration_hours`,
+      `card_instances.loaned_from_id` / `loan_return_at`,
+      `lend_troops(...)`, `_recall_loan_core(...)`, `recall_loan(...)`,
+      `get_my_loans()`, widened notification-type support, and
+      `resolve_due_movements()` handling for loan arrival + auto-expiry.
+    - Ownership-transfer cleanup is centralized in the new
+      `_deposit_or_grant_card(...)` definition so captured loaned cards
+      cannot be yanked back later by expiry/recall after they legitimately
+      changed hands.
+    - `0064_coalition_rpcs.sql` now auto-recalls stationed loans and turns
+      around outbound in-transit loan movements when a coalition member
+      leaves, gets kicked, or the coalition disbands.
+    - Applied `0068_troop_lending.sql` and the updated
+      `0064_coalition_rpcs.sql` live to Supabase via local Node + `pg`
+      using `SUPABASE_DB_URL` from the main repo `.env.local` with CRLF-safe
+      parsing, then ran `0068_troop_lending.verification.sql` successfully
+      (rollback-wrapped).
+  - **Frontend**:
+    - Added `LendModal` for lending stationed own units from an owned
+      territory to coalition-member territories with a 0–336h duration.
+    - Added `MyLoansPanel` with grouped active loans and per-loan recall.
+    - `GarrisonModal` now shows a “Půjčit vojska” action on owned
+      territories and a visible “na půjčku od …” badge on borrowed units in
+      the garrison.
+    - Notifications now include `loan_arrived`, `loan_returned`, and
+      `loan_auto_recalled`, wired through labels, deep links, push webhook,
+      and service worker using the same pattern as `attack_cancelled`.
+    - `app/map/page.tsx` now wires the lend modal and the “my loans” panel
+      alongside the existing movement UI.
+  - **Testing / verification**:
+    - Added Jest coverage for the new API wrappers, lend modal, loans
+      panel, garrison loan badge, notification routing, push formatting,
+      and map-page integration mocks.
+    - Final full verification in the worktree:
+      - `npx tsc --noEmit` ✅
+      - `npx jest --silent` ✅ (**95 suites / 660 tests passed**)
+
 ## Latest update — 2026-08-21f (NPC attack cancellation)
 
 - **Implemented the approved NPC attack cancellation flow**:
@@ -78,9 +127,9 @@
     - Final full verification in the worktree:
       - `npx tsc --noEmit` ✅
       - `npx jest --runInBand --silent` ✅ (**93 suites / 642 tests passed**)
-- **Remaining future scope for item #30**: phase 2 troop lending / shared
-  forces, and phase 3 shared coalition visibility/intelligence are still
-  intentionally unimplemented follow-on work.
+- **Remaining future scope for item #30**: only phase 3 shared coalition
+  visibility / intelligence is still intentionally unimplemented follow-on
+  work.
 
 ## Latest update — 2026-08-21d (map movement arrows end-to-end)
 
@@ -1703,7 +1752,7 @@ status inline as items are picked up.
 | 27 | Card limit per player scaling with level; ability to "return a card to the central deck" (common/uncommon burn, rare+ recycles back into circulation since supply is limited) | 6 | 5 | pending | New card-economy mechanic |
 | 28 | Add a "King" card that establishes a royal home city | 5 | 3 | **done, applied to live DB 2026-08-19** | `supabase/migrations/0024_king_relocate_home.sql`: new `players.king_relocation_used_at` + `relocate_home(p_new_territory_id)` RPC. Design choice: **not** a tradeable `card_instance` — existing catalog is unit-only and the real mechanic is a once-per-player strategic unlock, so `lib/players/king.ts` defines a pure ability card (`Král`) gated at **level 15** (10500 XP: late-midgame, high but reachable). RPC validates auth, level, ownership, unused state, unresolved-battle/claim safety, then atomically flips `territories.is_home` from the old home to the selected owned territory and stamps the usage timestamp. Client: `relocateHome()` in `lib/territories/api.ts`; `GarrisonModal` shows a one-time confirm action on owned non-home territories only when the caller is eligible; `app/map/page.tsx` wires it from session player state. Targeted Jest: 59/59 pass; `tsc` clean; `npm run build` succeeds (existing unrelated warnings only). |
 | 29 | Diplomacy module: default neutral relations, attacking declares war, diplomacy resolves it (e.g. tribute) | 8 | 3 | pending | Idea only, needs its own brainstorming, large scope |
-| 30 | Coalition module: leader roles, combined armies for bigger battles | 9 | 2 | **done (phase 1 core)** | Implemented 2026-08-21e: coalition core + non-aggression pacts now live (schema/RLS, RPCs, attack/claim guardrails, diplomacy/map/world-feed UI). Remaining follow-on phases only: (2) troop lending / shared forces, (3) shared visibility/intelligence. |
+| 30 | Coalition module: leader roles, combined armies for bigger battles | 9 | 2 | **done (phases 1-2)** | Implemented 2026-08-21e/2026-08-21g: coalition core + non-aggression pacts, then troop lending/shared forces. Phase 2 uses temporary `card_instances.owner_id` reassignment on loan arrival plus `loaned_from_id` / `loan_return_at` metadata so existing battle/garrison logic works unchanged; includes manual recall, auto-expiry, and forced auto-recall on coalition breakup/leave/kick. Remaining follow-on phase only: (3) shared visibility/intelligence. |
 | 31 | Chat / messaging module between players/kingdoms | 5 | 4 | pending | Medium scope, needs realtime infra |
 | 32 | NPCs should cancel in-transit attacks when defender reinforcements drop their win chance below 45% | 7 | 6 | **done** (applied to live DB 2026-08-21) | Design: `docs/superpowers/specs/2026-08-21-npc-attack-cancellation-design.md`. `lib/npc/kingdoms.ts` now exposes the shared cancellation-threshold helpers, and `supabase/migrations/0067_npc_attack_cancellation.sql` adds per-attack `npc_reeval_at`, `_movement_unit_power(...)`, `_recall_attack_core(...)`, the lazy `resolve_due_npc_attack_reevaluations()` loop, `attack_cancelled` notifications, and the two `resolve_due_npc_actions()` call-site updates that stamp new NPC attack movements for reevaluation. Live verification confirmed: timely reinforcements cancel the NPC attack with defender notification + `attack_recalled` world event, late reinforcements do not, and the public `recall_attack()` RPC still behaves unchanged. |
 
