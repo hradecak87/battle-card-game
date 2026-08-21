@@ -109,6 +109,10 @@ In `_resolve_round()` (`0026_boost_cards.sql:780` is the line to copy-and-extend
 
 In `_finalize_battle()` (`0047_wall_structure_card.sql:853` line to extend): wherever surviving/captured cards get `owner_id` reassigned to `v_battle.attacker_id` or `v_battle.defender_id`, add the same `loaned_from_id = null, loan_return_at = null` clear for any affected card that had `loaned_from_id is not null`.
 
+- [ ] **Step 4b: Clear loan fields on the `steal_unit` boost-effect capture path**
+
+`0026_boost_cards.sql`'s `_trigger_instant_boost_if_needed()` also directly reassigns `card_instances.owner_id` for the `steal_unit` instant effect (lines 285 and 319: `update card_instances set owner_id = v_battle.attacker_id/defender_id where instance_id = v_target;`). This is a third, separate ownership-transfer path outside `_resolve_round`/`_finalize_battle`. Add the same `loaned_from_id = null, loan_return_at = null` clear at both of these sites in the new `create or replace function _trigger_instant_boost_if_needed(...)`.
+
 - [ ] **Step 5: Write tests**
 
 Add to `supabase/migrations/0068_troop_lending.verification.sql`: a loaned card that loses a duel keeps its new owner and has null loan fields (auto-expiry sweep does not later yank it); a loaned card that survives is auto-returned when `loan_return_at` passes.
@@ -125,17 +129,17 @@ git commit -m "feat: handle loan arrival, auto-expiry, and capture cleanup"
 ## Task 3: Coalition breakup/leave auto-recall (including in-transit loans)
 
 **Files:**
-- Modify: whichever migration currently defines the coalition-leave/disband RPCs (grep `supabase/migrations` for `leave_coalition` and `disband_coalition` / breakup logic to find the current authoritative definition before editing — likely in `0062_coalitions_schema.sql` or a later coalitions migration).
+- Modify: `supabase/migrations/0064_coalition_rpcs.sql` — currently defines `coalition_leave()`, `coalition_disband()`, `_coalition_disband_core()`, and `coalition_kick(p_player_id uuid)`.
 
 **Steps:**
 
-- [ ] **Step 1: Locate current leave/disband function(s)**
+- [ ] **Step 1: Confirm current function definitions**
 
-Run `grep -rn "leave_coalition\|disband_coalition" supabase/migrations` to find the latest `create or replace function` for each.
+Run `grep -n "create or replace function coalition_leave\|create or replace function coalition_disband\|create or replace function _coalition_disband_core\|create or replace function coalition_kick" supabase/migrations/*.sql` to confirm `0064_coalition_rpcs.sql` (or a later migration, if one redefines them) is authoritative before editing.
 
 - [ ] **Step 2: Add auto-recall for stationed loans**
 
-When a member leaves or a coalition disbands, for every card where `(owner_id, loaned_from_id)` is an affected pair (either direction) and `status = 'stationed'`, call `_recall_loan_core(card_instance_id)` (from Task 2).
+When a member leaves (`coalition_leave`), is kicked (`coalition_kick`), or the coalition disbands (`coalition_disband`/`_coalition_disband_core`), for every card where `(owner_id, loaned_from_id)` is an affected pair (either direction) and `status = 'stationed'`, call `_recall_loan_core(card_instance_id)` (from Task 2).
 
 - [ ] **Step 3: Add cancellation for in-transit outbound loans**
 
@@ -143,7 +147,7 @@ For every `troop_movements` row with `kind = 'loan'`, `status = 'in_transit'`, w
 
 - [ ] **Step 4: Write tests**
 
-Cover: leaving a coalition recalls both a stationed loan and cancels an in-transit one; disbanding a coalition does the same for all member pairs.
+Cover: leaving a coalition recalls both a stationed loan and cancels an in-transit one; being kicked does the same; disbanding a coalition does the same for all member pairs.
 
 - [ ] **Step 5: Commit**
 
