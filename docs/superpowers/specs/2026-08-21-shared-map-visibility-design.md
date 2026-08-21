@@ -13,15 +13,25 @@ today for anyone else's movements.
   **everyone** via `get_visible_territory_cards(territory_id)` (no
   ownership check; only boost cards are masked from non-owners). No change
   needed here — this part of the original request is already satisfied.
-- Troop movements (attacks, transfers, claims) are visible only to the
-  mover themselves (`get_my_movements()`) and, for incoming attacks, only to
-  the defending territory's owner (`get_incoming_attacks_on_my_territories()`).
-  A third party sees no arrow and no detail for anyone else's in-transit
-  movement — not even that one exists. `get_movement_cards(movement_id)` is
-  gated to `tm.player_id = caller` only. `troop_movement_units` has a
-  `using (false)` select policy, so the RPC is the only access path.
-- The map's own generic per-tile data (`get_viewport`) exposes a `battle_id`
-  once a battle has actually started, visible to all — not affected here.
+- **Correction on what's actually protected today:** `troop_movements`
+  itself has a public-read RLS policy (`using (true)`, same convention as
+  `territories`/`players`/`card_instances`) — so movement *existence and
+  metadata* (kind, origin/destination, timestamps, status) are already
+  queryable by anyone directly against the table today. The real existing
+  protection boundary is movement **composition** — `troop_movement_units`
+  has a `using (false)` policy, and `get_movement_cards(movement_id)` is
+  the only access path, gated to `tm.player_id = caller`. The current
+  frontend (`get_my_movements()`, `get_incoming_attacks_on_my_territories()`,
+  `useMapMovementArrows`) only ever *surfaces* a player's own movements and
+  incoming attacks on their own territory as arrows — nothing stops a
+  third party from querying the raw table, but the UI/RPC layer doesn't
+  build ally-facing arrows or expose ally movement composition today.
+  This phase's real contribution is therefore **UX (arrows, filtering to
+  relevant allies) plus widening composition access to coalition
+  members** — not closing a table-level access-control gap, since none
+  exists for metadata. `troop_movements` RLS is left as-is (public-read,
+  consistent with the rest of the schema); only `get_movement_cards`'s
+  authorization changes.
 
 **The real gap to close:** a coalition member cannot see an ally's
 in-transit movements (outgoing or incoming) at all today. This spec adds
@@ -45,7 +55,14 @@ coalition-relevant. No filtering by target is needed.
   returns `in_transit` movements for every player who shares an
   undisbanded coalition with the caller (via `coalition_members` self-join,
   same pattern as `0065_coalition_attack_enforcement.sql`), excluding the
-  caller's own (already covered by the existing endpoint).
+  caller's own (already covered by the existing endpoint). Additionally
+  includes mover-identity columns (`player_id`, `display_name`,
+  `kingdom_name`, `is_npc`) — needed so the frontend can label/color each
+  ally's arrow, the same way `get_incoming_attacks_on_my_territories()`
+  already includes attacker identity columns today. This check is a live
+  query against current `coalition_members` rows each call (no snapshot
+  taken at movement start), so visibility naturally stops the instant a
+  membership row is removed — nothing to reconcile if an ally leaves mid-transit.
 - `get_incoming_attacks_on_coalition_territories()` — mirrors
   `get_incoming_attacks_on_my_territories()`, but matches territories owned
   (or claim-locked) by any current coalition member of the caller, not just
