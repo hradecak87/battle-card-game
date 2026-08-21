@@ -21,9 +21,10 @@ with `status = 'in_transit'`:
    (same color), since from the sender's point of view they're the same
    kind of action: "my army marching toward a target".
 3. **Incoming attacks against my territory** — another player's or NPC's
-   `attack`-kind movement whose destination is a territory I own. This is
-   the existing `get_incoming_attacks_on_my_territories()` data set,
-   already used by `MyMovementsPanel`'s defender section.
+   `attack`-kind movement whose destination is a territory I own **or am
+   currently claiming**. This is the existing
+   `get_incoming_attacks_on_my_territories()` data set, already used by
+   `MyMovementsPanel`'s defender section.
 
 Movements belonging to other players that don't involve me in any way
 (neither sender nor destination owner) are **not** shown — this preserves
@@ -81,6 +82,13 @@ modals (`GarrisonModal`, `DeclareAttackModal`, etc.):
   introduce a new way to leak that information). A future "Scout" card
   that reveals enemy composition before battle is a natural follow-up,
   but is explicitly out of scope here.
+  - Note: `get_incoming_attacks_on_my_territories()` (the RPC backing
+    this list) currently does **not** return `attacker_kingdom_name`
+    (only the separate single-territory `get_incoming_attack_info()` RPC
+    does). This spec includes adding that one column to
+    `get_incoming_attacks_on_my_territories()`'s return type, mirroring
+    what `get_incoming_attack_info()` already exposes — a small, scoped
+    addition, not a new RPC.
 
 ## Data & architecture
 
@@ -113,18 +121,30 @@ modals (`GarrisonModal`, `DeclareAttackModal`, etc.):
   own `player_id` (`troop_movements.player_id = auth.uid()`), mirroring
   how `IncomingAttackInfo` already omits unit-count data entirely rather
   than relying on client-side filtering.
+  - **Required accompanying migration:** `troop_movement_units` currently
+    has an RLS policy `using (true)` — publicly selectable by any client,
+    which would let a client bypass this RPC's authorization entirely via
+    a direct table select (confirmed no existing client code depends on
+    direct reads of this table — all current references are inside
+    `security definer` SQL functions). This spec includes tightening that
+    policy (e.g. `using (false)`, access only via `security definer`
+    RPCs) so the new RPC's server-side check is the only way to reach
+    this data, not merely client-side hiding.
 - **Refresh trigger:** arrows appear/disappear/update using the same
-  refresh mechanism `MyMovementsPanel` already uses (mount + the existing
-  `movementsRefreshKey` bump whenever a transfer/attack/claim is
+  refresh mechanism `MyMovementsPanel` already uses: an initial load plus
+  **polling every 15 seconds** (matching `MyMovementsPanel`'s existing
+  `setInterval(..., 15000)`), *and* an immediate reload whenever the
+  page's `movementsRefreshKey` is bumped (transfer/attack/claim
   started/cancelled elsewhere on the page). No new realtime channel is
   introduced by this design.
 
 ## Explicitly out of scope
 
-- Live (sub-refresh) appearance/disappearance of arrows without a manual
-  viewport reload — tracked separately under the existing
-  `realtime-map-and-actions-feed` backlog item; this feature will benefit
-  from it later but doesn't require it now.
+- True realtime (sub-second/push-based) updates — arrows refresh on the
+  same 15s poll + refresh-key cadence as `MyMovementsPanel` (see Data &
+  architecture), not instantly. Push-based updates are tracked separately
+  under the existing `realtime-map-and-actions-feed` backlog item; this
+  feature will benefit from it later but doesn't require it now.
 - Arrows on the minimap.
 - Persisting the show/hide toggle preference across sessions.
 - A future "Scout" card revealing enemy army composition before battle —
