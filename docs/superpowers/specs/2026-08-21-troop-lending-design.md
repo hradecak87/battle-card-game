@@ -20,11 +20,21 @@ to the battle engine are required**.
   part of that territory's garrison (subject to the same 2-round rest
   mechanic as any other card).
 - If the card loses a duel while on loan, it transfers to the battle winner
-  — same as any other card, no special-case code needed.
+  — same as any other card, no special-case code needed for the transfer
+  itself. However, **whenever a card's `owner_id` changes via capture**
+  (duel loss, or territory-capture reassignment), `loaned_from_id` and
+  `loan_return_at` must also be cleared on that same card. Otherwise the
+  auto-expiry sweep or the original lender's `recall_loan` could later yank
+  a card away from its new legitimate owner.
 - If it survives and the loan ends (recall or expiry), a return transfer
   starts and `owner_id` flips back to the original lender (`loaned_from_id`)
   immediately at that point (no longer usable by the borrower once the
-  return trip has started).
+  return trip has started). The return trip targets the lender's **current**
+  home territory (re-resolved at recall/expiry time, not the territory that
+  was current when the loan started, in case it changed hands meanwhile).
+- A card currently on loan to you (`loaned_from_id` set to someone else) is
+  not eligible to be re-lent further — only cards you outright own can be
+  lent out.
 
 ## Data model
 
@@ -33,9 +43,12 @@ to the battle engine are required**.
     on loan; `null` when not on loan.
   - `loan_return_at timestamptz null` — when the loan auto-expires.
 - `troop_movements.kind` gains two new values: `'loan'` (outbound) and
-  `'loan_return'` (return trip). Existing `resolve_due_movements()` handles
-  both like any other movement kind, flipping `owner_id` appropriately on
-  arrival/departure as described above.
+  `'loan_return'` (return trip). Requires widening the existing check
+  constraint and adding dedicated arrival branches in
+  `resolve_due_movements()` (each `kind` has its own explicit completion
+  branch today; a `'loan'` arrival branch must additionally set
+  `loaned_from_id`/`loan_return_at`, and a `'loan_return'` arrival branch
+  must clear them).
 
 ## RPCs
 
@@ -57,7 +70,11 @@ to the battle engine are required**.
   `loan_return_at <= now()` and automatically starts their `loan_return`
   movement (same path as manual recall).
 - Coalition breakup / member leaving: auto-recall all active loans between
-  the affected pair of players (reuses `recall_loan` logic).
+  the affected pair of players. This includes loans still **in transit**
+  outbound (not yet arrived/stationed) — those movements must be turned
+  around toward the lender's territory rather than left to complete and
+  hand a card to a now-former-ally. Stationed loans use the normal
+  `recall_loan` path.
 
 ## No limits
 
@@ -68,6 +85,10 @@ to the battle engine are required**.
 - No cap on total army size in a battle (attacker selection or defender
   garrison) — tracked as a separate future backlog item
   (`battle-army-size-limit`), deliberately out of scope here.
+- If a loaned card's territory is captured via an outright win with no
+  combat, the surviving card is sent to the defender's (borrower's) home as
+  usual — the loan is treated as unaffected and continues at the new
+  location; this is intentional, not a gap.
 
 ## UI
 
