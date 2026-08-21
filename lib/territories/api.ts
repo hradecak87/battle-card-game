@@ -190,6 +190,19 @@ export async function getMyMovements() {
   }>
 }
 
+export interface CoalitionMovement extends TroopMovement {
+  display_name: string | null
+  kingdom_name: string | null
+  is_npc: boolean
+}
+
+export async function getCoalitionMovements() {
+  return supabase.rpc('get_coalition_movements') as unknown as Promise<{
+    data: CoalitionMovement[] | null
+    error: { message: string } | null
+  }>
+}
+
 export interface TerritoryCoords {
   id: number
   x: number
@@ -319,6 +332,13 @@ export interface IncomingAttackOnMyTerritory {
   transfer_arrives_at: string
 }
 
+export interface IncomingAttackOnCoalitionTerritory extends IncomingAttackOnMyTerritory {
+  defender_id: string
+  defender_display_name: string | null
+  defender_kingdom_name: string | null
+  defender_is_npc: boolean
+}
+
 /**
  * Every in-transit attack currently converging on a territory the caller
  * owns (or is claiming), for MyMovementsPanel's defender section —
@@ -329,6 +349,13 @@ export interface IncomingAttackOnMyTerritory {
 export async function getIncomingAttacksOnMyTerritories() {
   return supabase.rpc('get_incoming_attacks_on_my_territories') as unknown as Promise<{
     data: IncomingAttackOnMyTerritory[] | null
+    error: { message: string } | null
+  }>
+}
+
+export async function getIncomingAttacksOnCoalitionTerritories() {
+  return supabase.rpc('get_incoming_attacks_on_coalition_territories') as unknown as Promise<{
+    data: IncomingAttackOnCoalitionTerritory[] | null
     error: { message: string } | null
   }>
 }
