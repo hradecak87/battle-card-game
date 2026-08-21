@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import MapMovementArrows, { MapMovementArrow } from './MapMovementArrows'
 
 jest.mock('@/components/territories/MovementDetailModal', () => ({
@@ -88,6 +88,51 @@ describe('MapMovementArrows', () => {
     expect(screen.getByTestId('movement-arrow-line-transfer-1')).toHaveAttribute('stroke', '#f59e0b')
     expect(screen.getByTestId('movement-arrow-line-offensive-1')).toHaveAttribute('stroke', '#ef4444')
     expect(screen.getByTestId('movement-arrow-line-incoming-1')).toHaveAttribute('stroke', '#d946ef')
+  })
+
+  it('suppresses the default browser focus outline on an arrow and instead thickens its own line when focused', () => {
+    // Regression: the arrow's <g role="button"> wraps the whole diagonal
+    // line, so the browser's default focus outline followed that huge
+    // bounding box and looked like a giant rounded frame around the map.
+    // The group must opt out of the native outline; the visible line
+    // itself should thicken instead, scoped to the arrow.
+    const arrows: MapMovementArrow[] = [
+      {
+        id: 'transfer-1',
+        category: 'transfer',
+        movementId: 'movement-1',
+        movementKind: 'transfer',
+        originTerritoryId: 1,
+        destinationTerritoryId: 2,
+        originX: 10,
+        originY: 10,
+        destX: 12,
+        destY: 12,
+        destinationName: 'Cíl',
+        startedAt: '2026-08-21T11:00:00.000Z',
+        arrivesAt: '2026-08-21T13:00:00.000Z',
+      },
+    ]
+
+    render(
+      <MapMovementArrows
+        arrows={arrows}
+        centerX={11}
+        centerY={11}
+        viewSize={5}
+        onSelectArrow={jest.fn()}
+      />
+    )
+
+    const group = screen.getByRole('button', { name: /Cíl/ })
+    expect(group).toHaveClass('outline-none')
+
+    const line = screen.getByTestId('movement-arrow-line-transfer-1')
+    expect(line).toHaveAttribute('stroke-width', '0.08')
+    fireEvent.focus(group)
+    expect(line).toHaveAttribute('stroke-width', '0.16')
+    fireEvent.blur(group)
+    expect(line).toHaveAttribute('stroke-width', '0.08')
   })
 
   it('clips an arrow to the viewport edge when only one endpoint is visible', () => {

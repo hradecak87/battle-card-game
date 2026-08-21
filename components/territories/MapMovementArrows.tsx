@@ -103,6 +103,7 @@ export default function MapMovementArrows({
   })
   const arrows = arrowsOverride ?? loadedArrows
   const [selectedArrow, setSelectedArrow] = useState<MapMovementArrow | null>(null)
+  const [focusedArrowId, setFocusedArrowId] = useState<string | null>(null)
   const [nowMs, setNowMs] = useState(() => Date.now())
 
   useEffect(() => {
@@ -175,7 +176,14 @@ export default function MapMovementArrows({
                 role="button"
                 tabIndex={0}
                 aria-label={describeArrow(arrow)}
-                className="pointer-events-auto cursor-pointer"
+                // The browser's default focus outline follows this <g>'s
+                // bounding box, which spans the whole diagonal line (often
+                // most of the viewport) — that reads as a huge, oddly
+                // rounded frame around the map, not a focus ring on the
+                // arrow. Suppress it and use a thicker visible line instead,
+                // which stays scoped to the arrow itself and keeps keyboard
+                // focus visible.
+                className="pointer-events-auto cursor-pointer outline-none"
                 onClick={() => {
                   setSelectedArrow(arrow)
                   onSelectArrow?.(arrow)
@@ -187,6 +195,8 @@ export default function MapMovementArrows({
                     onSelectArrow?.(arrow)
                   }
                 }}
+                onFocus={() => setFocusedArrowId(arrow.id)}
+                onBlur={() => setFocusedArrowId((current) => (current === arrow.id ? null : current))}
               >
                 <line
                   x1={clipped.startX}
@@ -203,7 +213,7 @@ export default function MapMovementArrows({
                   x2={clipped.endX}
                   y2={clipped.endY}
                   stroke={color}
-                  strokeWidth={0.08}
+                  strokeWidth={focusedArrowId === arrow.id ? 0.16 : 0.08}
                   strokeLinecap="round"
                   opacity={0.9}
                 />

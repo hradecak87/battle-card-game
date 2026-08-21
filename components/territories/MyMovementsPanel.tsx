@@ -225,7 +225,17 @@ export default function MyMovementsPanel({ myPlayerId, refreshKey, onNavigateToT
                     atk.attacker_display_name ?? 'neznámý hráč'
                   )}{' '}
                   na {atk.territory_name ? `${atk.territory_name} ` : ''}
-                  ({atk.territory_x}, {atk.territory_y})
+                  {onNavigateToTerritory ? (
+                    <button
+                      type="button"
+                      onClick={() => onNavigateToTerritory(atk.territory_x, atk.territory_y)}
+                      className="underline hover:text-red-200"
+                    >
+                      ({atk.territory_x}, {atk.territory_y})
+                    </button>
+                  ) : (
+                    `(${atk.territory_x}, ${atk.territory_y})`
+                  )}
                 </span>
                 <span className="flex items-center gap-2 text-red-400">{formatEta(atk.transfer_arrives_at)}</span>
               </div>

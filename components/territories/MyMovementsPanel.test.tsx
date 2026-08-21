@@ -216,6 +216,39 @@ describe('MyMovementsPanel', () => {
     expect(territoryLink.closest('a')).toHaveAttribute('href', '/map?x=5&y=9')
   })
 
+  it('lets you navigate to the attacked territory (not just the attacker) from an incoming attack row', async () => {
+    getMyMovements.mockResolvedValue({ data: [], error: null })
+    getIncomingAttacksOnMyTerritories.mockResolvedValue({
+      data: [
+        {
+          movement_id: 'atk-1',
+          territory_id: 42,
+          territory_x: 0,
+          territory_y: 77,
+          territory_name: null,
+          attacker_id: 'npc-england',
+          attacker_display_name: 'NPC England',
+          attacker_is_npc: true,
+          attacker_home_x: 251,
+          attacker_home_y: 255,
+          transfer_arrives_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        },
+      ],
+      error: null,
+    })
+
+    const onNavigateToTerritory = jest.fn()
+    render(<MyMovementsPanel myPlayerId="me" onNavigateToTerritory={onNavigateToTerritory} />)
+
+    const destinationButton = await screen.findByText('(0, 77)')
+    await userEvent.click(destinationButton)
+    expect(onNavigateToTerritory).toHaveBeenCalledWith(0, 77)
+
+    const attackerButton = screen.getByText('NPC England')
+    await userEvent.click(attackerButton)
+    expect(onNavigateToTerritory).toHaveBeenCalledWith(251, 255)
+  })
+
   it('uses onNavigateToTerritory (instead of a Link) for the recently resolved battle territory when provided, since same-route Link navigation does not reliably update the map', async () => {
     getMyMovements.mockResolvedValue({ data: [], error: null })
     getMyRecentlyResolvedBattles.mockResolvedValue({
