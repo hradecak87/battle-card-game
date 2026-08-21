@@ -4,6 +4,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { getMovementCards, type MovementCard } from '@/lib/territories/api'
 import { formatEta } from '@/lib/time/formatEta'
 import type { MapMovementArrow } from '@/lib/territories/useMapMovementArrows'
+import { TradingCard } from '@/components/cards/TradingCard'
+import { CardZoomIconButton, CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
+import { applyRank } from '@/lib/cards/combat'
+import { Rank, UnitType, UnitCardTemplate } from '@/lib/cards/types'
 
 export interface MovementDetailModalProps {
   arrow: MapMovementArrow
@@ -44,7 +48,23 @@ function formatRank(rank: string | null | undefined) {
   return rank ? (labels[rank] ?? rank) : 'neznámá'
 }
 
+/** Rebuilds the `UnitCardTemplate` shape `TradingCard` expects from the flat DB row (mirrors TransferModal/GarrisonModal). */
+function toUnitTemplate(row: NonNullable<MovementCard['card_templates']>): UnitCardTemplate | null {
+  if (row.category !== 'unit' || !row.base_stats || !row.unit_type) return null
+  return {
+    id: row.id,
+    category: 'unit',
+    unitType: row.unit_type as UnitType,
+    rank: row.rank as Rank,
+    name: row.name ?? 'Neznámá karta',
+    flavorText: row.flavor_text ?? '',
+    baseStats: row.base_stats,
+    totalSupply: row.total_supply,
+  }
+}
+
 export default function MovementDetailModal({ arrow, onClose, onNavigateToTerritory }: MovementDetailModalProps) {
+  const { zoomedCard, openZoom, closeZoom } = useCardZoom()
   const [cards, setCards] = useState<MovementCard[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [now, setNow] = useState(() => new Date())
@@ -190,23 +210,43 @@ export default function MovementDetailModal({ arrow, onClose, onNavigateToTerrit
               ) : cards.length === 0 ? (
                 <p className="text-zinc-400">V tomto pohybu nejsou žádné karty.</p>
               ) : (
-                <ul className="space-y-2">
-                  {cards.map((card) => (
-                    <li key={card.instance_id} className="rounded border border-zinc-800 bg-zinc-950/60 px-3 py-2">
-                      <p className="font-medium text-zinc-100">
-                        {card.card_templates?.name ?? 'Neznámá karta'}
-                      </p>
-                      <p className="text-xs text-zinc-400">
-                        {formatUnitType(card.card_templates?.unit_type)} • {formatRank(card.card_templates?.rank)}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
+                  {cards.map((card) => {
+                    const unitTemplate = card.card_templates ? toUnitTemplate(card.card_templates) : null
+                    if (!unitTemplate) {
+                      return (
+                        <div
+                          key={card.instance_id}
+                          className="flex aspect-[5/7] w-full flex-col items-center justify-center gap-1 rounded-xl border border-zinc-700 bg-zinc-900 p-2 text-center"
+                        >
+                          <p className="text-xs font-medium text-zinc-100">
+                            {card.card_templates?.name ?? 'Neznámá karta'}
+                          </p>
+                          <p className="text-[10px] text-zinc-400">
+                            {formatUnitType(card.card_templates?.unit_type)} • {formatRank(card.card_templates?.rank)}
+                          </p>
+                        </div>
+                      )
+                    }
+                    const stats = applyRank(unitTemplate.baseStats, unitTemplate.rank)
+                    return (
+                      <div key={card.instance_id} className="relative flex flex-col items-center gap-1">
+                        <TradingCard template={unitTemplate} stats={stats} compact />
+                        <CardZoomIconButton
+                          cardName={unitTemplate.name}
+                          className="absolute right-2 top-2"
+                          onClick={() => openZoom(unitTemplate, stats)}
+                        />
+                      </div>
+                    )
+                  })}
+                </div>
               )}
             </div>
           </div>
         )}
       </div>
+      <CardZoomOverlay card={zoomedCard} onClose={closeZoom} />
     </div>
   )
 }

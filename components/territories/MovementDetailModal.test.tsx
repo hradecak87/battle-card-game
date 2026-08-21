@@ -77,6 +77,12 @@ describe('MovementDetailModal', () => {
     expect(await screen.findByText('Královští lučištníci')).toBeInTheDocument()
     expect(getMovementCards).toHaveBeenCalledWith('mine-1')
 
+    // Regression: cards used to render as a plain text list; they should
+    // now show up as real card thumbnails (matching TransferModal/
+    // GarrisonModal) laid out in a responsive multi-column grid, each with
+    // its own magnifier button to open the full zoomed-in card.
+    expect(screen.getByRole('button', { name: 'Zvětšit kartu Královští lučištníci' })).toBeInTheDocument()
+
     await userEvent.click(screen.getByRole('button', { name: /Hrad/ }))
     expect(onNavigateToTerritory).toHaveBeenCalledWith(10, 11)
   })

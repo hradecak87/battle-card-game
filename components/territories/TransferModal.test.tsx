@@ -227,4 +227,34 @@ describe('TransferModal', () => {
     expect(screen.getByTestId('transfer-card-select-inst-1')).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: /Přesunout vojska \(1\)/ })).toBeEnabled()
   })
+
+  it('draws the selection ring exactly matching the card shape, not an oversized box around it', async () => {
+    // Regression: the ring used to live on a separate wrapper div with
+    // default (small) rounded corners and extra padding, so it stuck out
+    // past the card's own rounded-xl corners. The ring must be on the same
+    // rounded-xl element that renders the card.
+    getCardInstancesAtTerritory.mockResolvedValue({
+      data: [unitCard],
+      error: null,
+    })
+
+    render(
+      <TransferModal
+        territory={destinationTerritory}
+        myPlayerId="me"
+        onClose={jest.fn()}
+        onTransferred={jest.fn()}
+      />
+    )
+
+    fireEvent.change(await screen.findByLabelText('Odkud přesouváš'), { target: { value: '1' } })
+    await screen.findByText('Elitní rytíři')
+
+    const card = screen.getByTestId('transfer-card-select-inst-1')
+    expect(card).toHaveClass('rounded-xl')
+    expect(card).not.toHaveClass('ring-2', 'ring-emerald-500')
+
+    fireEvent.click(card)
+    expect(card).toHaveClass('rounded-xl', 'ring-4', 'ring-emerald-500')
+  })
 })

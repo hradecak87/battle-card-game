@@ -330,6 +330,27 @@ describe('DeclareAttackModal', () => {
     expect(screen.getByRole('button', { name: /Zaútočit \(1 vojsk\)/ })).toBeEnabled()
   })
 
+  it('draws the selection ring exactly matching the card shape, not an oversized box around it', async () => {
+    // Regression: the ring used to live on a separate wrapper div with
+    // default (small) rounded corners and extra padding, so it stuck out
+    // past the card's own rounded-xl corners. The ring must be on the same
+    // rounded-xl element that renders the card.
+    getCardInstancesAtTerritory.mockResolvedValue({ data: [myCard], error: null })
+
+    render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Odkud útočíš' }))
+    fireEvent.click(screen.getByTestId('declare-attack-origin-check-1'))
+    await screen.findByText('Elitní rytíři')
+
+    const card = screen.getByTestId('declare-attack-card-select-inst-1')
+    expect(card).toHaveClass('rounded-xl')
+    expect(card).not.toHaveClass('ring-2', 'ring-red-500')
+
+    fireEvent.click(card)
+    expect(card).toHaveClass('rounded-xl', 'ring-4', 'ring-red-500')
+  })
+
   it('shows an ETA once an origin territory is picked', async () => {
     getCardInstancesAtTerritory.mockResolvedValue({ data: [myCard], error: null })
 

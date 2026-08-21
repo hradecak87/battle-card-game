@@ -468,19 +468,16 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
                           const checked = selectedIds.includes(instance.instance_id)
                           const stats = applyRank(unitTemplate.baseStats, unitTemplate.rank)
                           return (
-                            <div
-                              key={instance.instance_id}
-                              className={`relative flex flex-col items-center gap-1 rounded p-1 ${
-                                checked ? 'ring-2 ring-red-500' : ''
-                              }`}
-                            >
+                            <div key={instance.instance_id} className="relative flex flex-col items-center gap-1">
                               <button
                                 type="button"
                                 data-testid={`declare-attack-card-select-${instance.instance_id}`}
                                 aria-label={`Vybrat kartu ${unitTemplate.name}`}
                                 aria-pressed={checked}
                                 onClick={() => toggleInstance(origin.id, instance.instance_id)}
-                                className="block w-full cursor-pointer rounded text-left transition hover:scale-[1.02]"
+                                className={`block w-full cursor-pointer rounded-xl text-left transition hover:scale-[1.02] ${
+                                  checked ? 'ring-4 ring-red-500' : ''
+                                }`}
                               >
                                 <TradingCard template={unitTemplate} stats={stats} compact />
                               </button>
