@@ -279,6 +279,23 @@ function getGridBorderAlpha(viewSize: number, cellPx: number | null) {
   return Math.max(0.35, Math.min(1, 1.25 - viewSize * 0.018))
 }
 
+// Garrison pip dots used to be a fixed `h-2 w-2` (8px) regardless of the
+// actual rendered cell size. That looked fine on desktop, where the first
+// zoom level that shows pips (viewSize <= 15) still renders fairly large
+// cells, but on narrow mobile screens the same 15x15 viewport squeezes into
+// a much smaller cell, so the fixed 8px dots ate up most (or all) of the
+// tile — a 2x2 grid of pips barely fit and a 3rd column had no room left.
+// Scaling off the measured `cellPx` (same pattern as the icon/border helpers
+// above) keeps the pips a small, consistent fraction of the tile at every
+// screen size. Falls back to a small fixed size before the ResizeObserver
+// has measured anything.
+function getGarrisonPipSize(cellPx: number | null) {
+  if (cellPx && cellPx > 0) {
+    return Math.max(3, Math.min(8, Math.round(cellPx * 0.16)))
+  }
+  return 5
+}
+
 /**
  * Pannable grid viewport (design spec §10): arrow buttons AND click-drag
  * panning, plus a coordinate-jump input. Renders whichever `territories`
@@ -426,6 +443,7 @@ export default function MapViewport({
 
   const iconStyle = { fontSize: getIconFontSize(viewSize, cellPx) }
   const structureIconBaseSize = getStructureIconSize(viewSize, cellPx)
+  const garrisonPipSizePx = getGarrisonPipSize(cellPx)
   const gridBorderStyle = { borderColor: `rgba(0, 0, 0, ${getGridBorderAlpha(viewSize, cellPx)})` }
   const visualDragOffset = dragOffset
     ? {
@@ -758,13 +776,14 @@ export default function MapViewport({
                       <div
                         key={rank}
                         data-testid={`garrison-pip-${rank}-${x},${y}`}
-                        className="flex flex-col-reverse items-center -space-y-1"
+                        className="flex flex-col-reverse items-center"
                       >
                         {Array.from({ length: pipCount }).map((_, index) => (
                           <span
                             key={`${rank}-${index}`}
                             data-testid={`garrison-pip-dot-${rank}-${index}-${x},${y}`}
-                            className={`block h-2 w-2 rounded-full border border-black/30 ${RANK_FRAME[rank].badgeBg}`}
+                            className={`block shrink-0 rounded-full border border-black/30 ${RANK_FRAME[rank].badgeBg}`}
+                            style={{ width: garrisonPipSizePx, height: garrisonPipSizePx }}
                           />
                         ))}
                       </div>
