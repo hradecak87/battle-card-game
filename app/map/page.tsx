@@ -91,6 +91,7 @@ function MapPageContent() {
   const [centerX, setCenterX] = useState(hasExplicitCenter ? initialX : 128)
   const [centerY, setCenterY] = useState(hasExplicitCenter ? initialY : 128)
   const [zoomIndex, setZoomIndex] = useState(DEFAULT_ZOOM_INDEX)
+  const [blinkTarget, setBlinkTarget] = useState<{ x: number; y: number; nonce: number } | null>(null)
   const [territories, setTerritories] = useState<Territory[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selectedTile, setSelectedTile] = useState<Territory | null>(null)
@@ -116,6 +117,7 @@ function MapPageContent() {
   const [coalitionMemberIds, setCoalitionMemberIds] = useState<Set<string>>(new Set())
   const selectionRequestIdRef = useRef(0)
   const autoCenteredUserId = useRef<string | null>(null)
+  const jumpBlinkNonceRef = useRef(0)
 
   const viewSize = ZOOM_LEVELS[zoomIndex]
   const kingRelocationAvailable = Boolean(
@@ -247,8 +249,12 @@ function MapPageContent() {
   }
 
   function handleJump(x: number, y: number) {
-    setCenterX(clamp(x))
-    setCenterY(clamp(y))
+    const nextX = clamp(x)
+    const nextY = clamp(y)
+    setCenterX(nextX)
+    setCenterY(nextY)
+    jumpBlinkNonceRef.current += 1
+    setBlinkTarget({ x: nextX, y: nextY, nonce: jumpBlinkNonceRef.current })
   }
 
   function handleZoomIn() {
@@ -533,6 +539,7 @@ function MapPageContent() {
             territories={territories}
             centerX={centerX}
             centerY={centerY}
+            blinkTarget={blinkTarget}
             viewSize={viewSize}
             currentUserId={user?.id ?? null}
             allyPlayerIds={coalitionMemberIds}

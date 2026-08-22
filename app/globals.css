@@ -2,6 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes map-jump-blink {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  12%,
+  45%,
+  78% {
+    opacity: 0.9;
+  }
+  28%,
+  61%,
+  94% {
+    opacity: 0;
+  }
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -172,6 +189,10 @@ body {
 }
 
 @layer utilities {
+  .animate-map-jump-blink {
+    animation: map-jump-blink 1.8s ease-in-out 1;
+  }
+
   .text-balance {
     text-wrap: balance;
   }

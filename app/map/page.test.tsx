@@ -224,6 +224,22 @@ describe('MapPage', () => {
     await waitFor(() => expect(getViewport).toHaveBeenCalledWith(3, 13, 17, 27))
   })
 
+  it('restarts the target-tile blink when jumping to the same coordinates repeatedly', async () => {
+    render(<MapPage />)
+    await waitFor(() => expect(screen.getByTestId('map-viewport')).toBeInTheDocument())
+
+    fireEvent.change(screen.getByLabelText('Souřadnice X'), { target: { value: '128' } })
+    fireEvent.change(screen.getByLabelText('Souřadnice Y'), { target: { value: '128' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Přejít' }))
+
+    const firstBlinkOverlay = await screen.findByTestId('blink-128,128')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Přejít' }))
+
+    const secondBlinkOverlay = await screen.findByTestId('blink-128,128')
+    expect(secondBlinkOverlay).not.toBe(firstBlinkOverlay)
+  })
+
   it('toggles the map movement arrows overlay from the page control', async () => {
     render(<MapPage />)
     await waitFor(() => expect(screen.getByTestId('map-viewport')).toBeInTheDocument())
