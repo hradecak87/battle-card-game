@@ -3,18 +3,25 @@
 @tailwind utilities;
 
 @keyframes map-jump-blink {
-  0%,
-  100% {
+  0% {
     opacity: 0;
   }
-  12%,
-  45%,
-  78% {
-    opacity: 0.9;
+  16.67% {
+    opacity: 0.85;
   }
-  28%,
-  61%,
-  94% {
+  33.33% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.85;
+  }
+  66.67% {
+    opacity: 0;
+  }
+  83.33% {
+    opacity: 0.85;
+  }
+  100% {
     opacity: 0;
   }
 }
@@ -190,7 +197,7 @@ body {
 
 @layer utilities {
   .animate-map-jump-blink {
-    animation: map-jump-blink 1.8s ease-in-out 1;
+    animation: map-jump-blink 4.2s ease-in-out 1 forwards;
   }
 
   .text-balance {

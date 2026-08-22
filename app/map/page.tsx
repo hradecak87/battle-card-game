@@ -51,6 +51,7 @@ import type { DiplomacyRelationState } from '@/lib/diplomacy/types'
 // Kept odd so `half = floor(viewSize / 2)` centers the viewport exactly on
 // the requested (centerX, centerY) tile at every zoom step, same as before.
 const ZOOM_LEVELS = [5, 9, 15, 21, 29, 37, 49]
+const MAP_JUMP_BLINK_DURATION_MS = 4200
 const DEFAULT_ZOOM_INDEX = 2 // 15 tiles per side, same as the previous fixed size
 const MAP_MIN = 0
 const MAP_MAX = 255
@@ -254,7 +255,11 @@ function MapPageContent() {
     setCenterX(nextX)
     setCenterY(nextY)
     jumpBlinkNonceRef.current += 1
-    setBlinkTarget({ x: nextX, y: nextY, nonce: jumpBlinkNonceRef.current })
+    const nonce = jumpBlinkNonceRef.current
+    setBlinkTarget({ x: nextX, y: nextY, nonce })
+    window.setTimeout(() => {
+      setBlinkTarget((current) => (current?.nonce === nonce ? null : current))
+    }, MAP_JUMP_BLINK_DURATION_MS)
   }
 
   function handleZoomIn() {
