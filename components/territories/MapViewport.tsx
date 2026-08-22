@@ -133,6 +133,8 @@ export interface MapViewportProps {
   currentUserId?: string | null
   /** Player ids of the viewer's coalition allies, used to flag ally-owned tiles in the hover tooltip. */
   allyPlayerIds?: ReadonlySet<string>
+  /** Whether to show the per-tile garrison-size pip dots at close zoom (viewSize <= 15). Defaults to true. */
+  showGarrisonPips?: boolean
   toolbarContent?: ReactNode
   overlay?: ReactNode
   onPan: (dx: number, dy: number) => void
@@ -310,6 +312,7 @@ export default function MapViewport({
   viewSize = 15,
   currentUserId,
   allyPlayerIds,
+  showGarrisonPips = true,
   toolbarContent,
   overlay,
   onPan,
@@ -596,7 +599,7 @@ export default function MapViewport({
             const tileHighlight = getHighlightInfo(tile, currentUserId)
             const battleHighlight = getBattleHighlightInfo(tile)
             const claimHighlight = getClaimHighlightInfo(tile)
-            const garrisonPipStacks = viewSize <= 15 ? getVisibleGarrisonPipStacks(tile) : []
+            const garrisonPipStacks = showGarrisonPips && viewSize <= 15 ? getVisibleGarrisonPipStacks(tile) : []
             const isBlinkTarget = blinkTarget?.x === x && blinkTarget?.y === y
 
             const matchingHighlight = (neighbor?: Territory) => {

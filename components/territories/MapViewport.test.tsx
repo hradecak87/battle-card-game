@@ -276,6 +276,22 @@ describe('MapViewport', () => {
     expect(screen.queryByTestId('garrison-pips-10,10')).not.toBeInTheDocument()
   })
 
+  it('does not render garrison pips when showGarrisonPips is false, even at close zoom', () => {
+    renderViewport(
+      [
+        makeTerritory({
+          garrison_ranks: {
+            common: 3,
+          },
+        }),
+      ],
+      'me',
+      { viewSize: 15, showGarrisonPips: false }
+    )
+
+    expect(screen.queryByTestId('garrison-pips-10,10')).not.toBeInTheDocument()
+  })
+
   it('does not render garrison pips for tiles without stationed unit counts', () => {
     const { rerender } = render(
       <MapViewport

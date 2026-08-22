@@ -112,6 +112,7 @@ function MapPageContent() {
   const [showLendModal, setShowLendModal] = useState(false)
   const [showTransferModal, setShowTransferModal] = useState(false)
   const [showMovementArrows, setShowMovementArrows] = useState(false)
+  const [showGarrisonPips, setShowGarrisonPips] = useState(true)
   const [movementsRefreshKey, setMovementsRefreshKey] = useState(0)
   const [incomingBattleAlerts, setIncomingBattleAlerts] = useState<IncomingBattleAlert[]>([])
   const [kingRelocationUsedAt, setKingRelocationUsedAt] = useState<string | null>(null)
@@ -555,19 +556,34 @@ function MapPageContent() {
             onZoomOut={handleZoomOut}
             canZoomIn={zoomIndex > 0}
             canZoomOut={zoomIndex < ZOOM_LEVELS.length - 1}
+            showGarrisonPips={showGarrisonPips}
             toolbarContent={
-              <button
-                type="button"
-                aria-pressed={showMovementArrows}
-                onClick={() => setShowMovementArrows((current) => !current)}
-                className={`shrink-0 rounded border px-3 py-1 text-sm font-semibold transition-colors ${
-                  showMovementArrows
-                    ? 'border-fuchsia-500 bg-fuchsia-500/10 text-fuchsia-200'
-                    : 'border-zinc-700 bg-zinc-900 text-zinc-200 hover:border-zinc-500'
-                }`}
-              >
-                Zobrazit pohyby
-              </button>
+              <>
+                <button
+                  type="button"
+                  aria-pressed={showMovementArrows}
+                  onClick={() => setShowMovementArrows((current) => !current)}
+                  className={`shrink-0 rounded border px-3 py-1 text-sm font-semibold transition-colors ${
+                    showMovementArrows
+                      ? 'border-fuchsia-500 bg-fuchsia-500/10 text-fuchsia-200'
+                      : 'border-zinc-700 bg-zinc-900 text-zinc-200 hover:border-zinc-500'
+                  }`}
+                >
+                  Zobrazit pohyby
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={showGarrisonPips}
+                  onClick={() => setShowGarrisonPips((current) => !current)}
+                  className={`shrink-0 rounded border px-3 py-1 text-sm font-semibold transition-colors ${
+                    showGarrisonPips
+                      ? 'border-fuchsia-500 bg-fuchsia-500/10 text-fuchsia-200'
+                      : 'border-zinc-700 bg-zinc-900 text-zinc-200 hover:border-zinc-500'
+                  }`}
+                >
+                  Zobrazit počty vojsk
+                </button>
+              </>
             }
             overlay={
               <MapMovementArrows

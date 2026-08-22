@@ -251,6 +251,24 @@ describe('MapPage', () => {
     expect(screen.getByTestId('map-movement-arrows')).toHaveTextContent('visible')
   })
 
+  it('toggles the garrison-size pip dots off and back on from the page control', async () => {
+    sessionUser = { id: 'me' }
+    getViewport.mockResolvedValueOnce({
+      data: [mockTerritory(128, 128, { is_home: true, owner_id: 'me', garrison_ranks: { common: 3 } })],
+      error: null,
+    })
+    render(<MapPage />)
+    await waitFor(() => expect(screen.getByTestId('map-viewport')).toBeInTheDocument())
+
+    expect(screen.getByTestId('garrison-pips-128,128')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /Zobrazit počty vojsk/ }))
+    expect(screen.queryByTestId('garrison-pips-128,128')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /Zobrazit počty vojsk/ }))
+    expect(screen.getByTestId('garrison-pips-128,128')).toBeInTheDocument()
+  })
+
   it('re-requests a shifted window when a pan arrow is clicked', async () => {
     render(<MapPage />)
     await waitFor(() => expect(screen.getByTestId('map-viewport')).toBeInTheDocument())
