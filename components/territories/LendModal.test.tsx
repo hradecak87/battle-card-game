@@ -145,4 +145,17 @@ describe('LendModal', () => {
 
     expect(await screen.findByText('Nelze půjčit vojska.')).toBeInTheDocument()
   })
+
+  it('keeps padding and stable scrollbar gutter around the lending card grid', async () => {
+    getCardInstancesAtTerritory.mockResolvedValue({ data: [unitCard], error: null })
+
+    render(<LendModal destinationTerritory={destinationTerritory} myPlayerId="me" onClose={jest.fn()} />)
+
+    fireEvent.change(await screen.findByLabelText('Odkud posíláš'), { target: { value: '10' } })
+    const card = await screen.findByTestId('lend-card-select-unit-1')
+    const grid = card.closest('div.grid')
+
+    expect(grid).not.toBeNull()
+    expect(grid).toHaveClass('p-2', '[scrollbar-gutter:stable]')
+  })
 })

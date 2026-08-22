@@ -258,7 +258,7 @@ export default function GarrisonModal({
     >
       <div
         data-testid="garrison-modal"
-        className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-950 p-3 sm:p-6"
+        className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-950 p-3 [scrollbar-gutter:stable] sm:p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -766,7 +766,7 @@ export default function GarrisonModal({
         )}
 
         {!error && instances !== null && (unitInstances.length > 0 || structureInstances.length > 0) && (
-          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
+          <div className="grid grid-cols-3 gap-3 p-3 sm:grid-cols-4 md:grid-cols-5">
             {[...unitInstances, ...structureInstances].map((instance) => {
               const row = instance.card_templates
               const unitTemplate = row ? toUnitTemplate(row) : null

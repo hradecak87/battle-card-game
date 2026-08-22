@@ -461,7 +461,7 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
                   {originInstances !== null && originInstances !== undefined && originInstances.length > 0 && (
                     <fieldset className="flex flex-col gap-2">
                       <legend className="text-sm text-zinc-400">Vyber vojska k útoku</legend>
-                      <div className="grid max-h-96 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4">
+                      <div className="grid max-h-96 grid-cols-3 gap-2 overflow-y-auto p-2 [scrollbar-gutter:stable] sm:grid-cols-4">
                         {originInstances.map((instance) => {
                           const unitTemplate = instance.card_templates ? toUnitTemplate(instance.card_templates) : null
                           if (!unitTemplate) return null

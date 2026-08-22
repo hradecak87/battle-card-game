@@ -210,7 +210,7 @@ export default function TransferModal({ territory, myPlayerId, onClose, onTransf
           {originInstances !== null && originInstances.length > 0 && (
             <fieldset className="flex flex-col gap-2">
               <legend className="text-sm text-zinc-400">Vyber vojska k přesunu</legend>
-              <div className="grid max-h-64 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4">
+              <div className="grid max-h-64 grid-cols-3 gap-2 overflow-y-auto p-2 [scrollbar-gutter:stable] sm:grid-cols-4">
                 {originInstances.map((instance) => {
                   const unitTemplate = instance.card_templates ? toUnitTemplate(instance.card_templates) : null
                   if (!unitTemplate) return null

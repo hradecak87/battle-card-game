@@ -255,6 +255,21 @@ describe('DeclareAttackModal', () => {
     expect(options).toEqual(['Domov (0, 0)', 'Území (3, 4)'])
   })
 
+  it('keeps padding and stable scrollbar gutter around each attack card grid', async () => {
+    getCardInstancesAtTerritory.mockResolvedValue({ data: [myCard], error: null })
+
+    render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Odkud útočíš' }))
+    fireEvent.click(screen.getByTestId('declare-attack-origin-check-1'))
+
+    const card = await screen.findByTestId('declare-attack-card-select-inst-1')
+    const grid = card.closest('div.grid')
+
+    expect(grid).not.toBeNull()
+    expect(grid).toHaveClass('p-2', '[scrollbar-gutter:stable]')
+  })
+
   it('renders the defender structure bonus panel when the target has castle and village', async () => {
     render(
       <DeclareAttackModal

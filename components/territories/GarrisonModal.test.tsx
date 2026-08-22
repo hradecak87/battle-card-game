@@ -298,6 +298,26 @@ describe('GarrisonModal', () => {
     expect(screen.getByText('na půjčku od Spojenec')).toBeInTheDocument()
   })
 
+  it('keeps padding around the garrison grid and reserves stable scrollbar space on the modal', () => {
+    render(
+      <GarrisonModal
+        territory={baseTerritory}
+        instances={[stationedUnit]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+      />
+    )
+
+    const card = screen.getByRole('button', { name: 'Zvětšit kartu Pohraniční lučištníci' })
+    const grid = card.closest('div.grid')
+    const modal = screen.getByTestId('garrison-modal')
+
+    expect(grid).not.toBeNull()
+    expect(grid).toHaveClass('p-3')
+    expect(modal).toHaveClass('[scrollbar-gutter:stable]')
+  })
+
   it('shows a generic "in battle" message when no ETA is known', () => {
     render(
       <GarrisonModal

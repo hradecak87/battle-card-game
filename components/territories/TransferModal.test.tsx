@@ -257,4 +257,17 @@ describe('TransferModal', () => {
     fireEvent.click(card)
     expect(card).toHaveClass('rounded-xl', 'ring-4', 'ring-emerald-500')
   })
+
+  it('keeps padding and stable scrollbar gutter around the transfer card grid', async () => {
+    getCardInstancesAtTerritory.mockResolvedValue({ data: [unitCard], error: null })
+
+    render(<TransferModal territory={destinationTerritory} myPlayerId="me" onClose={jest.fn()} />)
+
+    fireEvent.change(await screen.findByLabelText('Odkud přesouváš'), { target: { value: '1' } })
+    const card = await screen.findByTestId('transfer-card-select-inst-1')
+    const grid = card.closest('div.grid')
+
+    expect(grid).not.toBeNull()
+    expect(grid).toHaveClass('p-2', '[scrollbar-gutter:stable]')
+  })
 })
