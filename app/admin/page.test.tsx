@@ -213,6 +213,56 @@ describe('AdminPage', () => {
 
     await waitFor(() => expect(grantAdminXp).toHaveBeenCalledWith('player-2', -50))
   })
+
+  it('card grid renders thumbnails in 3-per-row layout', async () => {
+    const user = userEvent.setup()
+    render(<AdminPage />)
+
+    await user.click(await screen.findByRole('button', { name: /Správa karet/i }))
+    expect(await screen.findByText('Kopiníci')).toBeInTheDocument()
+    // Thumbnail × and 🔍 buttons should be present
+    expect(screen.getByRole('button', { name: /Odebrat kartu Kopiníci/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Zvětšit kartu Kopiníci/i })).toBeInTheDocument()
+  })
+
+  it('clicking × on a thumbnail card still triggers the remove flow', async () => {
+    const user = userEvent.setup()
+    const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true)
+
+    render(<AdminPage />)
+    await user.click(await screen.findByRole('button', { name: /Správa karet/i }))
+    expect(await screen.findByRole('button', { name: /Odebrat kartu Kopiníci/i })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /Odebrat kartu Kopiníci/i }))
+
+    await waitFor(() => expect(removeAdminCard).toHaveBeenCalledWith('card-1'))
+    confirmSpy.mockRestore()
+  })
+
+  it('clicking 🔍 opens zoom modal showing the card name', async () => {
+    const user = userEvent.setup()
+    render(<AdminPage />)
+
+    await user.click(await screen.findByRole('button', { name: /Správa karet/i }))
+    await screen.findByRole('button', { name: /Zvětšit kartu Kopiníci/i })
+    await user.click(screen.getByRole('button', { name: /Zvětšit kartu Kopiníci/i }))
+
+    // Modal with card name should appear (rendered as AdminCardThumbnail inside overlay)
+    const names = screen.getAllByText('Kopiníci')
+    expect(names.length).toBeGreaterThan(1) // card in grid + in modal
+  })
+
+  it('closing zoom modal via close button removes it from the document', async () => {
+    const user = userEvent.setup()
+    render(<AdminPage />)
+
+    await user.click(await screen.findByRole('button', { name: /Správa karet/i }))
+    await screen.findByRole('button', { name: /Zvětšit kartu Kopiníci/i })
+    await user.click(screen.getByRole('button', { name: /Zvětšit kartu Kopiníci/i }))
+
+    // Close button
+    await user.click(screen.getByRole('button', { name: 'Zavřít' }))
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Zavřít' })).not.toBeInTheDocument())
+  })
 })
 
 

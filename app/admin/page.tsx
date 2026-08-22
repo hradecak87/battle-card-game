@@ -20,12 +20,14 @@ import {
 import { levelForXp } from '@/lib/players/leveling'
 import { NATIONS } from '@/lib/players/nations'
 import { CollapsibleSection } from '@/components/admin/CollapsibleSection'
+import { AdminCardThumbnail } from '@/components/admin/AdminCardThumbnail'
 import { useSession } from '@/lib/supabase/useSession'
 
 const CATEGORY_LABELS: Record<AdminCardTemplateOption['category'], string> = {
   unit: 'Jednotky',
   castle: 'Hrady',
   village: 'Vesnice',
+  wall: 'Hradby',
   boost: 'Boost karty',
 }
 
@@ -75,6 +77,7 @@ export default function AdminPage() {
   const [xpError, setXpError] = useState<string | null>(null)
   const [submittingCard, setSubmittingCard] = useState(false)
   const [submittingXp, setSubmittingXp] = useState(false)
+  const [zoomedCard, setZoomedCard] = useState<AdminPlayerCardRow | null>(null)
 
   const selectedXpPlayer = useMemo(
     () => players?.find((player) => player.id === xpPlayerId) ?? null,
@@ -83,7 +86,7 @@ export default function AdminPage() {
 
   const templatesByCategory = useMemo(() => {
     const grouped = new Map<AdminCardTemplateOption['category'], AdminCardTemplateOption[]>()
-    for (const category of ['unit', 'castle', 'village', 'boost'] as const) {
+    for (const category of ['unit', 'castle', 'village', 'wall', 'boost'] as const) {
       grouped.set(category, [])
     }
     for (const template of templates ?? []) {
@@ -400,7 +403,7 @@ export default function AdminPage() {
                   value={templateId}
                   onChange={(event) => setTemplateId(event.target.value)}
                 >
-                  {(['unit', 'castle', 'village', 'boost'] as const).map((category) => {
+                  {(['unit', 'castle', 'village', 'wall', 'boost'] as const).map((category) => {
                     const options = templatesByCategory.get(category) ?? []
                     if (options.length === 0) return null
                     return (
@@ -449,31 +452,70 @@ export default function AdminPage() {
               ) : playerCards.length === 0 ? (
                 <p className="mt-3 text-zinc-400">Vybraný hráč zatím nemá žádné karty.</p>
               ) : (
-                <ul className="mt-4 flex flex-col gap-3">
-                  {playerCards.map((card) => (
-                    <li
-                      key={card.instance_id}
-                      className="flex flex-col gap-3 rounded-xl border border-zinc-800 bg-zinc-900/70 p-3 md:flex-row md:items-center md:justify-between"
-                    >
-                      <div>
-                        <p className="font-semibold">{card.template_name}</p>
-                        <p className="text-xs text-zinc-400">
+                <div className="mt-4 max-h-[560px] overflow-y-auto">
+                  <div className="grid grid-cols-3 gap-3">
+                    {playerCards.map((card) => (
+                      <div key={card.instance_id} className="relative">
+                        <button
+                          type="button"
+                          aria-label={`Odebrat kartu ${card.template_name}`}
+                          onClick={() => void handleRemoveCard(card)}
+                          className="absolute left-1 top-1 z-10 rounded bg-red-900/80 px-1 text-xs text-red-200 hover:bg-red-700"
+                        >
+                          ×
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Zvětšit kartu ${card.template_name}`}
+                          onClick={() => setZoomedCard(card)}
+                          className="absolute right-1 top-1 z-10 rounded bg-zinc-800/80 px-1 text-xs text-zinc-200 hover:bg-zinc-700"
+                        >
+                          🔍
+                        </button>
+                        <AdminCardThumbnail
+                          name={card.template_name}
+                          rank={card.template_rank}
+                          category={card.template_category}
+                        />
+                        <p className="mt-1 text-xs text-zinc-400 text-center">
                           {rankLabel(card.template_rank)} · {card.template_category} · {territoryLabel(card)} · {card.status}
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        aria-label={`Odebrat kartu ${card.template_name}`}
-                        onClick={() => void handleRemoveCard(card)}
-                        className="rounded-full border border-red-800 px-4 py-2 text-sm font-semibold text-red-300 transition-colors hover:border-red-600 hover:text-red-100"
-                      >
-                        Odebrat
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
+
+            {zoomedCard && (
+              <div
+                className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
+                onClick={() => setZoomedCard(null)}
+              >
+                <div
+                  className="relative max-w-xs w-full p-4"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    aria-label="Zavřít"
+                    onClick={() => setZoomedCard(null)}
+                    className="absolute right-2 top-2 z-10 rounded bg-zinc-800 px-2 py-1 text-sm text-zinc-200 hover:bg-zinc-700"
+                  >
+                    ×
+                  </button>
+                  <AdminCardThumbnail
+                    name={zoomedCard.template_name}
+                    rank={zoomedCard.template_rank}
+                    category={zoomedCard.template_category}
+                    size="lg"
+                  />
+                  <p className="mt-2 text-sm text-zinc-400 text-center">
+                    {rankLabel(zoomedCard.template_rank)} · {zoomedCard.template_category} · {territoryLabel(zoomedCard)} · {zoomedCard.status}
+                  </p>
+                </div>
+              </div>
+            )}
           </CollapsibleSection>
 
           <CollapsibleSection title="Správa XP" description="Přidej nebo odeber XP pro testování level-up i level-down přechodů.">
