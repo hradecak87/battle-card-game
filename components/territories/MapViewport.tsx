@@ -2,6 +2,8 @@
 
 import { ReactNode, useEffect, useRef, useState } from 'react'
 import { Territory } from '@/lib/territories/api'
+import type { Rank } from '@/lib/cards/types'
+import { RANK_FRAME } from '@/components/cards/TradingCard'
 import {
   CASTLE_VARIANTS,
   CastleIcon,
@@ -31,6 +33,7 @@ const DIFFICULTY_TERRAIN_VARIANTS: Record<1 | 2 | 3 | 4 | 5, readonly string[]> 
 
 const MAP_MIN = 0
 const MAP_MAX = 255
+const GARRISON_PIP_RANK_ORDER: Rank[] = ['common', 'uncommon', 'rare', 'epic', 'legend']
 
 type HighlightColor = 'sky' | 'red' | 'foreign' | 'npc'
 
@@ -125,6 +128,7 @@ export interface MapViewportProps {
   territories: Territory[]
   centerX: number
   centerY: number
+  blinkTarget?: { x: number; y: number; nonce: number } | null
   viewSize?: number
   currentUserId?: string | null
   /** Player ids of the viewer's coalition allies, used to flag ally-owned tiles in the hover tooltip. */
@@ -206,6 +210,22 @@ function isWithinBounds(x: number, y: number) {
   return x >= MAP_MIN && x <= MAP_MAX && y >= MAP_MIN && y <= MAP_MAX
 }
 
+function getGarrisonPipCount(count: number) {
+  if (count <= 0) return 0
+  if (count <= 5) return 1
+  if (count <= 10) return 2
+  return 3
+}
+
+function getVisibleGarrisonPipStacks(tile: Territory | undefined) {
+  if (!tile?.garrison_ranks) return []
+  return GARRISON_PIP_RANK_ORDER.flatMap((rank) => {
+    const count = tile.garrison_ranks?.[rank] ?? 0
+    const pipCount = getGarrisonPipCount(count)
+    return pipCount > 0 ? [{ rank, pipCount }] : []
+  })
+}
+
 // Prefers the actual measured cell size (`cellPx`, from a ResizeObserver on
 // the grid element) so icons always scale in lockstep with how big tiles
 // really render — the previous viewSize-only formula assumed a fixed
@@ -269,6 +289,7 @@ export default function MapViewport({
   territories,
   centerX,
   centerY,
+  blinkTarget = null,
   viewSize = 15,
   currentUserId,
   allyPlayerIds,
@@ -557,6 +578,8 @@ export default function MapViewport({
             const tileHighlight = getHighlightInfo(tile, currentUserId)
             const battleHighlight = getBattleHighlightInfo(tile)
             const claimHighlight = getClaimHighlightInfo(tile)
+            const garrisonPipStacks = viewSize <= 15 ? getVisibleGarrisonPipStacks(tile) : []
+            const isBlinkTarget = blinkTarget?.x === x && blinkTarget?.y === y
 
             const matchingHighlight = (neighbor?: Territory) => {
               if (!tileHighlight) return false
@@ -705,6 +728,14 @@ export default function MapViewport({
                       className={`pointer-events-none absolute z-20 animate-battle-blink ${HIGHLIGHT_BAR_POSITION[edge]} ${claimHighlight.colorClass}`}
                     />
                   ))}
+                {isBlinkTarget && blinkTarget && (
+                  <span
+                    key={`blink-${blinkTarget.nonce}`}
+                    aria-hidden="true"
+                    data-testid={`blink-${x},${y}`}
+                    className="pointer-events-none absolute inset-0 z-20 bg-amber-400/60 animate-map-jump-blink"
+                  />
+                )}
                 {structureIcons.length > 0 && (
                   <div
                     className={`relative z-10 flex flex-row items-center justify-center gap-0.5 ${
@@ -715,6 +746,28 @@ export default function MapViewport({
                       <span key={s.key} className="leading-none">
                         {s.node}
                       </span>
+                    ))}
+                  </div>
+                )}
+                {garrisonPipStacks.length > 0 && (
+                  <div
+                    data-testid={`garrison-pips-${x},${y}`}
+                    className="pointer-events-none absolute bottom-0.5 left-0.5 z-10 flex items-end gap-0.5 opacity-90"
+                  >
+                    {garrisonPipStacks.map(({ rank, pipCount }) => (
+                      <div
+                        key={rank}
+                        data-testid={`garrison-pip-${rank}-${x},${y}`}
+                        className="flex flex-col-reverse items-center -space-y-1"
+                      >
+                        {Array.from({ length: pipCount }).map((_, index) => (
+                          <span
+                            key={`${rank}-${index}`}
+                            data-testid={`garrison-pip-dot-${rank}-${index}-${x},${y}`}
+                            className={`block h-2 w-2 rounded-full border border-black/30 ${RANK_FRAME[rank].badgeBg}`}
+                          />
+                        ))}
+                      </div>
                     ))}
                   </div>
                 )}
@@ -783,4 +836,3 @@ export default function MapViewport({
     </div>
   )
 }
-

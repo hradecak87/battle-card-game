@@ -14,6 +14,43 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-22d (map garrison rarity pips at close zoom)
+
+- **Added coarse per-rank garrison data to the viewport RPC** via
+  `supabase/migrations/0078_map_viewport_garrison_pips.sql`: the current
+  `get_viewport(x1, y1, x2, y2)` jsonb-aggregate function now includes a
+  `garrison_ranks` jsonb object on each territory row, built from
+  stationed `card_instances` joined to `card_templates` filtered to
+  `category = 'unit'` and grouped by `ct.rank`. Only currently-stationed
+  unit cards count; structure cards and non-`stationed` cards are ignored.
+- **Added live DB verification**
+  (`supabase/migrations/0078_map_viewport_garrison_pips.verification.sql`),
+  rollback-wrapped. It proves: multi-rank stationed unit counts are
+  returned correctly, empty territories return `{}` for `garrison_ranks`
+  without breaking the rest of the row, stationed structure cards do not
+  count, and `status != 'stationed'` cards do not count even if they still
+  reference the territory. Applied and verified live against Supabase via
+  the project-local temporary Node.js + `pg` runner reading
+  `SUPABASE_DB_URL` from `.env.local`; temp helper deleted afterward.
+- **Frontend map tiles now render subtle close-zoom garrison pips.**
+  `lib/territories/api.ts` extends `Territory` with
+  `garrison_ranks?: Partial<Record<Rank, number>>`;
+  `components/cards/TradingCard.tsx` now exports the existing rarity color
+  map; and `components/territories/MapViewport.tsx` renders small
+  overlapping colored pip stacks in the tile's bottom-left corner only
+  when `viewSize <= 15`. Pip buckets are `1–5 => 1`, `6–10 => 2`,
+  `>10 => 3`, one stack per present rank ordered common→legend, using the
+  same rank colors as TradingCard. No pips render for empty/missing data
+  or at zoomed-out levels (`viewSize > 15`). Added stable test ids
+  (`garrison-pips-x,y`, `garrison-pip-rank-x,y`, per-dot test ids) and no
+  new interactivity/pointer handling.
+- **Tests/verification passed:** targeted map tests
+  (`npx jest components/territories/MapViewport.test.tsx app/map/page.test.tsx --runInBand --silent`),
+  full suite (`npx jest --runInBand --silent`), `npx tsc --noEmit`, and
+  `npm run build`. Build still shows the pre-existing
+  `MapMovementArrows.tsx` exhaustive-deps warning and Supabase Node 20
+  deprecation warnings, but completed successfully.
+
 ## Latest update — 2026-08-22c (NPC AI improvements complete: 0074–0077)
 
 - **Finished the full 4-part NPC AI improvements feature from**

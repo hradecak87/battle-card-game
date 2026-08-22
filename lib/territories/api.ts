@@ -38,6 +38,8 @@ export interface Territory {
    * optional/absent there.
    */
   battle_id?: string | null
+  /** Coarse per-rank stationed unit counts for ambient map garrison pips. */
+  garrison_ranks?: Partial<Record<Rank, number>>
 }
 
 export interface MinimapTile {

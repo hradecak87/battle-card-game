@@ -1,5 +1,5 @@
 import type { ComponentProps } from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import MapViewport from './MapViewport'
 import { Territory } from '@/lib/territories/api'
 
@@ -229,6 +229,85 @@ describe('MapViewport', () => {
     expect(screen.getByRole('img', { name: 'Vesnice' })).toBeInTheDocument()
   })
 
+  it('renders garrison pip stacks with rank colors and bucketed pip counts at close zoom', () => {
+    renderViewport(
+      [
+        makeTerritory({
+          garrison_ranks: {
+            common: 4,
+            uncommon: 7,
+            rare: 11,
+          },
+        }),
+      ],
+      'me',
+      { viewSize: 15 }
+    )
+
+    const container = screen.getByTestId('garrison-pips-10,10')
+    expect(container).toBeInTheDocument()
+
+    const commonStack = screen.getByTestId('garrison-pip-common-10,10')
+    expect(within(commonStack).getAllByTestId(/garrison-pip-dot-common-/)).toHaveLength(1)
+    expect(commonStack.firstChild).toHaveClass('bg-zinc-400')
+
+    const uncommonStack = screen.getByTestId('garrison-pip-uncommon-10,10')
+    expect(within(uncommonStack).getAllByTestId(/garrison-pip-dot-uncommon-/)).toHaveLength(2)
+    expect(uncommonStack.firstChild).toHaveClass('bg-green-500')
+
+    const rareStack = screen.getByTestId('garrison-pip-rare-10,10')
+    expect(within(rareStack).getAllByTestId(/garrison-pip-dot-rare-/)).toHaveLength(3)
+    expect(rareStack.firstChild).toHaveClass('bg-blue-500')
+  })
+
+  it('does not render garrison pips when zoomed farther out than 15x15', () => {
+    renderViewport(
+      [
+        makeTerritory({
+          garrison_ranks: {
+            common: 12,
+          },
+        }),
+      ],
+      'me',
+      { viewSize: 21 }
+    )
+
+    expect(screen.queryByTestId('garrison-pips-10,10')).not.toBeInTheDocument()
+  })
+
+  it('does not render garrison pips for tiles without stationed unit counts', () => {
+    const { rerender } = render(
+      <MapViewport
+        territories={[makeTerritory({ garrison_ranks: {} })]}
+        centerX={10}
+        centerY={10}
+        viewSize={15}
+        currentUserId="me"
+        onPan={jest.fn()}
+        onJump={jest.fn()}
+        onSelectTile={jest.fn()}
+      />
+    )
+
+    expect(screen.queryByTestId('garrison-pips-10,10')).not.toBeInTheDocument()
+
+    rerender(
+      <MapViewport
+        territories={[makeTerritory()]}
+        centerX={10}
+        centerY={10}
+        viewSize={15}
+        currentUserId="me"
+        onPan={jest.fn()}
+        onJump={jest.fn()}
+        onSelectTile={jest.fn()}
+      />
+    )
+
+    expect(screen.queryByTestId('garrison-pips-10,10')).not.toBeInTheDocument()
+  })
+
   it('shows the battle icon as a blinking overlay on top of structure icons', () => {
     renderViewport([makeTerritory({ castle_rank: 'common', battle_locked_by: 'battle-1' })], 'me')
 
@@ -243,6 +322,24 @@ describe('MapViewport', () => {
     const claimBorder = screen.getByTestId('highlight-claim-top-10,10')
     expect(claimBorder.className).toContain('animate-battle-blink')
     expect(claimBorder.className).toContain('bg-yellow-400')
+  })
+
+  it('renders a flashing amber overlay only for the jumped-to tile', () => {
+    renderViewport(
+      [
+        makeTerritory({ x: 10, y: 10 }),
+        makeTerritory({ id: 2, x: 11, y: 10 }),
+      ],
+      'me',
+      {
+        blinkTarget: { x: 10, y: 10, nonce: 1 },
+      }
+    )
+
+    const blinkOverlay = screen.getByTestId('blink-10,10')
+    expect(blinkOverlay.className).toContain('animate-map-jump-blink')
+    expect(blinkOverlay.className).toContain('bg-amber-400')
+    expect(screen.queryByTestId('blink-11,10')).not.toBeInTheDocument()
   })
 
   it('renders a wall icon for wall-only territories without castle or village icons', () => {

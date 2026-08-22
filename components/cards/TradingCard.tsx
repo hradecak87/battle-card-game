@@ -35,7 +35,7 @@ const RANK_LABELS: Record<Rank, string> = {
  * since Tailwind's arbitrary `shadow-[...]` class can't reliably express
  * two independent shadows.
  */
-const RANK_FRAME: Record<
+export const RANK_FRAME: Record<
   Rank,
   {
     border: string
