@@ -14,6 +14,18 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-22e (admin panel overhaul: collapsible sections, card thumbnail grid, movements monitor)
+
+- **Task 1 — Collapsible admin sections** (`components/admin/CollapsibleSection.tsx`): new generic `CollapsibleSection` component wraps each of the four (now five) `/admin` page sections with a toggle button (`aria-expanded`). All sections start collapsed; state is local only. Tests in `CollapsibleSection.test.tsx`. `app/admin/page.tsx` and `app/admin/page.test.tsx` updated to click section headers before asserting on content.
+
+- **Task 2 — Admin card thumbnail grid** (`components/admin/AdminCardThumbnail.tsx`): replaced the flat `<ul>` card list in "Správa karet" with a `grid grid-cols-3` thumbnail grid inside a `max-h-[560px] overflow-y-auto` container. Each cell has an absolutely-positioned `×` remove button and `🔍` zoom button; clicking zoom opens a fixed-overlay modal with the card enlarged. Also extended `AdminPlayerCardRow.template_category` and `AdminCardTemplateOption.category` types to include `'wall'`, added `wall: 'Hradby'` to `CATEGORY_LABELS`, and added `'wall'` to the category arrays. Confirmed `admin_list_player_cards` has no category filter (wall cards already included). Tests in `AdminCardThumbnail.test.tsx` and updated `page.test.tsx`.
+
+- **Task 3 — Admin movements monitor + admin-only speed-up** (`supabase/migrations/0079_admin_movements_monitor.sql`): new `admin_list_movements(p_include_history)` RPC (calls `resolve_due_movements()` first, joins `players`/`territories`/`troop_movement_units`, 200-row cap) and `admin_speed_up_movement(p_movement_id)` RPC (no ownership check, otherwise same as old `debug_speed_up_movement`). Dropped `debug_speed_up_movement`. Applied and live-verified against Supabase. Frontend: new `components/admin/AdminMovementsPanel.tsx` with NPC/player filter toggle, player-name search, include-history checkbox (triggers refetch), and per-row ⏩ speed-up button for active movements only; wired into admin page as 5th CollapsibleSection. Removed the player-facing "⏩ 10s (test)" button, `handleSpeedUp`, and `debugSpeedUpMovement` import from `MyMovementsPanel.tsx`; removed `debugSpeedUpMovement` export from `lib/territories/api.ts`; updated `MyMovementsPanel.test.tsx` accordingly.
+
+- **Verification:** 47 tests pass across all changed suites, `npx tsc --noEmit` clean, `npm run build` successful.
+
+- **Commits:** `64c14d1` (Task 1), `897c88d` (Task 2), `5be160e` (Task 3).
+
 ## Latest update — 2026-08-22d (map garrison rarity pips at close zoom)
 
 - **Added coarse per-rank garrison data to the viewport RPC** via
