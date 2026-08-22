@@ -33,6 +33,8 @@ const declareCoalitionWar = jest.fn()
 const declareCoalitionPeace = jest.fn()
 const getMyCardInstances = jest.fn()
 const getMyTerritories = jest.fn()
+const getMyLoans = jest.fn()
+const recallLoan = jest.fn()
 const searchPlayers = jest.fn()
 
 jest.mock('@/lib/supabase/useSession', () => ({
@@ -73,6 +75,8 @@ jest.mock('@/lib/diplomacy/api', () => ({
 jest.mock('@/lib/territories/api', () => ({
   getMyCardInstances: (...args: unknown[]) => getMyCardInstances(...args),
   getMyTerritories: (...args: unknown[]) => getMyTerritories(...args),
+  getMyLoans: (...args: unknown[]) => getMyLoans(...args),
+  recallLoan: (...args: unknown[]) => recallLoan(...args),
 }))
 
 jest.mock('@/lib/players/api', () => ({
@@ -218,6 +222,23 @@ describe('DiplomacyPage', () => {
       data: [{ id: 9, x: 9, y: 10, is_home: false, castle_rank: null, village_rank: null, name: 'Pohraničí', battle_locked_by: null }],
       error: null,
     })
+    getMyLoans.mockReset().mockResolvedValue({
+      data: [
+        {
+          destination_territory_id: 22,
+          destination_territory_x: 7,
+          destination_territory_y: 8,
+          destination_territory_name: 'Hraniční pevnost',
+          borrower_id: 'ally-1',
+          borrower_display_name: 'Spojenec',
+          loan_return_at: new Date(Date.now() + 60_000).toISOString(),
+          card_instance_ids: ['card-1', 'card-2'],
+          card_names: ['Rytíři', 'Lučištníci'],
+        },
+      ],
+      error: null,
+    })
+    recallLoan.mockReset().mockResolvedValue({ data: null, error: null })
     searchPlayers.mockReset().mockResolvedValue({ data: [], error: null })
   })
 
@@ -230,6 +251,7 @@ describe('DiplomacyPage', () => {
     expect(screen.getByRole('button', { name: 'Nabídky míru' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Koalice' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Pakty' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Půjčky' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Moje války' })).toBeInTheDocument()
   })
 
@@ -274,5 +296,18 @@ describe('DiplomacyPage', () => {
 
     await waitFor(() => expect(proposeNonAggression).toHaveBeenCalledWith('player-5'))
     jest.useRealTimers()
+  })
+
+  it('switches to the loans tab and renders the expanded loans panel', async () => {
+    render(<DiplomacyPage />)
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Půjčky' })).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: 'Půjčky' }))
+
+    expect(await screen.findByRole('heading', { name: 'Půjčky' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Moje půjčky' })).toBeInTheDocument()
+    expect(screen.getByText(/Spojenec/)).toBeInTheDocument()
+    expect(screen.getByText(/Rytíři, Lučištníci/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Odvolat půjčku' })).toBeInTheDocument()
   })
 })

@@ -15,7 +15,7 @@ describe('MyLoansPanel', () => {
     recallLoan.mockReset()
   })
 
-  it('renders grouped active loans and recalls every card in the batch', async () => {
+  it('is collapsed by default, can expand/collapse, and recalls every card in the batch', async () => {
     getMyLoans
       .mockResolvedValueOnce({
         data: [
@@ -42,11 +42,23 @@ describe('MyLoansPanel', () => {
 
     render(<MyLoansPanel myPlayerId="me" />)
 
-    expect(await screen.findByText('Moje půjčky')).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Moje půjčky (1)' })).toBeInTheDocument()
+    expect(screen.queryByText(/Spojenec/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Rytíři, Lučištníci/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Odvolat půjčku/ })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Moje půjčky (1)' }))
+
+    expect(await screen.findByRole('heading', { name: 'Moje půjčky' })).toBeInTheDocument()
     expect(screen.getByText(/Spojenec/)).toBeInTheDocument()
     expect(screen.getByText(/Rytíři, Lučištníci/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Odvolat půjčku/ })).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /Odvolat půjčku/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Sbalit moje půjčky' }))
+    await waitFor(() => expect(screen.queryByText(/Spojenec/)).not.toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: 'Moje půjčky (1)' }))
+    fireEvent.click(await screen.findByRole('button', { name: /Odvolat půjčku/ }))
 
     await waitFor(() => expect(recallLoan).toHaveBeenNthCalledWith(1, 'card-1'))
     await waitFor(() => expect(recallLoan).toHaveBeenNthCalledWith(2, 'card-2'))

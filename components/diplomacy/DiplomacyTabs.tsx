@@ -1,6 +1,6 @@
 'use client'
 
-export type DiplomacyTabKey = 'wars' | 'peace' | 'coalition' | 'pacts'
+export type DiplomacyTabKey = 'wars' | 'peace' | 'coalition' | 'pacts' | 'loans'
 
 interface DiplomacyTabsProps {
   activeTab: DiplomacyTabKey
@@ -12,6 +12,7 @@ const TABS: Array<{ key: DiplomacyTabKey; label: string }> = [
   { key: 'peace', label: 'Nabídky míru' },
   { key: 'coalition', label: 'Koalice' },
   { key: 'pacts', label: 'Pakty' },
+  { key: 'loans', label: 'Půjčky' },
 ]
 
 export function DiplomacyTabs({ activeTab, onChange }: DiplomacyTabsProps) {

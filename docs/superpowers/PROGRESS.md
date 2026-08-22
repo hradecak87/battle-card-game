@@ -14,6 +14,30 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-22b (collapsible map loans panel + diplomacy loans tab)
+
+- **`MyLoansPanel` is now collapsible on `/map` and starts collapsed by
+  default.** Kept the existing `getMyLoans()` polling / error / loading /
+  recall flow intact, but split the expanded body into a reusable internal
+  renderer so the full list UI is not duplicated. When loans exist, the
+  collapsed map state now shows a compact summary row (`Moje půjčky (N)`)
+  with an expand chevron; expanding restores the previous full list UI plus
+  a collapse control. The existing empty-state behavior is preserved:
+  return `null` when there are no active loans and no error.
+- **`/diplomacy` now has a fifth tab: `Půjčky`.**
+  `components/diplomacy/DiplomacyTabs.tsx` extends the
+  `DiplomacyTabKey` union + tab list, and `app/diplomacy/page.tsx` renders
+  an always-expanded `MyLoansPanel` inside the new tab so the loans UI
+  reuses the same fetching + recall logic without copy-paste.
+- **Focused frontend tests updated and passing**:
+  - `components/territories/MyLoansPanel.test.tsx` now covers collapsed-by-default,
+    expand, collapse, and preserved recall behavior.
+  - `app/diplomacy/page.test.tsx` now covers the new `Půjčky` tab and the
+    expanded loans content rendered inside it.
+  - `app/map/page.test.tsx` still passes unchanged with the map integration.
+- **Verification passed:** `npx jest components/territories/MyLoansPanel.test.tsx app/diplomacy/page.test.tsx app/map/page.test.tsx`
+  and `npx tsc --noEmit`.
+
 ## Latest update — 2026-08-22a (NPC imperial war declaration + war-focus state fix)
 
 - **Added `supabase/migrations/0074_npc_imperial_war_declaration.sql` and live-applied it successfully.**

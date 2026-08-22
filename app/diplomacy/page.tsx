@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { CoalitionPanel } from '@/components/diplomacy/CoalitionPanel'
 import { DiplomacyTabs, type DiplomacyTabKey } from '@/components/diplomacy/DiplomacyTabs'
+import MyLoansPanel from '@/components/territories/MyLoansPanel'
 import { PactList } from '@/components/diplomacy/PactList'
 import { WarList } from '@/components/diplomacy/WarList'
 import { PeaceOfferList } from '@/components/diplomacy/PeaceOfferList'
@@ -287,6 +288,13 @@ export default function DiplomacyPage() {
                 onReject={(offerId) => runAction(() => rejectNonAggression(offerId))}
                 onCancel={(offerId) => runAction(() => cancelNonAggression(offerId))}
               />
+            </section>
+          )}
+
+          {activeTab === 'loans' && (
+            <section className="space-y-3">
+              <h2 className="text-xl font-semibold text-zinc-100">Půjčky</h2>
+              <MyLoansPanel myPlayerId={user.id} collapsible={false} />
             </section>
           )}
         </div>
