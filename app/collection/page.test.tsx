@@ -81,7 +81,7 @@ function boostTemplate(overrides: Record<string, unknown> = {}) {
 function structureTemplate(overrides: Record<string, unknown> = {}) {
   return {
     id: 'wall-epic-1',
-    name: 'Hradby',
+    name: 'Kamenné valy',
     flavor_text: '',
     rank: 'epic',
     category: 'wall',
@@ -264,7 +264,7 @@ describe('MyCollectionPage', () => {
     expect(screen.queryByText('Legendární rytíři')).not.toBeInTheDocument()
   })
 
-  it('renders wall cards with the wall artwork while castle cards keep the plain fallback tile', async () => {
+  it('renders wall and castle structure cards with the consistent trading-card layout', async () => {
     const structureFixture = [
       ...fixture,
       {
@@ -284,7 +284,7 @@ describe('MyCollectionPage', () => {
         status: 'stationed' as const,
         card_templates: structureTemplate({
           id: 'castle-common-1',
-          name: 'Hrad',
+          name: 'Bašta severu',
           rank: 'common',
           category: 'castle',
           defense_bonus_pct: 20,
@@ -299,12 +299,16 @@ describe('MyCollectionPage', () => {
 
     render(<MyCollectionPage />)
 
-    expect(await screen.findByAltText('Hradby')).toHaveAttribute(
-      'src',
-      expect.stringContaining(encodeURIComponent('/icons/structures/wall.png'))
-    )
-    expect(screen.getByText('castle')).toBeInTheDocument()
-    expect(screen.queryByAltText('Hrad')).not.toBeInTheDocument()
+    expect(await screen.findByText('Kamenné valy')).toBeInTheDocument()
+    expect(screen.getByText('Hradby')).toBeInTheDocument()
+    expect(screen.getByText('Bašta severu')).toBeInTheDocument()
+    expect(screen.getByText('Hrad')).toBeInTheDocument()
+    // Both structure cards show ATK/DEF percentage stat columns instead of a plain fallback tile.
+    expect(screen.getAllByText('ATK').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('+27%').length).toBeGreaterThan(0)
+    expect(screen.getByText('+20%')).toBeInTheDocument()
+    expect(screen.getByText('+15%')).toBeInTheDocument()
+    expect(screen.queryByAltText('Hradby')).not.toBeInTheDocument()
   })
 
   it('shows rank-specific return confirmation copy and calls returnCardToPool', async () => {

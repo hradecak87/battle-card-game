@@ -1,22 +1,14 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { getAllTemplates } from '@/lib/cards/catalog'
 import { getNonUnitCardTemplates } from '@/lib/cards/nonUnitTemplates'
 import { applyRank } from '@/lib/cards/combat'
 import { BoostCardTemplate, CardTemplate, RANKS, Rank, StructureCardTemplate, UNIT_TYPES, UnitType } from '@/lib/cards/types'
 import { TradingCard } from '@/components/cards/TradingCard'
+import { NonUnitTradingCard } from '@/components/cards/NonUnitTradingCard'
 import { CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
-import { VisibleBoostCardTile } from '@/components/cards/BoostCardTile'
-import { boostEffectSummary } from '@/lib/cards/boosts'
-
-const STRUCTURE_LABELS: Record<StructureCardTemplate['category'], string> = {
-  castle: 'Hrad',
-  village: 'Vesnice',
-  wall: 'Hradby',
-}
 
 const UNIT_TYPE_LABELS: Record<UnitType, string> = {
   archers: 'Lučištníci',
@@ -141,46 +133,19 @@ export default function CollectionPage() {
             )
           }
 
-          if (t.category === 'boost') {
-            return (
-              <li key={t.id} className="flex flex-col gap-1">
-                <VisibleBoostCardTile template={t} />
-                <p className="text-center text-[11px] text-zinc-400">{boostEffectSummary(t)}</p>
-              </li>
-            )
-          }
-
-          if (t.category === 'wall') {
+          if (t.category === 'boost' || t.category === 'castle' || t.category === 'village' || t.category === 'wall') {
             return (
               <li key={t.id}>
-                <div className="overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-900/70">
-                  <div className="relative aspect-[3/4] w-full">
-                    <Image src="/icons/structures/wall.png" alt={t.name} fill className="object-cover" sizes="170px" />
-                  </div>
-                  <div className="p-3 text-center">
-                    <p className="text-xs uppercase tracking-wide text-zinc-400">{STRUCTURE_LABELS[t.category]}</p>
-                    <p className="mt-1 font-semibold text-zinc-100">{t.name}</p>
-                    <p className="text-xs text-zinc-400">{RANK_LABELS[t.rank]}</p>
-                  </div>
-                </div>
+                <NonUnitTradingCard template={t} />
               </li>
             )
           }
 
-          return (
-            <li key={t.id}>
-              <div className="rounded-2xl border border-zinc-700 bg-zinc-900/70 p-4 text-center">
-                <p className="text-xs uppercase tracking-wide text-zinc-400">
-                  {STRUCTURE_LABELS[t.category]}
-                </p>
-                <p className="mt-2 font-semibold text-zinc-100">{t.name}</p>
-                <p className="text-xs text-zinc-400">{RANK_LABELS[t.rank]}</p>
-              </div>
-            </li>
-          )
+          return null
         })}
       </ul>
       <CardZoomOverlay card={zoomedCard} onClose={closeZoom} />
     </main>
   )
 }
+

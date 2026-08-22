@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useSession } from '@/lib/supabase/useSession'
 import {
@@ -12,11 +11,10 @@ import {
   withdrawFromDeposit,
 } from '@/lib/territories/api'
 import { applyRank } from '@/lib/cards/combat'
-import { BoostCardTemplate, RANKS, Rank, UNIT_TYPES, UnitType } from '@/lib/cards/types'
+import { BoostCardTemplate, RANKS, Rank, StructureCardTemplate, UNIT_TYPES, UnitType } from '@/lib/cards/types'
 import { TradingCard } from '@/components/cards/TradingCard'
+import { NonUnitTradingCard } from '@/components/cards/NonUnitTradingCard'
 import { CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
-import { VisibleBoostCardTile } from '@/components/cards/BoostCardTile'
-import { boostEffectSummary } from '@/lib/cards/boosts'
 import { levelForXp } from '@/lib/players/leveling'
 import { deckLimit } from '@/lib/players/cardLimit'
 import { formatEta } from '@/lib/time/formatEta'
@@ -41,14 +39,6 @@ const RANK_LABELS: Record<Rank, string> = {
   legend: 'Legend',
 }
 
-const STRUCTURE_RANK_STYLES: Record<Rank, string> = {
-  common: 'border-zinc-500 bg-zinc-900/80 text-zinc-100',
-  uncommon: 'border-green-600 bg-green-950/40 text-green-100',
-  rare: 'border-blue-600 bg-blue-950/40 text-blue-100',
-  epic: 'border-purple-600 bg-purple-950/40 text-purple-100',
-  legend: 'border-yellow-500 bg-yellow-950/40 text-yellow-100',
-}
-
 type UnitTypeFilter = UnitType | 'all'
 type RankFilter = Rank | 'all'
 type CategoryFilter = 'all' | 'unit' | 'boost'
@@ -68,19 +58,43 @@ function returnConfirmCopy(rank: string): string {
     : 'Tato karta se vrátí do oběhu a může znovu padnout někomu jinému.'
 }
 
-function StructureWallCardTile({ name, rank }: { name: string; rank: Rank }) {
-  return (
-    <div className={`overflow-hidden rounded-2xl border ${STRUCTURE_RANK_STYLES[rank]}`}>
-      <div className="relative aspect-[3/4] w-full">
-        <Image src="/icons/structures/wall.png" alt={name} fill className="object-cover" sizes="170px" />
-      </div>
-      <div className="p-3">
-        <p className="font-semibold">{name}</p>
-        <p className="text-xs opacity-80">Hradby</p>
-        <p className="mt-2 text-xs opacity-80">{RANK_LABELS[rank]}</p>
-      </div>
-    </div>
-  )
+type NonUnitTemplateRow = NonNullable<MyCardInstance['card_templates']> & {
+  category: 'castle' | 'village' | 'wall' | 'boost'
+}
+
+/** Builds the StructureCardTemplate/BoostCardTemplate shape `NonUnitTradingCard` expects out of the joined `card_templates` row on a card instance. */
+function nonUnitTemplateFromRow(
+  template: NonUnitTemplateRow,
+  fallbackId: string
+): StructureCardTemplate | BoostCardTemplate {
+  if (template.category === 'boost') {
+    return {
+      id: template.id,
+      category: 'boost',
+      rank: template.rank as Rank,
+      name: template.name ?? fallbackId,
+      flavorText: template.flavor_text ?? '',
+      boostType: template.boost_type!,
+      effectKind: template.effect_kind!,
+      instantEffectKind: template.instant_effect_kind ?? null,
+      pctStr: template.pct_str ?? null,
+      pctLng: template.pct_lng ?? null,
+      pctDef: template.pct_def ?? null,
+      pctHp: template.pct_hp ?? null,
+      totalSupply: template.total_supply,
+    }
+  }
+
+  return {
+    id: template.id,
+    category: template.category,
+    rank: template.rank as Rank,
+    name: template.name ?? fallbackId,
+    flavorText: template.flavor_text ?? '',
+    defenseBonusPct: template.defense_bonus_pct ?? 0,
+    attackBonusPct: template.attack_bonus_pct,
+    totalSupply: template.total_supply,
+  }
 }
 
 /**
@@ -340,24 +354,6 @@ export default function MyCollectionPage() {
                 template.unit_type &&
                 template.name &&
                 template.flavor_text != null
-              const boostTemplate: BoostCardTemplate | null =
-                template.category === 'boost'
-                  ? {
-                      id: template.id,
-                      category: 'boost',
-                      rank: template.rank as Rank,
-                      name: template.name ?? card.template_id,
-                      flavorText: template.flavor_text ?? '',
-                      boostType: template.boost_type!,
-                      effectKind: template.effect_kind!,
-                      instantEffectKind: template.instant_effect_kind ?? null,
-                      pctStr: template.pct_str ?? null,
-                      pctLng: template.pct_lng ?? null,
-                      pctDef: template.pct_def ?? null,
-                      pctHp: template.pct_hp ?? null,
-                      totalSupply: template.total_supply,
-                    }
-                  : null
 
               return (
                 <li key={card.instance_id} className="flex flex-col gap-2">
@@ -399,19 +395,13 @@ export default function MyCollectionPage() {
                         🔍
                       </span>
                     </button>
-                  ) : boostTemplate ? (
-                    <>
-                      <VisibleBoostCardTile template={boostTemplate} />
-                      <p className="text-center text-[11px] text-zinc-400">{boostEffectSummary(boostTemplate)}</p>
-                    </>
-                  ) : template.category === 'wall' ? (
-                    <StructureWallCardTile name={template.name ?? card.template_id} rank={template.rank as Rank} />
                   ) : (
-                    <div className="rounded-2xl border border-zinc-700 bg-zinc-900/70 p-4 text-center">
-                      <p className="text-xs uppercase tracking-wide text-zinc-400">{template.category}</p>
-                      <p className="mt-2 font-semibold text-zinc-100">{template.name ?? card.template_id}</p>
-                      <p className="text-xs text-zinc-400">{template.rank}</p>
-                    </div>
+                    <NonUnitTradingCard
+                      template={nonUnitTemplateFromRow(
+                        template as NonUnitTemplateRow,
+                        card.template_id
+                      )}
+                    />
                   )}
                   <p data-testid="card-location" className="text-center text-[11px] text-zinc-500">
                     {locationLabel(card)}
@@ -437,116 +427,12 @@ export default function MyCollectionPage() {
       <ul className="grid grid-cols-3 gap-2 sm:gap-4 sm:grid-cols-[repeat(auto-fill,minmax(170px,1fr))]">
         {filtered.map((card) => {
           const template = card.card_templates!
-          if (template.category === 'boost') {
-            const boostTemplate: BoostCardTemplate = {
-              id: template.id,
-              category: 'boost',
-              rank: template.rank as Rank,
-              name: template.name ?? card.template_id,
-              flavorText: template.flavor_text ?? '',
-              boostType: template.boost_type!,
-              effectKind: template.effect_kind!,
-              instantEffectKind: template.instant_effect_kind ?? null,
-              pctStr: template.pct_str ?? null,
-              pctLng: template.pct_lng ?? null,
-              pctDef: template.pct_def ?? null,
-              pctHp: template.pct_hp ?? null,
-              totalSupply: template.total_supply,
-            }
-            return (
-              <li key={card.instance_id} className="flex flex-col gap-1">
-                <VisibleBoostCardTile template={boostTemplate} />
-                <p className="text-center text-[11px] text-zinc-400">{boostEffectSummary(boostTemplate)}</p>
-                <p data-testid="card-location" className="text-center text-[11px] text-zinc-500">
-                  {locationLabel(card)}
-                </p>
-                {card.status === 'stationed' && (
-                  <>
-                    <button
-                      type="button"
-                      className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-100"
-                      onClick={() => setConfirmingReturnId(card.instance_id)}
-                    >
-                      Vrátit do centrální sady
-                    </button>
-                    {confirmingReturnId === card.instance_id && (
-                      <div className="rounded-lg border border-red-500/30 bg-zinc-900/70 p-3 text-xs text-zinc-200">
-                        <p className="mb-2">{returnConfirmCopy(template.rank)}</p>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            className="rounded bg-red-600 px-3 py-1 text-white"
-                            onClick={() => void handleReturnCard(card.instance_id)}
-                          >
-                            Potvrdit vrácení karty
-                          </button>
-                          <button
-                            type="button"
-                            className="rounded border border-zinc-600 px-3 py-1"
-                            onClick={() => setConfirmingReturnId(null)}
-                          >
-                            Zrušit vrácení karty
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </li>
-            )
-          }
-
-          if (template.category === 'wall') {
-            return (
-              <li key={card.instance_id} className="flex flex-col gap-1">
-                <StructureWallCardTile name={template.name ?? card.template_id} rank={template.rank as Rank} />
-                <p data-testid="card-location" className="text-center text-[11px] text-zinc-500">
-                  {locationLabel(card)}
-                </p>
-                {card.status === 'stationed' && (
-                  <>
-                    <button
-                      type="button"
-                      className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-100"
-                      onClick={() => setConfirmingReturnId(card.instance_id)}
-                    >
-                      Vrátit do centrální sady
-                    </button>
-                    {confirmingReturnId === card.instance_id && (
-                      <div className="rounded-lg border border-red-500/30 bg-zinc-900/70 p-3 text-xs text-zinc-200">
-                        <p className="mb-2">{returnConfirmCopy(template.rank)}</p>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            className="rounded bg-red-600 px-3 py-1 text-white"
-                            onClick={() => void handleReturnCard(card.instance_id)}
-                          >
-                            Potvrdit vrácení karty
-                          </button>
-                          <button
-                            type="button"
-                            className="rounded border border-zinc-600 px-3 py-1"
-                            onClick={() => setConfirmingReturnId(null)}
-                          >
-                            Zrušit vrácení karty
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </li>
-            )
-          }
-
           if (template.category !== 'unit') {
             return (
               <li key={card.instance_id} className="flex flex-col gap-1">
-                <div className="rounded-2xl border border-zinc-700 bg-zinc-900/70 p-4 text-center">
-                  <p className="text-xs uppercase tracking-wide text-zinc-400">{template.category}</p>
-                  <p className="mt-2 font-semibold text-zinc-100">{template.name ?? card.template_id}</p>
-                  <p className="text-xs text-zinc-400">{template.rank}</p>
-                </div>
+                <NonUnitTradingCard
+                  template={nonUnitTemplateFromRow(template as NonUnitTemplateRow, card.template_id)}
+                />
                 <p data-testid="card-location" className="text-center text-[11px] text-zinc-500">
                   {locationLabel(card)}
                 </p>
