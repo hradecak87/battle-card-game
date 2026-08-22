@@ -43,10 +43,14 @@ Four gaps were identified and are addressed by this design:
 
 1. NPC never reinforces or redistributes its own garrisons — a territory
    under attack just sits with whatever garrison it already has.
-2. NPC has no way to initiate war on its own; war today only ever starts as
-   a side effect of an attack (`_declare_attack_core`,
-   `0045_diplomacy_war_creation.sql`) or an explicit human
-   `diplomacy_declare_war()` call.
+2. NPC has no way to initiate war on its own; all existing paths that
+   create a `diplomacy_relations` war row are human-triggered — either as a
+   side effect of a human's attack (`_declare_attack_core`,
+   `0045_diplomacy_war_creation.sql`), an explicit human
+   `diplomacy_declare_war()` call, or a human coalition member's war
+   declaration (`0064_coalition_rpcs.sql`'s coalition-war flow, which also
+   calls `_diplomacy_declare_war_core`). No path today lets an NPC initiate
+   one on its own.
 3. NPC has no automated equivalent of the player-facing daily login reward
    (`claim_daily_reward()`, `0013_level_up_cards.sql`), which is gated on
    `auth.uid()` and therefore unusable by a server-side NPC tick.
@@ -111,8 +115,8 @@ human player would react.
     from `_npc_garrison_target_size`; pull from the single nearest
     NPC-owned territory that has surplus (count above its own base
     target).
-  - **Attack arrives in 6–24h:** target = base count × 1.5; pull from up
-    to 2 nearest territories with surplus.
+  - **Attack arrives in 6–24h:** target = `ceil(base count × 1.5)`; pull
+    from up to 2 nearest territories with surplus.
   - **Attack arrives in < 6h ("poplach"):** target = as much surplus as can
     be gathered; pull from any number of surplus territories, ordered by
     distance, nearest first.
@@ -168,6 +172,9 @@ behavior.
   relation with it. With the remaining 10% relative weight, a
   non-bordering human player meeting the same criteria — so NPCs aren't
   strictly limited to immediate neighbors, just heavily biased toward them.
+  If the bordering-candidate pool is empty, fall back to the non-bordering
+  pool (and vice versa) rather than skipping the tick entirely — the 90/10
+  split only governs which pool is tried first when both are non-empty.
 - Trigger: at each NPC tick (still the existing 4–12h
   `npc_next_action_at` cadence), if eligible, there's a 10% probability the
   NPC evaluates this and, if a candidate is found, calls the existing
