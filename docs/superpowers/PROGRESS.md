@@ -14,6 +14,50 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-22c (NPC AI improvements complete: 0074–0077)
+
+- **Finished the full 4-part NPC AI improvements feature from**
+  `docs/superpowers/specs/2026-08-22-npc-ai-improvements-design.md` /
+  `docs/superpowers/plans/2026-08-22-npc-ai-improvements.md`. Root cause:
+  NPC kingdoms were missing four major strategic/economic behaviors — they
+  could not declare imperial wars on their own, reinforce weak/attacked
+  garrisons, collect the same daily card income as humans, or conquer
+  unclaimed but wild-garrisoned villages/castles.
+- **`0074_npc_imperial_war_declaration.sql`** fixed the load-bearing
+  war-focus bug (`resolve_due_npc_actions()` now only treats
+  `diplomacy_relations.state = 'war'` as a war enemy) and added
+  `_maybe_declare_npc_imperial_war(...)` so large/strong NPC kingdoms can
+  occasionally declare war on an eligible human before the normal
+  expansion/attack pick.
+- **`0075_npc_garrison_reinforcement.sql`** added
+  `players.npc_garrison_reeval_at`, `_start_transfer_core(...)`, and
+  `resolve_due_npc_garrison_reinforcement()` so NPCs lazily rebalance
+  under-target territories, escalate reinforcement by time-to-threat, count
+  already-in-transit help, and never drain a source below its own base
+  garrison target.
+- **`0076_npc_daily_reward.sql`** added
+  `resolve_due_npc_daily_rewards()` and wired it into
+  `resolve_due_movements()` so NPCs now receive the same once-per-day
+  common-unit reward and 7-day uncommon streak bonus logic as human
+  players, but server-side / auth-free.
+- **`0077_npc_wild_garrison_conquest.sql`** (this final task) redefined
+  `resolve_due_npc_actions()` again to add a third target pool for
+  `owner_id is null + claim_locked_by is null + wild garrison present`,
+  compares attacker power against
+  `_territory_effective_unit_power(null, territory_id, true)` with the
+  same 1.2× threshold as normal attacks, and folds that candidate into the
+  existing expansion/attack pick without changing the separate war-focus
+  branch. The rollback-wrapped verification script also proves the old
+  ungarrisoned-expansion and normal-owned/claimed-attack pools still work,
+  so this change is purely additive.
+- **All four migrations (`0074`–`0077`) were verified live against the real
+  Supabase/Postgres DB** using the established project-local Node.js + `pg`
+  runner that regex-reads `SUPABASE_DB_URL` from `.env.local`, applies the
+  raw migration SQL, and then runs each rollback-wrapped
+  `*.verification.sql` script. Temporary helper scripts were deleted after
+  use. Pure SQL feature set only — **skipped Jest / `npx tsc --noEmit`** by
+  repo convention because no TS/JS files changed.
+
 ## Latest update — 2026-08-22b (collapsible map loans panel + diplomacy loans tab)
 
 - **`MyLoansPanel` is now collapsible on `/map` and starts collapsed by
