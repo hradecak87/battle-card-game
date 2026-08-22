@@ -19,6 +19,7 @@ import {
 } from '@/lib/admin/api'
 import { levelForXp } from '@/lib/players/leveling'
 import { NATIONS } from '@/lib/players/nations'
+import { CollapsibleSection } from '@/components/admin/CollapsibleSection'
 import { useSession } from '@/lib/supabase/useSession'
 
 const CATEGORY_LABELS: Record<AdminCardTemplateOption['category'], string> = {
@@ -288,13 +289,7 @@ export default function AdminPage() {
 
         {pageError && <p className="text-red-400 text-sm">{pageError}</p>}
 
-        <section className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-semibold">Online hráči</h2>
-              <p className="text-sm text-zinc-400">Přehled aktivity všech hráčů.</p>
-            </div>
-          </div>
+        <CollapsibleSection title="Online hráči" description="Přehled aktivity všech hráčů.">
           {!players ? (
             <p className="text-zinc-400">Načítám…</p>
           ) : players.length === 0 ? (
@@ -345,13 +340,9 @@ export default function AdminPage() {
               </table>
             </div>
           )}
-        </section>
+        </CollapsibleSection>
 
-        <section className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
-          <div className="mb-4">
-            <h2 className="text-xl font-semibold">Aktivní bitvy</h2>
-            <p className="text-sm text-zinc-400">Všechny bitvy, které ještě neskončily.</p>
-          </div>
+        <CollapsibleSection title="Aktivní bitvy" description="Všechny bitvy, které ještě neskončily.">
           {!battles ? (
             <p className="text-zinc-400">Načítám…</p>
           ) : battles.length === 0 ? (
@@ -382,17 +373,10 @@ export default function AdminPage() {
               </table>
             </div>
           )}
-        </section>
+        </CollapsibleSection>
 
-        <section className="grid gap-6 lg:grid-cols-[1.3fr_0.9fr]">
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
-            <div className="mb-4">
-              <h2 className="text-xl font-semibold">Správa karet</h2>
-              <p className="text-sm text-zinc-400">
-                Přidej kartu hráči a volitelně ji hned přiřaď na konkrétní území.
-              </p>
-            </div>
-
+        <div className="grid gap-6 lg:grid-cols-[1.3fr_0.9fr]">
+          <CollapsibleSection title="Správa karet" description="Přidej kartu hráči a volitelně ji hned přiřaď na konkrétní území.">
             <form className="grid gap-4 md:grid-cols-2" onSubmit={handleGrantCard}>
               <label className="flex flex-col gap-1 text-sm">
                 Hráč pro karty
@@ -490,16 +474,9 @@ export default function AdminPage() {
                 </ul>
               )}
             </div>
-          </div>
+          </CollapsibleSection>
 
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
-            <div className="mb-4">
-              <h2 className="text-xl font-semibold">Správa XP</h2>
-              <p className="text-sm text-zinc-400">
-                Přidej nebo odeber XP pro testování level-up i level-down přechodů.
-              </p>
-            </div>
-
+          <CollapsibleSection title="Správa XP" description="Přidej nebo odeber XP pro testování level-up i level-down přechodů.">
             <form className="flex flex-col gap-4" onSubmit={handleGrantXp}>
               <label className="flex flex-col gap-1 text-sm">
                 Hráč pro XP
@@ -546,8 +523,8 @@ export default function AdminPage() {
 
             {xpError && <p className="mt-4 text-sm text-red-400">{xpError}</p>}
             {xpMessage && <p className="mt-4 text-sm text-emerald-400">{xpMessage}</p>}
-          </div>
-        </section>
+          </CollapsibleSection>
+        </div>
       </div>
     </main>
   )

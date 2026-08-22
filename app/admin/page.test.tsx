@@ -147,14 +147,21 @@ describe('AdminPage', () => {
   })
 
   it('renders online players and active battles for an admin', async () => {
+    const user = userEvent.setup()
     render(<AdminPage />)
 
+    // Section headers are always visible; expand the sections to see content
     expect(await screen.findByText('Online hráči')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /Online hráči/i }))
     expect((await screen.findAllByText('Král Artuš')).length).toBeGreaterThan(0)
     expect((await screen.findAllByText('Karel')).length).toBeGreaterThan(0)
+
     expect(screen.getByText('Aktivní bitvy')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /Aktivní bitvy/i }))
     expect(screen.getByText('(10, 11)')).toBeInTheDocument()
-    expect(screen.getByText('Kopiníci')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /Správa karet/i }))
+    expect(await screen.findByText('Kopiníci')).toBeInTheDocument()
   })
 
   it('submits the card-grant form with the selected values', async () => {
@@ -162,6 +169,7 @@ describe('AdminPage', () => {
     render(<AdminPage />)
 
     expect(await screen.findByText('Správa karet')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /Správa karet/i }))
     await waitFor(() => expect(screen.getByLabelText('Hráč pro karty').querySelectorAll('option').length).toBeGreaterThan(1))
 
     await user.selectOptions(screen.getByLabelText('Hráč pro karty'), 'player-2')
@@ -181,6 +189,7 @@ describe('AdminPage', () => {
 
     render(<AdminPage />)
 
+    await user.click(await screen.findByRole('button', { name: /Správa karet/i }))
     expect(await screen.findByText('Kopiníci')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /Odebrat kartu Kopiníci/ }))
 
@@ -193,6 +202,7 @@ describe('AdminPage', () => {
     render(<AdminPage />)
 
     expect(await screen.findByText('Správa XP')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /Správa XP/i }))
     await waitFor(() => expect(screen.getByLabelText('Hráč pro XP').querySelectorAll('option').length).toBeGreaterThan(1))
 
     await user.selectOptions(screen.getByLabelText('Hráč pro XP'), 'player-2')
