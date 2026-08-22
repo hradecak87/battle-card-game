@@ -21,6 +21,7 @@ import { levelForXp } from '@/lib/players/leveling'
 import { NATIONS } from '@/lib/players/nations'
 import { CollapsibleSection } from '@/components/admin/CollapsibleSection'
 import { AdminCardThumbnail } from '@/components/admin/AdminCardThumbnail'
+import AdminMovementsPanel from '@/components/admin/AdminMovementsPanel'
 import { useSession } from '@/lib/supabase/useSession'
 
 const CATEGORY_LABELS: Record<AdminCardTemplateOption['category'], string> = {
@@ -567,6 +568,10 @@ export default function AdminPage() {
             {xpMessage && <p className="mt-4 text-sm text-emerald-400">{xpMessage}</p>}
           </CollapsibleSection>
         </div>
+
+        <CollapsibleSection title="Přesuny a zabírání území" description="Přehled všech aktivních a historických přesunů vojsk v herním světě.">
+          <AdminMovementsPanel />
+        </CollapsibleSection>
       </div>
     </main>
   )

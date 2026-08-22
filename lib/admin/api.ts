@@ -131,3 +131,37 @@ export async function grantAdminXp(playerId: string, amount: number) {
     p_amount: amount,
   }) as unknown as Promise<{ data: number | null; error: { message: string } | null }>
 }
+
+export interface AdminMovementRow {
+  id: string
+  player_id: string
+  player_display_name: string
+  player_is_npc: boolean
+  kind: 'transfer' | 'claim' | 'attack' | 'loan' | 'loan_return'
+  origin_territory_id: number
+  origin_x: number
+  origin_y: number
+  destination_territory_id: number
+  destination_x: number
+  destination_y: number
+  started_at: string
+  transfer_arrives_at: string
+  status: 'in_transit' | 'occupying' | 'completed' | 'cancelled'
+  claim_occupation_completes_at: string | null
+  cancelled_at: string | null
+  unit_count: number
+}
+
+export async function getAdminMovements(includeHistory: boolean) {
+  return supabase.rpc('admin_list_movements', { p_include_history: includeHistory }) as unknown as Promise<{
+    data: AdminMovementRow[] | null
+    error: { message: string } | null
+  }>
+}
+
+export async function adminSpeedUpMovement(movementId: string) {
+  return supabase.rpc('admin_speed_up_movement', { p_movement_id: movementId }) as unknown as Promise<{
+    data: null
+    error: { message: string } | null
+  }>
+}

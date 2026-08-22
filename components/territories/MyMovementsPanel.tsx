@@ -7,7 +7,6 @@ import {
   getTerritoriesByIds,
   getMyActiveBattles,
   getMyRecentlyResolvedBattles,
-  debugSpeedUpMovement,
   getIncomingReinforcements,
   getIncomingAttacksOnMyTerritories,
   TroopMovement,
@@ -52,7 +51,6 @@ export default function MyMovementsPanel({ myPlayerId, refreshKey, onNavigateToT
   const [unseenRecentBattles, setUnseenRecentBattles] = useState<RecentBattleRef[]>([])
   const [incomingAttacks, setIncomingAttacks] = useState<IncomingAttackOnMyTerritory[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [speedingUpId, setSpeedingUpId] = useState<string | null>(null)
   const [recallingId, setRecallingId] = useState<string | null>(null)
   // destination_territory_id -> earliest incoming reinforcement ETA (backlog #23).
   const [earliestReinforcementByDestination, setEarliestReinforcementByDestination] = useState<
@@ -131,20 +129,6 @@ export default function MyMovementsPanel({ myPlayerId, refreshKey, onNavigateToT
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myPlayerId, refreshKey])
-
-  async function handleSpeedUp(movementId: string) {
-    setSpeedingUpId(movementId)
-    try {
-      const { error: speedUpError } = await debugSpeedUpMovement(movementId)
-      if (speedUpError) {
-        setError(speedUpError.message)
-        return
-      }
-      await load()
-    } finally {
-      setSpeedingUpId(null)
-    }
-  }
 
   async function handleRecall(movementId: string) {
     setRecallingId(movementId)
@@ -299,15 +283,6 @@ export default function MyMovementsPanel({ myPlayerId, refreshKey, onNavigateToT
                           ? destination.claim_occupation_completes_at
                           : m.transfer_arrives_at
                       )}
-                      <button
-                        type="button"
-                        onClick={() => handleSpeedUp(m.id)}
-                        disabled={speedingUpId === m.id}
-                        title="Testovací zkratka: zkrátí zbývající čas na ~10s"
-                        className="rounded border border-zinc-600 px-1.5 py-0.5 text-xs text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
-                      >
-                        {speedingUpId === m.id ? '…' : '⏩ 10s (test)'}
-                      </button>
                       {isInTransitAttack && (
                         <button
                           type="button"

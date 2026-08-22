@@ -6,7 +6,6 @@ const getMyMovements = jest.fn()
 const getTerritoriesByIds = jest.fn()
 const getMyActiveBattles = jest.fn()
 const getMyRecentlyResolvedBattles = jest.fn()
-const debugSpeedUpMovement = jest.fn()
 const getIncomingReinforcements = jest.fn()
 const getIncomingAttacksOnMyTerritories = jest.fn()
 const getLastSeenRound = jest.fn()
@@ -17,7 +16,6 @@ jest.mock('@/lib/territories/api', () => ({
   getTerritoriesByIds: (...args: unknown[]) => getTerritoriesByIds(...args),
   getMyActiveBattles: (...args: unknown[]) => getMyActiveBattles(...args),
   getMyRecentlyResolvedBattles: (...args: unknown[]) => getMyRecentlyResolvedBattles(...args),
-  debugSpeedUpMovement: (...args: unknown[]) => debugSpeedUpMovement(...args),
   getIncomingReinforcements: (...args: unknown[]) => getIncomingReinforcements(...args),
   getIncomingAttacksOnMyTerritories: (...args: unknown[]) => getIncomingAttacksOnMyTerritories(...args),
 }))
@@ -36,7 +34,6 @@ describe('MyMovementsPanel', () => {
     getTerritoriesByIds.mockReset()
     getMyActiveBattles.mockReset()
     getMyRecentlyResolvedBattles.mockReset()
-    debugSpeedUpMovement.mockReset()
     getIncomingReinforcements.mockReset()
     getIncomingAttacksOnMyTerritories.mockReset()
     getLastSeenRound.mockReset()
@@ -320,42 +317,6 @@ describe('MyMovementsPanel', () => {
     const { container } = render(<MyMovementsPanel myPlayerId="me" />)
     await waitFor(() => expect(getMyRecentlyResolvedBattles).toHaveBeenCalled())
     expect(container).toBeEmptyDOMElement()
-  })
-
-  it('calls debugSpeedUpMovement and refetches when the test speed-up button is clicked', async () => {
-    const user = userEvent.setup()
-    getMyMovements.mockResolvedValue({
-      data: [
-        {
-          id: 'm1',
-          player_id: 'me',
-          kind: 'attack',
-          origin_territory_id: 80,
-          destination_territory_id: 81,
-          started_at: new Date().toISOString(),
-          transfer_arrives_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-          status: 'in_transit',
-          cancelled_at: null,
-        },
-      ],
-      error: null,
-    })
-    getTerritoriesByIds.mockResolvedValue({
-      data: [
-        { id: 80, x: 0, y: 79 },
-        { id: 81, x: 1, y: 79 },
-      ],
-      error: null,
-    })
-    debugSpeedUpMovement.mockResolvedValue({ error: null })
-
-    render(<MyMovementsPanel myPlayerId="me" />)
-
-    const button = await screen.findByRole('button', { name: /10s \(test\)/ })
-    await user.click(button)
-
-    await waitFor(() => expect(debugSpeedUpMovement).toHaveBeenCalledWith('m1'))
-    await waitFor(() => expect(getMyMovements).toHaveBeenCalledTimes(2))
   })
 
   it('shows a warning when a defender reinforcement will arrive before an in-transit attack (backlog #23)', async () => {
