@@ -4,14 +4,23 @@ Datum: 2026-08-22
 
 ## Motivace
 
-Dnes hráč (i útočník v `DeclareAttackModal`, i obránce sledující příchozí
-útok v `MovementDetailModal`) vidí **přesné karty** soupeřovy posádky/vojska
-bez jakékoli akce — pouze na základě toho, že klikl na políčko nebo šipku.
-To je nerealistické a odstraňuje motivaci pro průzkum. Cílem je zavést novou
-kartu **Zvěd**, kterou je nutné aktivně vyslat, aby hráč zjistil skutečné
-složení cizí posádky nebo přicházejícího útoku. Bez vyslání zvěda hráč vidí
-jen **hrubé rozsahy počtu karet podle rank** (stejné bucket rozdělení, jaké
-dnes pohání pip kuličky na mapě: 1–5 / 6–10 / 11+).
+Dnes hráč vidí **přesné karty** cizí stacionární posádky (na cizím/NPC/
+divokém území i jako útočník v `DeclareAttackModal`) bez jakékoli akce —
+stačí kliknout na políčko (`GarrisonModal`) nebo otevřít útočný modal.
+Zdrojem je server-side RPC `get_visible_territory_cards()`
+(`0068_troop_lending.sql`), volaná přes `getCardInstancesAtTerritory()` —
+ta dnes maskuje jen boost karty cizího vlastníka (`is_masked`), jednotkové
+karty (`unit_type`, `base_stats`, `rank`, ...) vrací **vždy plně**, bez
+ohledu na `owner_id`. (Příchozí útok v `MovementDetailModal` už dnes
+záměrně skrývá složení do začátku bitvy — to zůstává beze změny a tato
+mechanika se ho netýká, jen mu přidává alternativu: aktivní instant-peek
+skrz zvěda.)
+
+Cílem je zavést novou kartu **Zvěd**, kterou je nutné aktivně vyslat, aby
+hráč zjistil skutečné složení cizí **stacionární** posádky (nebo — přes
+instant-peek — přicházejícího útoku). Bez vyslání zvěda (nebo bez platného
+snapshotu) hráč vidí jen **hrubé rozsahy počtu karet podle rank** (stejné
+bucket rozdělení, jaké dnes pohání pip kuličky na mapě: 1–5 / 6–10 / 11+).
 
 ## Rozsah (MVP)
 
@@ -57,8 +66,12 @@ dnes pohání pip kuličky na mapě: 1–5 / 6–10 / 11+).
   existující `mod(v_new_streak, 7) = 0` větvi) — každý sudý den navíc 1
   karta zvěda k běžné odměně.
 - **Bojová kořist:** 5% šance na bonusový drop 1 karty zvěda navíc při
-  vítězství v boji (hráč vs. hráč/NPC) i při úspěšném zabrání
-  vesnice/hradu.
+  vítězství v boji (integrační bod: stejná funkce rodina
+  `_finalize_battle_base_0025` řešící rozdání kořisti po vyhrané bitvě) i
+  při úspěšném zabrání vesnice/hradu (integrační bod: stávající
+  strukturní odměna v `0009_structure_card_rewards.sql` — scout drop se
+  přidá jako další roll ve stejném již existujícím "roll a přidej bonus
+  kartu" bloku, ne jako nový samostatný cron/trigger).
 - Karta zvěda se **nikdy nepřenáší mezi hráči jako bojová kořist** (nikdy
   se nenasazuje do boje, takže ji soupeř nemůže "ukrást" výhrou) — jediný
   způsob její ztráty je zabití při průzkumu (viz §3).
@@ -69,15 +82,24 @@ dnes pohání pip kuličky na mapě: 1–5 / 6–10 / 11+).
 
 - Nový `troop_movements.kind = 'scout'`. Zvěd **vždy vyráží z domovského
   území hráče** (ne z libovolného vlastněného území) — nejjednodušší volba,
-  odpovídá tomu, že zvěd není bojová jednotka k předsunutí.
+  odpovídá tomu, že zvěd není bojová jednotka k předsunutí. Konkrétně:
+  vybraná karta zvěda musí být v okamžiku vyslání `status = 'stationed'`
+  a `stationed_territory_id = <hráčovo domovské území>` (stejná podmínka,
+  jakou dnes kontroluje `start_transfer`/`declare_attack` pro vybrané
+  karty). Karta je s pohybem svázaná stejnou obecnou tabulkou
+  `troop_movement_units (movement_id, card_instance_id)` jako u
+  transfer/attack/loan — žádný nový sloupec pro tracking není potřeba.
 - `transfer_arrives_at` počítáno stejným vzorcem jako běžné přesuny
   (`_min_group_speed` + existující `transfer_hrs` formule) — se
   speed = 30 vychází na podlahový (nejrychlejší) multiplikátor.
 - Po příjezdu (zpracováno uvnitř `resolve_due_movements()`):
   - **Nezávisle** se hodí 20 % šance na zabití. Pokud padne: karta zvěda se
     smaže, vysílajícímu hráči přijde notifikace o zabití/chycení.
-  - **Nezávisle** se hodí 50 % šance na odhalení. Pokud padne: obránci
-    přijde notifikace s identitou vysílajícího hráče.
+  - Pokud má cílové území vlastníka (`owner_id is not null`), **nezávisle**
+    se hodí 50 % šance na odhalení. Pokud padne: obránci přijde notifikace
+    s identitou vysílajícího hráče. Pokud je cíl divoká (wild,
+    `owner_id is null`) posádka, tento roll se přeskočí (není komu
+    notifikaci poslat) — pouze roll na zabití zvěda platí beze změny.
   - Pokud zvěd přežil, vytvoří se návratová cesta —
     `kind = 'scout_return'` (stejný vzor jako `loan`/`loan_return`) zpět na
     domovské území, stejná doba jako cesta tam. Na zpáteční cestě už
@@ -91,12 +113,22 @@ dnes pohání pip kuličky na mapě: 1–5 / 6–10 / 11+).
   = domovské území), místo vzdálenosti náhodné zpoždění 1–3 hodiny.
   Odkazuje na sledovaný útok přes nový sloupec
   `troop_movements.scout_target_movement_id` (nullable, FK na
-  `troop_movements(id)`).
+  `troop_movements(id)`). Vybraná karta zvěda se váže stejně jako výše
+  přes `troop_movement_units` (i když fyzicky "necestuje", řádek v
+  `troop_movements` reprezentuje probíhající misi a udržuje kartu ve
+  stavu `in_transit`, takže ji nelze mezitím poslat jinam ani použít).
 - Po uplynutí zpoždění se vyhodnotí **stejné dvě nezávislé šance** jako u
   cestování: 20 % zabití (ztráta karty, notifikace mně) a 50 % odhalení
   (notifikace útočníkovi, že jsem odhalil jeho vojska, včetně mé
   identity).
 - Pokud zvěd přežije, snapshot vzniká okamžitě (žádná zpáteční cesta).
+- **Edge-case — sledovaný útok mezitím zanikl** (dorazil, byl zrušen,
+  nebo bitva už proběhla dřív, než uplynulo zpoždění 1–3 h): zabití/
+  odhalení rolly se stále vyhodnotí normálně (zvěd byl fyzicky vyslán,
+  riziko je nezávislé na osudu sledovaného útoku), ale pokud zvěd přežije,
+  **žádný snapshot nevznikne** (mise je zneplatněná, protože cíl už
+  neexistuje) — karta zvěda se vrátí do stavu `stationed` na domovském
+  území bez vytvoření reportu.
 
 ## 4. Snapshot (`scout_reports`) a jeho platnost
 
@@ -114,10 +146,13 @@ create table scout_reports (
 );
 ```
 
-- `snapshot` obsahuje pole karet přítomných v cíli v okamžiku pořízení
-  (stejná data, jaká dnes `DeclareAttackModal` čte přímo ze
-  `card_instances`/`card_templates`): `template_id, category, unit_type,
-  rank, name` za každou instanci.
+- `snapshot` obsahuje pole karet přítomných v cíli v okamžiku pořízení:
+  `template_id, category, unit_type, rank, name` za každou instanci.
+  Zvěd odhaluje **jen jednotkové karty** — cizí **boost karty v cíli
+  zůstávají maskované** stejným pravidlem, jaké dnes používá
+  `get_visible_territory_cards()` (`is_masked` — jen rank, žádný název).
+  Scouting tedy nemění dnešní boost-masking mechaniku, jen doplňuje
+  odhalení jednotek o snapshot s expirací.
 - Přesně jedna z dvojice `target_territory_id` / `target_movement_id` je
   vyplněná (druhá `null`) — teritoriální průzkum vs. instant-peek na
   pohybující se vojsko.
@@ -135,29 +170,65 @@ create table scout_reports (
 
 ## 5. UI změny
 
-**`TerritoryDetailPanel` (klik na cizí/NPC/divoké políčko):**
-- Bez platného snapshotu: bucket rozsahy dle rank (stejná logika jako
-  mapové pipy), např. "6–10 common, 1–5 uncommon".
-- Tlačítko **"Vyslat zvěda"** vedle toho, deaktivované bez vlastněné karty
-  zvěda, s počítadlem vlastněných karet zvěda vedle tlačítka.
-- S platným snapshotem: skutečné karty (jako dnes) + časové razítko +
-  badge platnosti, **místo** bucket rozsahu.
+**Server-side uzavření info-leaku (kritický předpoklad, musí být hotovo
+před jakoukoli UI úpravou):**
+`get_visible_territory_cards()` se přepracuje tak, aby jednotkové karty
+(`category = 'unit'`) cizího vlastníka (`ci.owner_id is distinct from
+caller`, s výjimkou koalicí/spojenců, pokud na to existuje zvláštní
+pravidlo) vracela **maskované** stejným způsobem, jako dnes maskuje boosty
+— tedy jen `rank` (pro bucket UI), žádné `unit_type`/`base_stats`/`name`
+— **ledaže** pro volajícího existuje platný (`expires_at > now()`) řádek
+v `scout_reports` pro dané `target_territory_id`; v tom případě vrátí
+skutečná data z posledního snapshotu (ne živý stav cíle — snapshot je
+záměrně statický, viz §4). Toto je jediné místo, které je potřeba změnit
+pro `GarrisonModal`/`TerritoryDetailPanel`/`DeclareAttackModal` (všechny
+volají stejnou RPC). Bez této změny by UI-only úprava byla kosmeticky
+skrytá, ale obejitelná přímým voláním RPC/klientem.
+
+**Bezpečnostní kontrakt `scout_reports`:**
+Tabulka má `enable row level security` bez žádných klientských INSERT/
+UPDATE/DELETE policies (stejná konvence jako `card_templates`/
+`territories` — veřejné `select` pro vlastníka řádku, žádný přímý zápis).
+Jediný způsob vzniku/přepisu řádku je uvnitr `security definer` RPC
+volaných z `resolve_due_movements()` (cestovní zvěd) nebo z dedikované
+`resolve_scout_peek()` (instant-peek) — klient nemůže snapshot podvrhnout
+ani přečíst cizí (`scout_player_id = auth.uid()` v `select` policy).
+
+**`TerritoryDetailPanel` / `GarrisonModal` (klik na cizí hráč/NPC/divoké
+políčko):**
+- Bez platného snapshotu (řešeno už na úrovni RPC výše, ne jen v UI):
+  zobrazí se jen bucket rozsahy podle rank (stejná logika jako pipy na
+  mapě), např. "6–10 common, 1–5 uncommon".
+- Tlačítko **"Vyslat zvěda"** vedle toho, deaktivované pokud hráč nemá
+  žádnou kartu zvěda, s počítadlem "(3 ks)" vlastněných karet zvěda.
+- Pokud existuje platný snapshot, RPC vrátí skutečné karty a UI je
+  zobrazí (jako dnes) + časové razítko + badge platnosti.
+- Divoká (wild, `owner_id is null`) posádka: scouting funguje stejně,
+  ale detekční notifikace (§3) se logicky nemá komu odeslat — pravidlo:
+  pokud cíl nemá vlastníka, roll na odhalení se přeskočí (zbytečný, nemá
+  příjemce), roll na zabití zvěda platí beze změny.
 
 **`DeclareAttackModal`:**
-- Sekce obránce bez snapshotu: jen bucket rozsahy, žádné konkrétní karty,
-  tlačítko "Vyslat zvěda" + počítadlo.
-- "Poměr sil" (`armyStrength`) bez snapshotu přepočítán na odlehčenou
-  verzi: vážený součet dle rank (common=1, uncommon=2, rare=3, epic=5,
-  legend=8), s hodnotami středů bucketů namísto reálných statů. **Musí
-  být jasně označen jako odhad** (např. štítek "⚠ Odhad — neznáš přesná
-  vojska nepřítele"), aby nebyl zaměnitelný s přesným výpočtem, který se
-  zobrazuje se snapshotem.
-- Se snapshotem: zůstává dnešní přesné zobrazení a přesný výpočet poměru
-  sil.
+- Sekce obránce (`defenderInstances`, přes stejnou
+  `get_visible_territory_cards()` RPC) bez platného snapshotu automaticky
+  dostane maskovaná data → ukáže jen bucket rozsahy, žádné konkrétní
+  karty. Boost karty zůstávají maskované stejně jako dnes bez ohledu na
+  scouting (viz §4 — scout odhaluje jen jednotky, ne boosty).
+- Tlačítko "Vyslat zvěda" se stejným počítadlem.
+- "Poměr sil" (`armyStrength`) přepočítán na odlehčenou verzi: vážený
+  součet dle rank (common=1, uncommon=2, rare=3, epic=5, legend=8) s
+  hodnotami středů bucketů, pokud není snapshot; s reálnými staty, pokud
+  snapshot existuje. **V odlehčeném režimu musí být u hodnoty jasně
+  viditelný disclaimer** (např. štítek "⚠ Odhad — neznáš přesná vojska
+  nepřítele"), aby nebyl zaměnitelný s přesným výpočtem se snapshotem.
 
 **`MovementDetailModal` (šipka přicházejícího útoku na mě):**
-- Analogicky obránci — bez snapshotu jen bucket rozsah karet útočníka;
-  tlačítko "Vyslat zvěda" spustí instant-peek variantu.
+- Beze změny skrývá složení do začátku bitvy (dnešní chování).
+- Nově přidává tlačítko "Vyslat zvěda", které spustí instant-peek
+  variantu (§3) — po jejím úspěšném vyřešení a přežití zvěda se v tomto
+  modalu zobrazí skutečné karty útočícího vojska + časové razítko
+  pořízení (ne živý stav — může se lišit, pokud útočník mezitím vojska
+  změnil, což u in-transit útoku beztak nejde).
 
 ## 6. NPC handling
 
@@ -177,3 +248,11 @@ create table scout_reports (
 - Historie více snapshotů na stejný cíl (dnes jen "latest wins").
 - Zvěd cestující na cizí odchozí (origin) území útočníka namísto
   instant-peek (zamítnuto jako zbytečně nepřímé, viz brainstorming).
+- **Viditelnost `scout`/`scout_return`/`scout_peek` pohybů v mapových
+  šipkách (`MapMovementArrows`) a v `MyMovementsPanel` sdíleném s
+  ostatními hráči:** tyto nové druhy pohybu se **nezobrazují** jako
+  veřejné mapové šipky ani cizím hráčům v žádném sdíleném pohledu (to by
+  přímo prozradilo probíhající špionáž a obešlo by roll na odhalení).
+  Vysílající hráč je vidí jen ve svém vlastním "Moje pohyby" panelu.
+  Admin monitor (`admin_list_movements`, kind-agnostic už dnes) je
+  zobrazuje beze změny, protože administrátorský přehled musí vidět vše.
