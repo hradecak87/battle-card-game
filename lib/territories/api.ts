@@ -65,6 +65,8 @@ export interface TroopMovement {
   transfer_arrives_at: string
   status: 'in_transit' | 'occupying' | 'completed' | 'cancelled'
   cancelled_at: string | null
+  /** Only set for `kind = 'scout_peek'` — the attack movement being spied on. */
+  scout_target_movement_id?: string | null
 }
 
 export async function getViewport(x1: number, y1: number, x2: number, y2: number) {

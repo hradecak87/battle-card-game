@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   CardInstanceWithTemplate,
   getMyCardInstances,
+  getMyMovements,
   getScoutTerritoryReport,
   sendScout,
   Territory,
@@ -181,6 +182,7 @@ export default function GarrisonModal({
   const [scoutSending, setScoutSending] = useState(false)
   const [scoutError, setScoutError] = useState<string | null>(null)
   const [scoutReportMeta, setScoutReportMeta] = useState<{ captured_at: string; expires_at: string } | null>(null)
+  const [pendingScoutArrivesAt, setPendingScoutArrivesAt] = useState<string | null>(null)
 
   const canAttack =
     Boolean(myPlayerId) &&
@@ -297,16 +299,43 @@ export default function GarrisonModal({
     }
   }, [myPlayerId, territory.id, territory.owner_id])
 
+  /** Re-checks whether the caller already has a scout en route to this
+   * territory (e.g. sent moments ago from this same modal, or from a
+   * previous visit) — so the "Zvěd je na cestě" ETA survives a modal
+   * close/reopen instead of only showing right after a successful send. */
+  async function refreshPendingScout() {
+    if (!myPlayerId) {
+      setPendingScoutArrivesAt(null)
+      return
+    }
+    const { data } = await getMyMovements()
+    const pending = (data ?? []).find(
+      (movement) =>
+        movement.kind === 'scout' &&
+        movement.status === 'in_transit' &&
+        movement.destination_territory_id === territory.id
+    )
+    setPendingScoutArrivesAt(pending?.transfer_arrives_at ?? null)
+  }
+
+  useEffect(() => {
+    refreshPendingScout()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myPlayerId, territory.id])
+
   async function handleSendScout() {
     if (availableScoutIds.length === 0) return
+    const usedCardId = availableScoutIds[0]
     setScoutSending(true)
     setScoutError(null)
-    const { error } = await sendScout(territory.id, availableScoutIds[0])
+    const { error } = await sendScout(territory.id, usedCardId)
     setScoutSending(false)
     if (error) {
       setScoutError(error.message)
       return
     }
+    setAvailableScoutIds((prev) => prev.filter((id) => id !== usedCardId))
+    await refreshPendingScout()
   }
 
   return (
@@ -831,14 +860,20 @@ export default function GarrisonModal({
                 <p className="text-sm font-semibold text-zinc-100">Odhad posádky podle ranku</p>
                 <p>{maskedUnitSummary}</p>
               </div>
-              <button
-                type="button"
-                disabled={scoutSending || availableScoutIds.length === 0}
-                onClick={handleSendScout}
-                className="rounded bg-amber-700 px-3 py-1 text-sm font-semibold text-white disabled:opacity-50"
-              >
-                {scoutSending ? 'Vysílám…' : `Vyslat zvěda (${availableScoutIds.length} ks)`}
-              </button>
+              {pendingScoutArrivesAt ? (
+                <p data-testid="garrison-scout-pending" className="text-sm text-amber-400">
+                  Zvěd je na cestě, dorazí {formatEta(pendingScoutArrivesAt)}
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  disabled={scoutSending || availableScoutIds.length === 0}
+                  onClick={handleSendScout}
+                  className="rounded bg-amber-700 px-3 py-1 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  {scoutSending ? 'Vysílám…' : `Vyslat zvěda (${availableScoutIds.length} ks)`}
+                </button>
+              )}
             </div>
           </div>
         )}

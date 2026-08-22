@@ -5,11 +5,13 @@ import type { CardInstanceWithTemplate, Territory } from '@/lib/territories/api'
 const getMyCardInstances = jest.fn()
 const getScoutTerritoryReport = jest.fn()
 const sendScout = jest.fn()
+const getMyMovements = jest.fn()
 
 jest.mock('@/lib/territories/api', () => ({
   getMyCardInstances: (...args: unknown[]) => getMyCardInstances(...args),
   getScoutTerritoryReport: (...args: unknown[]) => getScoutTerritoryReport(...args),
   sendScout: (...args: unknown[]) => sendScout(...args),
+  getMyMovements: (...args: unknown[]) => getMyMovements(...args),
 }))
 
 const baseTerritory: Territory = {
@@ -127,6 +129,8 @@ describe('GarrisonModal', () => {
     getScoutTerritoryReport.mockResolvedValue({ data: null, error: null })
     sendScout.mockReset()
     sendScout.mockResolvedValue({ data: 'scout-move', error: null })
+    getMyMovements.mockReset()
+    getMyMovements.mockResolvedValue({ data: [], error: null })
   })
 
   it('shows the other player owner info when provided', () => {

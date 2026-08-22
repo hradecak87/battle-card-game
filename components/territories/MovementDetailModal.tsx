@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   getMovementCards,
   getMyCardInstances,
+  getMyMovements,
   getScoutMovementReport,
   sendScoutPeek,
   type MovementCard,
@@ -28,6 +29,8 @@ function titleForArrow(arrow: MapMovementArrow) {
   if (arrow.movementKind === 'transfer') return 'Přesun vojsk'
   if (arrow.movementKind === 'claim') return 'Zábor území'
   if (arrow.movementKind === 'loan') return 'Půjčka vojsk'
+  if (arrow.movementKind === 'scout') return 'Zvěd na cestě'
+  if (arrow.movementKind === 'scout_return') return 'Zvěd se vrací'
   return 'Útočící vojska'
 }
 
@@ -87,6 +90,7 @@ export default function MovementDetailModal({ arrow, onClose, onNavigateToTerrit
   const [scoutReport, setScoutReport] = useState<{ captured_at: string; expires_at: string; snapshot: ScoutReportSnapshotCard[] } | null>(null)
   const [scoutSending, setScoutSending] = useState(false)
   const [scoutError, setScoutError] = useState<string | null>(null)
+  const [pendingScoutPeekArrivesAt, setPendingScoutPeekArrivesAt] = useState<string | null>(null)
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 1000)
@@ -138,11 +142,33 @@ export default function MovementDetailModal({ arrow, onClose, onNavigateToTerrit
       if (cancelled) return
       setScoutReport(data ? { captured_at: data.captured_at, expires_at: data.expires_at, snapshot: data.snapshot } : null)
     })
+    refreshPendingScoutPeek()
 
     return () => {
       cancelled = true
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [arrow])
+
+  /** Re-checks whether the caller already has an instant-peek scout
+   * resolving for this incoming attack (mirrors GarrisonModal's
+   * refreshPendingScout, but keyed on scout_target_movement_id instead
+   * of a territory id since scout_peek never actually travels). */
+  async function refreshPendingScoutPeek() {
+    if (arrow.category !== 'incoming') {
+      setPendingScoutPeekArrivesAt(null)
+      return
+    }
+    const movementId = arrow.id.replace(/^incoming-/, '')
+    const { data } = await getMyMovements()
+    const pending = (data ?? []).find(
+      (movement) =>
+        movement.kind === 'scout_peek' &&
+        movement.status === 'in_transit' &&
+        movement.scout_target_movement_id === movementId
+    )
+    setPendingScoutPeekArrivesAt(pending?.transfer_arrives_at ?? null)
+  }
 
   const etaText = useMemo(() => formatEta(arrow.arrivesAt, now), [arrow.arrivesAt, now])
 
@@ -162,14 +188,18 @@ export default function MovementDetailModal({ arrow, onClose, onNavigateToTerrit
 
   async function handleScoutPeek() {
     if (arrow.category !== 'incoming' || availableScoutIds.length === 0) return
+    const usedCardId = availableScoutIds[0]
     setScoutSending(true)
     setScoutError(null)
     const movementId = arrow.id.replace(/^incoming-/, '')
-    const { error: sendError } = await sendScoutPeek(movementId, availableScoutIds[0])
+    const { error: sendError } = await sendScoutPeek(movementId, usedCardId)
     setScoutSending(false)
     if (sendError) {
       setScoutError(sendError.message)
+      return
     }
+    setAvailableScoutIds((prev) => prev.filter((id) => id !== usedCardId))
+    await refreshPendingScoutPeek()
   }
 
   return (
@@ -249,11 +279,15 @@ export default function MovementDetailModal({ arrow, onClose, onNavigateToTerrit
                 </p>
                 <button
                   type="button"
-                  disabled={scoutSending || availableScoutIds.length === 0}
+                  disabled={scoutSending || availableScoutIds.length === 0 || Boolean(pendingScoutPeekArrivesAt)}
                   onClick={handleScoutPeek}
                   className="rounded bg-amber-700 px-3 py-1 text-sm font-semibold text-white disabled:opacity-50"
                 >
-                  {scoutSending ? 'Vysílám…' : `Vyslat zvěda (${availableScoutIds.length} ks)`}
+                  {scoutSending
+                    ? 'Vysílám…'
+                    : pendingScoutPeekArrivesAt
+                      ? `Zvěd hlásí ${formatEta(pendingScoutPeekArrivesAt)}`
+                      : `Vyslat zvěda (${availableScoutIds.length} ks)`}
                 </button>
               </div>
               {scoutError && <p className="mt-2 text-red-400">{scoutError}</p>}

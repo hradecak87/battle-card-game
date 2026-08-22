@@ -10,6 +10,7 @@ const declareAttack = jest.fn()
 const getMyCardInstances = jest.fn()
 const sendScout = jest.fn()
 const getScoutTerritoryReport = jest.fn()
+const getMyMovements = jest.fn()
 
 jest.mock('@/lib/territories/api', () => ({
   getCardInstancesAtTerritory: (...args: unknown[]) => getCardInstancesAtTerritory(...args),
@@ -20,6 +21,7 @@ jest.mock('@/lib/territories/api', () => ({
   getMyCardInstances: (...args: unknown[]) => getMyCardInstances(...args),
   getScoutTerritoryReport: (...args: unknown[]) => getScoutTerritoryReport(...args),
   sendScout: (...args: unknown[]) => sendScout(...args),
+  getMyMovements: (...args: unknown[]) => getMyMovements(...args),
 }))
 
 jest.mock('@/lib/battles/api', () => ({
@@ -197,6 +199,8 @@ describe('DeclareAttackModal', () => {
     getScoutTerritoryReport.mockResolvedValue({ data: null, error: null })
     sendScout.mockReset()
     sendScout.mockResolvedValue({ data: 'scout-move', error: null })
+    getMyMovements.mockReset()
+    getMyMovements.mockResolvedValue({ data: [], error: null })
     getMyTerritories.mockResolvedValue({
       data: [{ id: 1, x: 0, y: 0, is_home: true }],
       error: null,

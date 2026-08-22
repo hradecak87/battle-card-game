@@ -7,12 +7,14 @@ const getMovementCards = jest.fn()
 const getScoutMovementReport = jest.fn()
 const getMyCardInstances = jest.fn()
 const sendScoutPeek = jest.fn()
+const getMyMovements = jest.fn()
 
 jest.mock('@/lib/territories/api', () => ({
   getMovementCards: (...args: unknown[]) => getMovementCards(...args),
   getScoutMovementReport: (...args: unknown[]) => getScoutMovementReport(...args),
   getMyCardInstances: (...args: unknown[]) => getMyCardInstances(...args),
   sendScoutPeek: (...args: unknown[]) => sendScoutPeek(...args),
+  getMyMovements: (...args: unknown[]) => getMyMovements(...args),
 }))
 
 describe('MovementDetailModal', () => {
@@ -25,6 +27,8 @@ describe('MovementDetailModal', () => {
     getMyCardInstances.mockResolvedValue({ data: [], error: null })
     sendScoutPeek.mockReset()
     sendScoutPeek.mockResolvedValue({ data: 'peek-1', error: null })
+    getMyMovements.mockReset()
+    getMyMovements.mockResolvedValue({ data: [], error: null })
   })
 
   it('loads and renders full card composition for my own movement', async () => {
