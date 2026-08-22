@@ -11,7 +11,7 @@ import {
   withdrawFromDeposit,
 } from '@/lib/territories/api'
 import { applyRank } from '@/lib/cards/combat'
-import { BoostCardTemplate, RANKS, Rank, StructureCardTemplate, UNIT_TYPES, UnitType } from '@/lib/cards/types'
+import { BoostCardTemplate, RANKS, Rank, ScoutCardTemplate, StructureCardTemplate, UNIT_TYPES, UnitType } from '@/lib/cards/types'
 import { TradingCard } from '@/components/cards/TradingCard'
 import { NonUnitTradingCard } from '@/components/cards/NonUnitTradingCard'
 import { CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
@@ -59,14 +59,14 @@ function returnConfirmCopy(rank: string): string {
 }
 
 type NonUnitTemplateRow = NonNullable<MyCardInstance['card_templates']> & {
-  category: 'castle' | 'village' | 'wall' | 'boost'
+  category: 'castle' | 'village' | 'wall' | 'boost' | 'scout'
 }
 
 /** Builds the StructureCardTemplate/BoostCardTemplate shape `NonUnitTradingCard` expects out of the joined `card_templates` row on a card instance. */
 function nonUnitTemplateFromRow(
   template: NonUnitTemplateRow,
   fallbackId: string
-): StructureCardTemplate | BoostCardTemplate {
+) : StructureCardTemplate | BoostCardTemplate | ScoutCardTemplate {
   if (template.category === 'boost') {
     return {
       id: template.id,
@@ -82,6 +82,17 @@ function nonUnitTemplateFromRow(
       pctDef: template.pct_def ?? null,
       pctHp: template.pct_hp ?? null,
       totalSupply: template.total_supply,
+    }
+  }
+
+  if (template.category === 'scout') {
+    return {
+      id: 'scout',
+      category: 'scout',
+      rank: template.rank as Rank,
+      name: template.name ?? fallbackId,
+      flavorText: template.flavor_text ?? '',
+      totalSupply: null,
     }
   }
 
@@ -177,7 +188,7 @@ export default function MyCollectionPage() {
       ) {
         return false
       }
-      if (template.category === 'boost' && unitTypeFilter !== 'all') return false
+      if (template.category !== 'unit' && unitTypeFilter !== 'all') return false
       if (rankFilter !== 'all' && template.rank !== rankFilter) return false
       if (locationFilter !== 'all') {
         if (locationFilter === IN_TRANSIT) {

@@ -30,6 +30,12 @@ export function notificationLabel(notification: NotificationRow): string {
       return 'Půjčená vojska se vrací'
     case 'loan_auto_recalled':
       return 'Půjčka byla odvolána'
+    case 'scout_killed':
+      return 'Zvěd byl zabit/chycen'
+    case 'scout_detected':
+      return 'Byl jsi odhalen jako zvěd'
+    case 'scout_returned':
+      return 'Zvěd se vrátil s hlášením'
     default:
       return 'Nové oznámení'
   }

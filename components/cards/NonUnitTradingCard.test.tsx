@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { NonUnitTradingCard } from './NonUnitTradingCard'
-import { BoostCardTemplate, StructureCardTemplate } from '@/lib/cards/types'
+import { BoostCardTemplate, ScoutCardTemplate, StructureCardTemplate } from '@/lib/cards/types'
 
 function makeBoostTemplate(overrides: Partial<BoostCardTemplate> = {}): BoostCardTemplate {
   return {
@@ -32,6 +32,18 @@ function makeStructureTemplate(
     flavorText: 'Dřevěné štíty a hustá sestava zpevní obránce na valu.',
     defenseBonusPct: 18,
     attackBonusPct: 10,
+    totalSupply: null,
+    ...overrides,
+  }
+}
+
+function makeScoutTemplate(overrides: Partial<ScoutCardTemplate> = {}): ScoutCardTemplate {
+  return {
+    id: 'scout',
+    category: 'scout',
+    rank: 'uncommon',
+    name: 'Zvěd',
+    flavorText: 'Rychlý jezdec bez bojové hodnoty.',
     totalSupply: null,
     ...overrides,
   }
@@ -132,6 +144,20 @@ describe('NonUnitTradingCard', () => {
     )
     expect(screen.getByText('Kamenné opevnění')).toBeInTheDocument()
     expect(screen.getByText('Hradby')).toBeInTheDocument()
+  })
+
+  it('renders a scout card with a placeholder icon and no stat numbers', () => {
+    render(<NonUnitTradingCard template={makeScoutTemplate()} />)
+
+    expect(screen.getByText('Zvěd')).toBeInTheDocument()
+    expect(screen.getByText('Průzkumná karta')).toBeInTheDocument()
+    expect(screen.getByText('Uncommon')).toBeInTheDocument()
+    expect(screen.getByText('STR')).toBeInTheDocument()
+    expect(screen.getByText('LNG')).toBeInTheDocument()
+    expect(screen.getByText('DEF')).toBeInTheDocument()
+    expect(screen.getByText('HP')).toBeInTheDocument()
+    expect(screen.queryByText(/\+\d+%/)).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Ikona zvěda')).toBeInTheDocument()
   })
 
   it('omits flavor text and supply line in compact mode', () => {

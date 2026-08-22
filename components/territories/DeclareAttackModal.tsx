@@ -8,8 +8,11 @@ import {
   MyTerritory,
   declareAttack,
   getCardInstancesAtTerritory,
+  getMyCardInstances,
+  getScoutTerritoryReport,
   getMyTerritories,
   getPlayerPublicInfo,
+  sendScout,
   getTerritoryNeighborOwners,
 } from '@/lib/territories/api'
 import { isTerritoryAttackable } from '@/lib/territories/attackReachability'
@@ -21,9 +24,10 @@ import { castleAttackBonusPct, combinedDefenseBonusPct, wallRangedBonusPct } fro
 import { nationCombatPerkLabel } from '@/lib/battles/nationCombatPerk'
 import { multiOriginAttackHours, occupationHours, armyPower, Difficulty } from '@/lib/territories/formulas'
 import { formatEta } from '@/lib/time/formatEta'
-import { compareArmyStrength, ArmyStrengthLabel } from '@/lib/battles/armyStrength'
+import { compareArmyStrength, compareArmyStrengthLightweight, ArmyStrengthLabel } from '@/lib/battles/armyStrength'
 import { NationId } from '@/lib/players/nations'
 import { MaskedBoostSummaryTile, VisibleBoostCardTile } from '@/components/cards/BoostCardTile'
+import { maskedUnitBucketCounts, summarizeMaskedUnitBuckets } from '@/lib/territories/garrisonBuckets'
 
 export interface DeclareAttackModalProps {
   /** The target territory being attacked (not the caller's own). */
@@ -90,6 +94,10 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
   const [defenderNation, setDefenderNation] = useState<NationId | null>(null)
   const [defenderInstances, setDefenderInstances] = useState<CardInstanceWithTemplate[] | null>(null)
   const [reachable, setReachable] = useState<boolean | null>(null)
+  const [availableScoutIds, setAvailableScoutIds] = useState<string[]>([])
+  const [scoutSending, setScoutSending] = useState(false)
+  const [scoutError, setScoutError] = useState<string | null>(null)
+  const [scoutReportMeta, setScoutReportMeta] = useState<{ captured_at: string; expires_at: string } | null>(null)
   const castleRank = territory.castle_rank as Rank | null
   const villageRank = territory.village_rank as Rank | null
   const wallRank = territory.wall_rank as Rank | null
@@ -101,11 +109,32 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
   const totalDefenseBonus = combinedDefenseBonusPct(castleRank, villageRank, wallRank)
   const defenderNationPerkLabel = nationCombatPerkLabel(defenderNation)
   const showStructureBonuses = Boolean(castleRank || villageRank || wallRank || defenderNationPerkLabel)
+  const maskedDefenderSummary = useMemo(() => summarizeMaskedUnitBuckets(defenderInstances ?? []), [defenderInstances])
+  const defenderBucketSummary = useMemo(() => maskedUnitBucketCounts(defenderInstances ?? []), [defenderInstances])
   useEffect(() => {
     if (!myPlayerId) return
     getPlayerPublicInfo(myPlayerId).then(({ data }) => {
       setAttackerNation((data?.nation as NationId) ?? null)
     })
+  }, [myPlayerId])
+
+  useEffect(() => {
+    if (!myPlayerId) {
+      setAvailableScoutIds([])
+      return
+    }
+    let cancelled = false
+    getMyCardInstances(myPlayerId).then(({ data }) => {
+      if (cancelled) return
+      setAvailableScoutIds(
+        (data ?? [])
+          .filter((instance) => instance.status === 'stationed' && instance.card_templates?.category === 'scout')
+          .map((instance) => instance.instance_id)
+      )
+    })
+    return () => {
+      cancelled = true
+    }
   }, [myPlayerId])
 
   useEffect(() => {
@@ -120,6 +149,21 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
       setDefenderInstances(data ?? [])
     })
   }, [territory.id, territory.owner_id])
+
+  useEffect(() => {
+    if (!myPlayerId || territory.owner_id === myPlayerId) {
+      setScoutReportMeta(null)
+      return
+    }
+    let cancelled = false
+    getScoutTerritoryReport(territory.id).then(({ data }) => {
+      if (cancelled) return
+      setScoutReportMeta(data ? { captured_at: data.captured_at, expires_at: data.expires_at } : null)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [myPlayerId, territory.id, territory.owner_id])
 
   useEffect(() => {
     if (!territory.owner_id) {
@@ -216,6 +260,12 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
 
   const armyStrength = useMemo(() => {
     if (attackerCards.length === 0 || defenderInstances === null) return null
+    if (maskedDefenderSummary) {
+      return compareArmyStrengthLightweight({
+        attackerCards: attackerCards.map((template) => ({ baseStats: template.baseStats, rank: template.rank })),
+        defenderBuckets: defenderBucketSummary,
+      })
+    }
     const defenderCards = defenderInstances
       .filter((instance) => instance.status === 'stationed' && instance.card_templates?.category === 'unit')
       .map((instance) => toUnitTemplate(instance.card_templates!))
@@ -230,7 +280,17 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
       villageRank,
       wallRank,
     })
-  }, [attackerCards, defenderInstances, attackerNation, defenderNation, castleRank, villageRank, wallRank])
+  }, [
+    attackerCards,
+    defenderInstances,
+    attackerNation,
+    defenderNation,
+    castleRank,
+    villageRank,
+    wallRank,
+    maskedDefenderSummary,
+    defenderBucketSummary,
+  ])
 
   const armyStrengthCopy: Record<ArmyStrengthLabel, { text: string; className: string }> = {
     'strong-advantage': { text: 'Silná výhoda', className: 'text-emerald-400' },
@@ -299,6 +359,17 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
     }
     setSuccess(true)
     onDeclared?.()
+  }
+
+  async function handleSendScout() {
+    if (availableScoutIds.length === 0) return
+    setScoutSending(true)
+    setScoutError(null)
+    const { error } = await sendScout(territory.id, availableScoutIds[0])
+    setScoutSending(false)
+    if (error) {
+      setScoutError(error.message)
+    }
   }
 
   return (
@@ -427,6 +498,32 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
               )
             })()}
 
+            {maskedDefenderSummary && (
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold text-zinc-100">Odhad posádky podle ranku</p>
+                    <p>{maskedDefenderSummary}</p>
+                    <p className="text-xs text-amber-300">⚠ Odhad — neznáš přesná vojska nepřítele</p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={scoutSending || availableScoutIds.length === 0}
+                    onClick={handleSendScout}
+                    className="rounded bg-amber-700 px-3 py-1 text-sm font-semibold text-white disabled:opacity-50"
+                  >
+                    {scoutSending ? 'Vysílám…' : `Vyslat zvěda (${availableScoutIds.length} ks)`}
+                  </button>
+                </div>
+                {scoutReportMeta && (
+                  <p data-testid="declare-attack-scout-report-meta" className="mt-2 text-xs text-zinc-400">
+                    Zvěd hlásí od {new Date(scoutReportMeta.captured_at).toLocaleString('cs-CZ')} · platí do{' '}
+                    {new Date(scoutReportMeta.expires_at).toLocaleString('cs-CZ')}
+                  </p>
+                )}
+              </div>
+            )}
+
             {occupationEtaText && (
               <p data-testid="declare-attack-occupation-eta" className="text-sm text-zinc-300">
                 Toto území je prázdné — po příjezdu bude obsazování trvat:{' '}
@@ -446,6 +543,7 @@ export default function DeclareAttackModal({ territory, myPlayerId, onClose, onD
             {loadingOriginIds.length > 0 && <p className="text-sm text-zinc-400">Načítám vojska…</p>}
             {territoriesError && <p className="text-sm text-red-400">{territoriesError}</p>}
             {loadError && <p className="text-sm text-red-400">{loadError}</p>}
+            {scoutError && <p className="text-sm text-red-400">{scoutError}</p>}
 
             {selectedOrigins.map((origin) => {
               const originInstances = originInstancesById[origin.id]

@@ -2,6 +2,16 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import GarrisonModal from './GarrisonModal'
 import type { CardInstanceWithTemplate, Territory } from '@/lib/territories/api'
 
+const getMyCardInstances = jest.fn()
+const getScoutTerritoryReport = jest.fn()
+const sendScout = jest.fn()
+
+jest.mock('@/lib/territories/api', () => ({
+  getMyCardInstances: (...args: unknown[]) => getMyCardInstances(...args),
+  getScoutTerritoryReport: (...args: unknown[]) => getScoutTerritoryReport(...args),
+  sendScout: (...args: unknown[]) => sendScout(...args),
+}))
+
 const baseTerritory: Territory = {
   id: 81,
   x: 1,
@@ -93,7 +103,32 @@ const maskedForeignBoost: CardInstanceWithTemplate = {
   },
 }
 
+const maskedForeignUnit = {
+  ...stationedUnit,
+  instance_id: 'masked-unit-1',
+  template_id: 'masked-unit',
+  card_templates: {
+    ...stationedUnit.card_templates!,
+    id: 'masked-unit',
+    name: null,
+    flavor_text: null,
+    category: 'unit' as const,
+    unit_type: null,
+    base_stats: null,
+  },
+  is_masked: true,
+} satisfies CardInstanceWithTemplate
+
 describe('GarrisonModal', () => {
+  beforeEach(() => {
+    getMyCardInstances.mockReset()
+    getMyCardInstances.mockResolvedValue({ data: [], error: null })
+    getScoutTerritoryReport.mockReset()
+    getScoutTerritoryReport.mockResolvedValue({ data: null, error: null })
+    sendScout.mockReset()
+    sendScout.mockResolvedValue({ data: 'scout-move', error: null })
+  })
+
   it('shows the other player owner info when provided', () => {
     render(
       <GarrisonModal
@@ -237,6 +272,26 @@ describe('GarrisonModal', () => {
 
     expect(screen.getByRole('button', { name: /Zaútočit/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Poslat vojska na pomoc/ })).not.toBeInTheDocument()
+  })
+
+  it('shows masked unit bucket ranges and a disabled scout button when no scout is available', () => {
+    render(
+      <GarrisonModal
+        territory={baseTerritory}
+        instances={[
+          maskedForeignUnit,
+          { ...maskedForeignUnit, instance_id: 'masked-unit-2' },
+          { ...maskedForeignUnit, instance_id: 'masked-unit-3', card_templates: { ...maskedForeignUnit.card_templates!, rank: 'uncommon' } },
+        ]}
+        error={null}
+        onClose={jest.fn()}
+        onRename={jest.fn()}
+        myPlayerId="me"
+      />
+    )
+
+    expect(screen.getByText('1–5 common, 1–5 uncommon')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Vyslat zvěda \(0 ks\)/ })).toBeDisabled()
   })
 
   it('shows neither "Zaútočit" nor "Poslat vojska na pomoc" while the relation is still loading', () => {

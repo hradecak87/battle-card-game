@@ -1,4 +1,4 @@
-import { BoostCardTemplate, Rank, StructureCardTemplate } from '@/lib/cards/types'
+import { BoostCardTemplate, Rank, ScoutCardTemplate, StructureCardTemplate } from '@/lib/cards/types'
 import { boostEffectSummary, boostTypeLabel } from '@/lib/cards/boosts'
 import { hasIllustratedBoostArt, illustratedBoostArtSrc } from '@/lib/cards/illustrated-boost-art'
 import { RANK_FRAME } from './TradingCard'
@@ -17,6 +17,8 @@ const STRUCTURE_LABELS: Record<StructureCardTemplate['category'], string> = {
   village: 'Vesnice',
   wall: 'Hradby',
 }
+
+const SCOUT_LABEL = 'Průzkumná karta'
 
 // Emoji placeholder standing in for real illustrated boost artwork (to be
 // generated later, per the user's request) — one per boost "flavor" so the
@@ -56,8 +58,9 @@ function StructureArt({ category, id }: { category: StructureCardTemplate['categ
 
 interface StatColumn {
   label: string
+  value?: string
   /** null/0/undefined all render as a blank value — only the label stays. */
-  value: number | null | undefined
+  percentValue?: number | null | undefined
 }
 
 function StatRow({ stats }: { stats: StatColumn[] }) {
@@ -69,7 +72,9 @@ function StatRow({ stats }: { stats: StatColumn[] }) {
       {stats.map((stat) => (
         <div key={stat.label}>
           <dt className="text-zinc-500">{stat.label}</dt>
-          <dd className="font-mono font-semibold text-[6.3cqw]">{stat.value ? `+${stat.value}%` : ''}</dd>
+          <dd className="font-mono font-semibold text-[6.3cqw]">
+            {stat.value ?? (stat.percentValue ? `+${stat.percentValue}%` : '')}
+          </dd>
         </div>
       ))}
     </dl>
@@ -77,7 +82,7 @@ function StatRow({ stats }: { stats: StatColumn[] }) {
 }
 
 interface NonUnitTradingCardProps {
-  template: StructureCardTemplate | BoostCardTemplate
+  template: StructureCardTemplate | BoostCardTemplate | ScoutCardTemplate
   /** Compact mode: smaller footprint, matches TradingCard's compact mode (no flavor text/supply line). */
   compact?: boolean
 }
@@ -97,20 +102,32 @@ interface NonUnitTradingCardProps {
 export function NonUnitTradingCard({ template, compact = false }: NonUnitTradingCardProps) {
   const frame = RANK_FRAME[template.rank]
   const isBoost = template.category === 'boost'
+  const isScout = template.category === 'scout'
 
-  const typeLabel = isBoost ? boostTypeLabel(template.boostType) : STRUCTURE_LABELS[template.category]
+  const typeLabel = isBoost
+    ? boostTypeLabel(template.boostType)
+    : isScout
+      ? SCOUT_LABEL
+      : STRUCTURE_LABELS[template.category]
 
   const stats: StatColumn[] = isBoost
     ? [
-        { label: 'STR', value: template.pctStr },
-        { label: 'LNG', value: template.pctLng },
-        { label: 'DEF', value: template.pctDef },
-        { label: 'HP', value: template.pctHp },
+        { label: 'STR', percentValue: template.pctStr },
+        { label: 'LNG', percentValue: template.pctLng },
+        { label: 'DEF', percentValue: template.pctDef },
+        { label: 'HP', percentValue: template.pctHp },
       ]
-    : [
-        { label: 'ATK', value: template.attackBonusPct },
-        { label: 'DEF', value: template.defenseBonusPct },
-      ]
+    : isScout
+      ? [
+          { label: 'STR', value: '—' },
+          { label: 'LNG', value: '—' },
+          { label: 'DEF', value: '—' },
+          { label: 'HP', value: '—' },
+        ]
+      : [
+          { label: 'ATK', percentValue: template.attackBonusPct },
+          { label: 'DEF', percentValue: template.defenseBonusPct },
+        ]
 
   const flavorText = isBoost && template.effectKind === 'instant_effect'
     ? template.flavorText || boostEffectSummary(template)
@@ -145,6 +162,10 @@ export function NonUnitTradingCard({ template, compact = false }: NonUnitTrading
               {boostArtIcon(template.boostType)}
             </span>
           )
+        ) : isScout ? (
+          <span aria-label="Ikona zvěda" className="text-[16cqw] leading-none opacity-80">
+            🕵️
+          </span>
         ) : (
           <div className="relative h-full w-full p-[12%]">
             <StructureArt category={template.category} id={template.id} />

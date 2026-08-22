@@ -1,7 +1,14 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { getMovementCards, type MovementCard } from '@/lib/territories/api'
+import {
+  getMovementCards,
+  getMyCardInstances,
+  getScoutMovementReport,
+  sendScoutPeek,
+  type MovementCard,
+  type ScoutReportSnapshotCard,
+} from '@/lib/territories/api'
 import { formatEta } from '@/lib/time/formatEta'
 import type { MapMovementArrow } from '@/lib/territories/useMapMovementArrows'
 import { TradingCard } from '@/components/cards/TradingCard'
@@ -76,6 +83,10 @@ export default function MovementDetailModal({ arrow, onClose, onNavigateToTerrit
   const [cards, setCards] = useState<MovementCard[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [now, setNow] = useState(() => new Date())
+  const [availableScoutIds, setAvailableScoutIds] = useState<string[]>([])
+  const [scoutReport, setScoutReport] = useState<{ captured_at: string; expires_at: string; snapshot: ScoutReportSnapshotCard[] } | null>(null)
+  const [scoutSending, setScoutSending] = useState(false)
+  const [scoutError, setScoutError] = useState<string | null>(null)
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 1000)
@@ -107,7 +118,59 @@ export default function MovementDetailModal({ arrow, onClose, onNavigateToTerrit
     }
   }, [arrow])
 
+  useEffect(() => {
+    if (arrow.category !== 'incoming') {
+      setAvailableScoutIds([])
+      setScoutReport(null)
+      return
+    }
+
+    let cancelled = false
+    getMyCardInstances('self').then(({ data }) => {
+      if (cancelled) return
+      setAvailableScoutIds(
+        (data ?? [])
+          .filter((instance) => instance.status === 'stationed' && instance.card_templates?.category === 'scout')
+          .map((instance) => instance.instance_id)
+      )
+    })
+    getScoutMovementReport(arrow.id.replace(/^incoming-/, '')).then(({ data }) => {
+      if (cancelled) return
+      setScoutReport(data ? { captured_at: data.captured_at, expires_at: data.expires_at, snapshot: data.snapshot } : null)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [arrow])
+
   const etaText = useMemo(() => formatEta(arrow.arrivesAt, now), [arrow.arrivesAt, now])
+
+  function snapshotToUnitTemplate(card: ScoutReportSnapshotCard): UnitCardTemplate | null {
+    if (card.category !== 'unit' || !card.base_stats || !card.unit_type || !card.name) return null
+    return {
+      id: card.template_id,
+      category: 'unit',
+      unitType: card.unit_type as UnitType,
+      rank: card.rank as Rank,
+      name: card.name,
+      flavorText: card.flavor_text ?? '',
+      baseStats: card.base_stats,
+      totalSupply: card.total_supply ?? null,
+    }
+  }
+
+  async function handleScoutPeek() {
+    if (arrow.category !== 'incoming' || availableScoutIds.length === 0) return
+    setScoutSending(true)
+    setScoutError(null)
+    const movementId = arrow.id.replace(/^incoming-/, '')
+    const { error: sendError } = await sendScoutPeek(movementId, availableScoutIds[0])
+    setScoutSending(false)
+    if (sendError) {
+      setScoutError(sendError.message)
+    }
+  }
 
   return (
     <div
@@ -180,7 +243,45 @@ export default function MovementDetailModal({ arrow, onClose, onNavigateToTerrit
             </div>
 
             <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3 text-zinc-300">
-              Složení útočící armády zůstává skryté do začátku bitvy.
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p>
+                  {scoutReport ? 'Zvěd odhalil složení útočící armády.' : 'Složení útočící armády zůstává skryté do začátku bitvy.'}
+                </p>
+                <button
+                  type="button"
+                  disabled={scoutSending || availableScoutIds.length === 0}
+                  onClick={handleScoutPeek}
+                  className="rounded bg-amber-700 px-3 py-1 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  {scoutSending ? 'Vysílám…' : `Vyslat zvěda (${availableScoutIds.length} ks)`}
+                </button>
+              </div>
+              {scoutError && <p className="mt-2 text-red-400">{scoutError}</p>}
+              {scoutReport && (
+                <>
+                  <p data-testid="movement-scout-report-meta" className="mt-2 text-xs text-zinc-400">
+                    Zvěd hlásí od {new Date(scoutReport.captured_at).toLocaleString('cs-CZ')} · platí do{' '}
+                    {new Date(scoutReport.expires_at).toLocaleString('cs-CZ')}
+                  </p>
+                  <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
+                    {scoutReport.snapshot.map((card, index) => {
+                      const unitTemplate = snapshotToUnitTemplate(card)
+                      if (!unitTemplate) return null
+                      const stats = applyRank(unitTemplate.baseStats, unitTemplate.rank)
+                      return (
+                        <div key={`${card.template_id}-${index}`} className="relative flex flex-col items-center gap-1">
+                          <TradingCard template={unitTemplate} stats={stats} compact />
+                          <CardZoomIconButton
+                            cardName={unitTemplate.name}
+                            className="absolute right-2 top-2"
+                            onClick={() => openZoom(unitTemplate, stats)}
+                          />
+                        </div>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         ) : (

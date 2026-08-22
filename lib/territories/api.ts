@@ -58,7 +58,7 @@ export interface MinimapTile {
 export interface TroopMovement {
   id: string
   player_id: string
-  kind: 'transfer' | 'claim' | 'attack' | 'loan' | 'loan_return'
+  kind: 'transfer' | 'claim' | 'attack' | 'loan' | 'loan_return' | 'scout' | 'scout_return' | 'scout_peek'
   origin_territory_id: number
   destination_territory_id: number
   started_at: string
@@ -471,7 +471,7 @@ export interface CardInstanceWithTemplate {
     name: string | null
     flavor_text: string | null
     rank: string
-    category: 'unit' | 'castle' | 'village' | 'wall' | 'boost'
+    category: 'unit' | 'castle' | 'village' | 'wall' | 'boost' | 'scout'
     unit_type: string | null
     base_stats: { str: number; lng: number; def: number; hp: number; speed: number } | null
     total_supply: number | null
@@ -506,6 +506,55 @@ export async function getMovementCards(movementId: string) {
   }>
 }
 
+export interface ScoutReportSnapshotCard {
+  template_id: string
+  category: 'unit'
+  unit_type: string | null
+  rank: string
+  name: string | null
+  flavor_text?: string | null
+  base_stats?: { str: number; lng: number; def: number; hp: number; speed: number } | null
+  total_supply?: number | null
+}
+
+export interface ScoutReportRow {
+  id: number
+  scout_player_id: string
+  target_territory_id: number | null
+  target_movement_id: string | null
+  captured_at: string
+  expires_at: string
+  snapshot: ScoutReportSnapshotCard[]
+}
+
+export async function getScoutMovementReport(targetMovementId: string) {
+  return supabase
+    .from('scout_reports')
+    .select('id, scout_player_id, target_territory_id, target_movement_id, captured_at, expires_at, snapshot')
+    .eq('target_movement_id', targetMovementId)
+    .gt('expires_at', new Date().toISOString())
+    .order('captured_at', { ascending: false })
+    .limit(1)
+    .maybeSingle() as unknown as Promise<{
+    data: ScoutReportRow | null
+    error: { message: string } | null
+  }>
+}
+
+export async function getScoutTerritoryReport(targetTerritoryId: number) {
+  return supabase
+    .from('scout_reports')
+    .select('id, scout_player_id, target_territory_id, target_movement_id, captured_at, expires_at, snapshot')
+    .eq('target_territory_id', targetTerritoryId)
+    .gt('expires_at', new Date().toISOString())
+    .order('captured_at', { ascending: false })
+    .limit(1)
+    .maybeSingle() as unknown as Promise<{
+    data: ScoutReportRow | null
+    error: { message: string } | null
+  }>
+}
+
 export async function getCardInstancesAtTerritory(territoryId: number) {
   return supabase.rpc('get_visible_territory_cards', {
     p_territory_id: territoryId,
@@ -513,6 +562,20 @@ export async function getCardInstancesAtTerritory(territoryId: number) {
     data: CardInstanceWithTemplate[] | null
     error: { message: string } | null
   }>
+}
+
+export async function sendScout(targetTerritoryId: number, cardInstanceId: string) {
+  return supabase.rpc('send_scout', {
+    p_target_territory_id: targetTerritoryId,
+    p_card_instance_id: cardInstanceId,
+  }) as unknown as Promise<{ data: string | null; error: { message: string } | null }>
+}
+
+export async function sendScoutPeek(targetMovementId: string, cardInstanceId: string) {
+  return supabase.rpc('send_scout_peek', {
+    p_target_movement_id: targetMovementId,
+    p_card_instance_id: cardInstanceId,
+  }) as unknown as Promise<{ data: string | null; error: { message: string } | null }>
 }
 
 export interface MyCardInstance extends CardInstanceWithTemplate {

@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
-import { BoostCardTemplate, Rank, StructureCardTemplate } from './types'
+import { BoostCardTemplate, Rank, ScoutCardTemplate, StructureCardTemplate } from './types'
 
 /**
  * Castle/Village/Wall/Boost templates have no client-only static catalog
@@ -27,7 +27,7 @@ interface CardTemplateRow {
 }
 
 export async function getNonUnitCardTemplates(): Promise<
-  (StructureCardTemplate | BoostCardTemplate)[]
+  (StructureCardTemplate | BoostCardTemplate | ScoutCardTemplate)[]
 > {
   const { data, error } = await supabase
     .from('card_templates')
@@ -59,6 +59,17 @@ export async function getNonUnitCardTemplates(): Promise<
         pctHp: row.pct_hp,
         totalSupply: row.total_supply,
       } satisfies BoostCardTemplate
+    }
+
+    if (row.category === 'scout') {
+      return {
+        id: 'scout',
+        category: 'scout',
+        rank: row.rank as Rank,
+        name: row.name ?? row.id,
+        flavorText: row.flavor_text ?? '',
+        totalSupply: null,
+      } satisfies ScoutCardTemplate
     }
 
     return {

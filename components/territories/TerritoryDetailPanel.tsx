@@ -1,12 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Territory } from '@/lib/territories/api'
-import { UnitCardTemplate, StructureCardTemplate, isUnitTemplate } from '@/lib/cards/types'
+import { CardInstanceWithTemplate, Territory } from '@/lib/territories/api'
+import { ScoutCardTemplate, UnitCardTemplate, StructureCardTemplate, isScoutTemplate, isUnitTemplate } from '@/lib/cards/types'
+import { summarizeMaskedUnitBuckets } from '@/lib/territories/garrisonBuckets'
 
 export interface CardInstanceOption {
   instanceId: string
-  template: UnitCardTemplate | StructureCardTemplate
+  template: UnitCardTemplate | StructureCardTemplate | ScoutCardTemplate
 }
 
 export interface TerritoryDetailPanelProps {
@@ -14,11 +15,13 @@ export interface TerritoryDetailPanelProps {
   myPlayerId: string | null
   /** Card instances currently stationed at the caller's chosen origin territory. */
   originInstances: CardInstanceOption[]
+  visibleInstances?: CardInstanceWithTemplate[] | null
   garrisonSize?: number
   onClaim: (originTerritoryId: number, cardInstanceIds: string[]) => Promise<void>
   onTransfer: (originTerritoryId: number, cardInstanceIds: string[]) => Promise<void>
   onCancelClaim: (territoryId: number) => Promise<void>
   onBuildStructure: (territoryId: number, cardInstanceId: string) => Promise<void>
+  onSendScout?: (territoryId: number, cardInstanceId: string) => Promise<void>
 }
 
 type TileState =
@@ -51,11 +54,13 @@ export default function TerritoryDetailPanel({
   territory,
   myPlayerId,
   originInstances,
+  visibleInstances,
   garrisonSize,
   onClaim,
   onTransfer,
   onCancelClaim,
   onBuildStructure,
+  onSendScout,
 }: TerritoryDetailPanelProps) {
   const [originTerritoryId, setOriginTerritoryId] = useState('')
   const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([])
@@ -66,6 +71,10 @@ export default function TerritoryDetailPanel({
   const state = tileState(territory, myPlayerId)
   const unitOptions = originInstances.filter((o) => isUnitTemplate(o.template))
   const structureOptions = originInstances.filter((o) => !isUnitTemplate(o.template))
+  const availableScoutIds = originInstances
+    .filter((o) => isScoutTemplate(o.template))
+    .map((o) => o.instanceId)
+  const maskedBucketSummary = summarizeMaskedUnitBuckets(visibleInstances ?? [])
 
   function toggleInstance(id: string) {
     setSelectedInstanceIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]))
@@ -193,11 +202,41 @@ export default function TerritoryDetailPanel({
       )}
 
       {state === 'owned-by-other' && (
-        <p className="text-sm text-zinc-400">Toto území vlastní jiný hráč.</p>
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-zinc-400">Toto území vlastní jiný hráč.</p>
+          {maskedBucketSummary && (
+            <p className="text-sm text-zinc-300">Odhad posádky: {maskedBucketSummary}</p>
+          )}
+          {onSendScout && (
+            <button
+              type="button"
+              disabled={submitting || availableScoutIds.length === 0}
+              onClick={() => run(() => onSendScout(territory.id, availableScoutIds[0]))}
+              className="rounded bg-zinc-100 text-zinc-900 px-3 py-1 font-semibold disabled:opacity-50"
+            >
+              Vyslat zvěda ({availableScoutIds.length} ks)
+            </button>
+          )}
+        </div>
       )}
 
       {state === 'npc-garrisoned' && (
-        <p className="text-sm text-zinc-400">Toto území hlídá posádka NPC.</p>
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-zinc-400">Toto území hlídá posádka NPC.</p>
+          {maskedBucketSummary && (
+            <p className="text-sm text-zinc-300">Odhad posádky: {maskedBucketSummary}</p>
+          )}
+          {onSendScout && (
+            <button
+              type="button"
+              disabled={submitting || availableScoutIds.length === 0}
+              onClick={() => run(() => onSendScout(territory.id, availableScoutIds[0]))}
+              className="rounded bg-zinc-100 text-zinc-900 px-3 py-1 font-semibold disabled:opacity-50"
+            >
+              Vyslat zvěda ({availableScoutIds.length} ks)
+            </button>
+          )}
+        </div>
       )}
     </div>
   )

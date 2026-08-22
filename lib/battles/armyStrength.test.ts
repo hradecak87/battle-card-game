@@ -1,5 +1,5 @@
-import { compareArmyStrength } from './armyStrength'
-import { RawStats } from '../cards/types'
+import { compareArmyStrength, compareArmyStrengthLightweight } from './armyStrength'
+import { RawStats, Rank } from '../cards/types'
 
 const weak: RawStats = { str: 5, lng: 5, def: 5, hp: 20, speed: 5 }
 const strong: RawStats = { str: 40, lng: 40, def: 40, hp: 200, speed: 5 }
@@ -112,5 +112,26 @@ describe('compareArmyStrength', () => {
     const results = Array.from({ length: 5 }, () => compareArmyStrength(params))
     expect(new Set(results.map((r) => r.ratio)).size).toBe(1)
     expect(new Set(results.map((r) => r.label)).size).toBe(1)
+  })
+})
+
+describe('compareArmyStrengthLightweight', () => {
+  it('uses bucket midpoints and rank weights for masked defenders', () => {
+    const attackerCards = [
+      { baseStats: strong, rank: 'legend' as const },
+      { baseStats: strong, rank: 'legend' as const },
+    ]
+
+    const result = compareArmyStrengthLightweight({
+      attackerCards,
+      defenderBuckets: {
+        common: 1,
+        rare: 2,
+        legend: 3,
+      } satisfies Partial<Record<Rank, number>>,
+    })
+
+    expect(result.label).toBe('strong-advantage')
+    expect(result.ratio).toBeGreaterThan(0.7)
   })
 })

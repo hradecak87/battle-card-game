@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { getAllTemplates } from '@/lib/cards/catalog'
 import { getNonUnitCardTemplates } from '@/lib/cards/nonUnitTemplates'
 import { applyRank } from '@/lib/cards/combat'
-import { BoostCardTemplate, CardTemplate, RANKS, Rank, StructureCardTemplate, UNIT_TYPES, UnitType } from '@/lib/cards/types'
+import { BoostCardTemplate, CardTemplate, RANKS, Rank, ScoutCardTemplate, StructureCardTemplate, UNIT_TYPES, UnitType } from '@/lib/cards/types'
 import { TradingCard } from '@/components/cards/TradingCard'
 import { NonUnitTradingCard } from '@/components/cards/NonUnitTradingCard'
 import { CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
@@ -36,7 +36,7 @@ type RankFilter = Rank | 'all'
 export default function CollectionPage() {
   const [unitTypeFilter, setUnitTypeFilter] = useState<UnitTypeFilter>('all')
   const [rankFilter, setRankFilter] = useState<RankFilter>('all')
-  const [nonUnitTemplates, setNonUnitTemplates] = useState<(StructureCardTemplate | BoostCardTemplate)[]>([])
+  const [nonUnitTemplates, setNonUnitTemplates] = useState<(StructureCardTemplate | BoostCardTemplate | ScoutCardTemplate)[]>([])
   const { zoomedCard, openZoom, closeZoom } = useCardZoom()
 
   const unitTemplates = useMemo(() => getAllTemplates(), [])
@@ -133,7 +133,13 @@ export default function CollectionPage() {
             )
           }
 
-          if (t.category === 'boost' || t.category === 'castle' || t.category === 'village' || t.category === 'wall') {
+          if (
+            t.category === 'boost' ||
+            t.category === 'castle' ||
+            t.category === 'village' ||
+            t.category === 'wall' ||
+            t.category === 'scout'
+          ) {
             return (
               <li key={t.id}>
                 <NonUnitTradingCard template={t} />
@@ -148,4 +154,3 @@ export default function CollectionPage() {
     </main>
   )
 }
-

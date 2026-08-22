@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import TerritoryDetailPanel, { CardInstanceOption } from './TerritoryDetailPanel'
-import { Territory } from '@/lib/territories/api'
-import { UnitCardTemplate, StructureCardTemplate } from '@/lib/cards/types'
+import { CardInstanceWithTemplate, Territory } from '@/lib/territories/api'
+import { ScoutCardTemplate, UnitCardTemplate, StructureCardTemplate } from '@/lib/cards/types'
 
 const baseTerritory: Territory = {
   id: 42,
@@ -45,6 +45,42 @@ const castleTemplate: StructureCardTemplate = {
 
 const unitOption: CardInstanceOption = { instanceId: 'inst-1', template: unitTemplate }
 const castleOption: CardInstanceOption = { instanceId: 'inst-2', template: castleTemplate }
+const scoutTemplate: ScoutCardTemplate = {
+  id: 'scout',
+  category: 'scout',
+  rank: 'uncommon',
+  name: 'Zvěd',
+  flavorText: 'flavor',
+  totalSupply: null,
+}
+const scoutOption: CardInstanceOption = { instanceId: 'scout-1', template: scoutTemplate }
+const maskedVisibleInstances = Array.from({ length: 7 }, (_, index) => ({
+  instance_id: `masked-${index}`,
+  template_id: 'masked-unit',
+  owner_id: null,
+  status: 'stationed',
+  stationed_territory_id: 42,
+  card_templates: {
+    id: 'masked-unit',
+    category: 'unit',
+    unit_type: null,
+    rank: 'common',
+    name: null,
+    flavor_text: null,
+    base_stats: null,
+    defense_bonus_pct: null,
+    attack_bonus_pct: null,
+    total_supply: null,
+    boost_type: null,
+    effect_kind: null,
+    instant_effect_kind: null,
+    pct_str: null,
+    pct_lng: null,
+    pct_def: null,
+    pct_hp: null,
+  },
+  is_masked: true,
+})) as CardInstanceWithTemplate[]
 
 function noop() {
   return Promise.resolve()
@@ -132,6 +168,26 @@ describe('TerritoryDetailPanel', () => {
     )
     expect(screen.getByText(/vlastní jiný hráč/)).toBeInTheDocument()
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
+  })
+
+  it('shows masked garrison buckets and scout action for foreign territory', async () => {
+    const onSendScout = jest.fn().mockResolvedValue(undefined)
+    render(
+      <TerritoryDetailPanel
+        territory={{ ...baseTerritory, owner_id: 'other' }}
+        myPlayerId="me"
+        originInstances={[scoutOption]}
+        visibleInstances={maskedVisibleInstances}
+        onClaim={noop}
+        onTransfer={noop}
+        onCancelClaim={noop}
+        onBuildStructure={noop}
+        onSendScout={onSendScout}
+      />
+    )
+    expect(screen.getByText('Odhad posádky: 6–10 common')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Vyslat zvěda (1 ks)' }))
+    await waitFor(() => expect(onSendScout).toHaveBeenCalledWith(42, 'scout-1'))
   })
 
   it('shows the NPC garrison notice for a pre-seeded structure tile', () => {

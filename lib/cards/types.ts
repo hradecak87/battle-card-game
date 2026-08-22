@@ -116,11 +116,20 @@ export interface BoostCardTemplate {
   totalSupply: number | null
 }
 
+export interface ScoutCardTemplate {
+  id: 'scout'
+  category: 'scout'
+  rank: Rank
+  name: string
+  flavorText: string
+  totalSupply: null
+}
+
 /**
  * A card template is either a unit (used in combat) or a structure
  * (Castle/Village, built onto a territory). Discriminate on `category`.
  */
-export type CardTemplate = UnitCardTemplate | StructureCardTemplate | BoostCardTemplate
+export type CardTemplate = UnitCardTemplate | StructureCardTemplate | BoostCardTemplate | ScoutCardTemplate
 
 /** Narrows a possibly-mixed CardTemplate list down to unit templates only. */
 export function isUnitTemplate(template: CardTemplate): template is UnitCardTemplate {
@@ -129,6 +138,10 @@ export function isUnitTemplate(template: CardTemplate): template is UnitCardTemp
 
 export function isBoostTemplate(template: CardTemplate): template is BoostCardTemplate {
   return template.category === 'boost'
+}
+
+export function isScoutTemplate(template: CardTemplate): template is ScoutCardTemplate {
+  return template.category === 'scout'
 }
 
 /**

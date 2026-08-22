@@ -25,6 +25,18 @@ export interface ArmyStrengthResult {
   ratio: number
 }
 
+export type RankBucketCounts = Partial<Record<Rank, number>>
+
+const RANK_WEIGHT: Record<Rank, number> = {
+  common: 1,
+  uncommon: 2,
+  rare: 3,
+  epic: 5,
+  legend: 8,
+}
+
+const BUCKET_MIDPOINTS = [0, 3, 8, 13] as const
+
 /**
  * A single card's overall combat rating: (best attack stat + defense) times
  * durability. Deliberately simple and deterministic — no multi-round
@@ -84,6 +96,33 @@ export function compareArmyStrength(params: CompareArmyStrengthParams): ArmyStre
     wallRank: params.wallRank,
     nation: params.defenderNation,
   })
+
+  if (attackerPower === 0 && defenderPower === 0) return { label: 'even', ratio: 0.5 }
+  if (defenderPower === 0) return { label: 'strong-advantage', ratio: 1 }
+
+  const ratio = attackerPower / (attackerPower + defenderPower)
+  const label: ArmyStrengthLabel =
+    ratio >= 0.6 ? 'strong-advantage' : ratio >= 0.45 ? 'even' : ratio >= 0.3 ? 'risky' : 'disadvantage'
+
+  return { label, ratio }
+}
+
+export function compareArmyStrengthLightweight(params: {
+  attackerCards: ArmyStrengthCard[]
+  defenderBuckets: RankBucketCounts
+}): ArmyStrengthResult {
+  const attackerPower = totalPower(params.attackerCards, {
+    isDefendingThisRound: false,
+    castleRank: null,
+    villageRank: null,
+    wallRank: null,
+    nation: null,
+  })
+
+  const defenderPower = Object.entries(params.defenderBuckets).reduce((sum, [rank, bucket]) => {
+    if (!bucket) return sum
+    return sum + RANK_WEIGHT[rank as Rank] * BUCKET_MIDPOINTS[bucket]
+  }, 0)
 
   if (attackerPower === 0 && defenderPower === 0) return { label: 'even', ratio: 0.5 }
   if (defenderPower === 0) return { label: 'strong-advantage', ratio: 1 }

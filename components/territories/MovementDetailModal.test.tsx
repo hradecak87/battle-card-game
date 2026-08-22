@@ -4,15 +4,27 @@ import MovementDetailModal from './MovementDetailModal'
 import type { MapMovementArrow } from './MapMovementArrows'
 
 const getMovementCards = jest.fn()
+const getScoutMovementReport = jest.fn()
+const getMyCardInstances = jest.fn()
+const sendScoutPeek = jest.fn()
 
 jest.mock('@/lib/territories/api', () => ({
   getMovementCards: (...args: unknown[]) => getMovementCards(...args),
+  getScoutMovementReport: (...args: unknown[]) => getScoutMovementReport(...args),
+  getMyCardInstances: (...args: unknown[]) => getMyCardInstances(...args),
+  sendScoutPeek: (...args: unknown[]) => sendScoutPeek(...args),
 }))
 
 describe('MovementDetailModal', () => {
   beforeEach(() => {
     getMovementCards.mockReset()
     getMovementCards.mockResolvedValue({ data: [], error: null })
+    getScoutMovementReport.mockReset()
+    getScoutMovementReport.mockResolvedValue({ data: null, error: null })
+    getMyCardInstances.mockReset()
+    getMyCardInstances.mockResolvedValue({ data: [], error: null })
+    sendScoutPeek.mockReset()
+    sendScoutPeek.mockResolvedValue({ data: 'peek-1', error: null })
   })
 
   it('loads and renders full card composition for my own movement', async () => {
@@ -152,6 +164,87 @@ describe('MovementDetailModal', () => {
     })
     expect(screen.queryByText('Královští lučištníci')).not.toBeInTheDocument()
     expect(getMovementCards).not.toHaveBeenCalled()
+  })
+
+  it('shows an incoming scout button and reveals a stored scout snapshot for my incoming attack', async () => {
+    getMyCardInstances.mockResolvedValue({
+      data: [
+        {
+          instance_id: 'scout-1',
+          template_id: 'scout',
+          owner_id: 'me',
+          stationed_territory_id: 12,
+          status: 'stationed',
+          card_templates: {
+            id: 'scout',
+            name: 'Zvěd',
+            flavor_text: '',
+            rank: 'uncommon',
+            category: 'scout',
+            unit_type: null,
+            base_stats: { str: 0, lng: 0, def: 0, hp: 0, speed: 30 },
+            total_supply: null,
+            defense_bonus_pct: null,
+            attack_bonus_pct: null,
+            boost_type: null,
+            effect_kind: null,
+            instant_effect_kind: null,
+            pct_str: null,
+            pct_lng: null,
+            pct_def: null,
+            pct_hp: null,
+          },
+          territories: null,
+        },
+      ],
+      error: null,
+    })
+    getScoutMovementReport.mockResolvedValue({
+      data: {
+        id: 1,
+        scout_player_id: 'me',
+        target_territory_id: null,
+        target_movement_id: 'incoming-1',
+        captured_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 86400000).toISOString(),
+        snapshot: [
+          {
+            template_id: 'tmpl-1',
+            category: 'unit',
+            unit_type: 'archers',
+            rank: 'rare',
+            name: 'Královští lučištníci',
+            flavor_text: 'Přesná salva.',
+            base_stats: { str: 4, lng: 9, def: 3, hp: 6, speed: 5 },
+            total_supply: null,
+          },
+        ],
+      },
+      error: null,
+    })
+
+    const arrow: MapMovementArrow = {
+      id: 'incoming-1',
+      category: 'incoming',
+      originX: 20,
+      originY: 21,
+      destX: 12,
+      destY: 13,
+      destinationName: 'Moje hranice',
+      startedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+      arrivesAt: new Date(Date.now() + 20 * 60 * 1000).toISOString(),
+      attackerId: 'enemy-1',
+      attackerDisplayName: 'Nepřítel',
+      attackerKingdomName: 'Temný hvozd',
+      attackerIsNpc: false,
+      attackerHomeX: 20,
+      attackerHomeY: 21,
+    }
+
+    render(<MovementDetailModal arrow={arrow} onClose={jest.fn()} onNavigateToTerritory={jest.fn()} />)
+
+    expect(await screen.findByRole('button', { name: /Vyslat zvěda \(1 ks\)/ })).toBeInTheDocument()
+    expect(await screen.findByText('Královští lučištníci')).toBeInTheDocument()
   })
 
   it('stays clickable when rendered inside a pointer-events-none ancestor (map overlay regression)', async () => {

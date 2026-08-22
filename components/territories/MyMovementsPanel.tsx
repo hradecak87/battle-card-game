@@ -33,6 +33,9 @@ const KIND_LABELS: Record<TroopMovement['kind'], string> = {
   attack: 'Útok',
   loan: 'Půjčka',
   loan_return: 'Návrat půjčky',
+  scout: 'Průzkum',
+  scout_return: 'Návrat zvěda',
+  scout_peek: 'Zvěd na útoku',
 }
 
 /**

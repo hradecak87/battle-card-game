@@ -273,8 +273,14 @@ export function useMapMovementArrows({
         return
       }
 
-      const inTransitMine = (myMovements ?? []).filter((movement) => movement.status === 'in_transit')
-      const inTransitCoalition = (coalitionMovements ?? []).filter((movement) => movement.status === 'in_transit')
+      const inTransitMine = (myMovements ?? []).filter(
+        (movement) =>
+          movement.status === 'in_transit' && !['scout', 'scout_return', 'scout_peek'].includes(movement.kind)
+      )
+      const inTransitCoalition = (coalitionMovements ?? []).filter(
+        (movement) =>
+          movement.status === 'in_transit' && !['scout', 'scout_return', 'scout_peek'].includes(movement.kind)
+      )
       const territoryIds = Array.from(
         new Set(
           [...inTransitMine, ...inTransitCoalition].flatMap((movement) => [

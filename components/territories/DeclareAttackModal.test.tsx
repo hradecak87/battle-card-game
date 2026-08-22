@@ -7,6 +7,9 @@ const getMyTerritories = jest.fn()
 const getPlayerPublicInfo = jest.fn()
 const getTerritoryNeighborOwners = jest.fn()
 const declareAttack = jest.fn()
+const getMyCardInstances = jest.fn()
+const sendScout = jest.fn()
+const getScoutTerritoryReport = jest.fn()
 
 jest.mock('@/lib/territories/api', () => ({
   getCardInstancesAtTerritory: (...args: unknown[]) => getCardInstancesAtTerritory(...args),
@@ -14,6 +17,9 @@ jest.mock('@/lib/territories/api', () => ({
   getPlayerPublicInfo: (...args: unknown[]) => getPlayerPublicInfo(...args),
   getTerritoryNeighborOwners: (...args: unknown[]) => getTerritoryNeighborOwners(...args),
   declareAttack: (...args: unknown[]) => declareAttack(...args),
+  getMyCardInstances: (...args: unknown[]) => getMyCardInstances(...args),
+  getScoutTerritoryReport: (...args: unknown[]) => getScoutTerritoryReport(...args),
+  sendScout: (...args: unknown[]) => sendScout(...args),
 }))
 
 jest.mock('@/lib/battles/api', () => ({
@@ -124,6 +130,50 @@ const maskedDefenderBoost = {
   },
 }
 
+const maskedDefenderUnit = {
+  ...myCard,
+  owner_id: 'other-player',
+  stationed_territory_id: territory.id,
+  card_templates: {
+    ...myCard.card_templates,
+    id: 'masked-unit',
+    name: null,
+    flavor_text: null,
+    category: 'unit' as const,
+    unit_type: null,
+    base_stats: null,
+    rank: 'common',
+  },
+  is_masked: true,
+}
+
+const myScoutCard = {
+  instance_id: 'scout-1',
+  template_id: 'scout',
+  owner_id: 'me',
+  stationed_territory_id: 1,
+  status: 'stationed' as const,
+  card_templates: {
+    id: 'scout',
+    name: 'Zvěd',
+    flavor_text: 'Rychlý jezdec bez bojové hodnoty.',
+    rank: 'uncommon',
+    category: 'scout' as const,
+    unit_type: null,
+    base_stats: { str: 0, lng: 0, def: 0, hp: 0, speed: 30 },
+    total_supply: null,
+    defense_bonus_pct: null,
+    attack_bonus_pct: null,
+    boost_type: null,
+    effect_kind: null,
+    instant_effect_kind: null,
+    pct_str: null,
+    pct_lng: null,
+    pct_def: null,
+    pct_hp: null,
+  },
+}
+
 function deferred<T>() {
   let resolve!: (value: T) => void
   const promise = new Promise<T>((res) => {
@@ -141,6 +191,12 @@ describe('DeclareAttackModal', () => {
     getTerritoryNeighborOwners.mockReset()
     getTerritoryNeighborOwners.mockResolvedValue({ data: [null, null, null, null], error: null })
     getCardInstancesAtTerritory.mockResolvedValue({ data: [], error: null })
+    getMyCardInstances.mockReset()
+    getMyCardInstances.mockResolvedValue({ data: [], error: null })
+    getScoutTerritoryReport.mockReset()
+    getScoutTerritoryReport.mockResolvedValue({ data: null, error: null })
+    sendScout.mockReset()
+    sendScout.mockResolvedValue({ data: 'scout-move', error: null })
     getMyTerritories.mockResolvedValue({
       data: [{ id: 1, x: 0, y: 0, is_home: true }],
       error: null,
@@ -235,6 +291,29 @@ describe('DeclareAttackModal', () => {
 
     expect(await screen.findByRole('button', { name: 'Odkud útočíš' })).toBeInTheDocument()
     expect(screen.queryByTestId('declare-attack-unreachable')).not.toBeInTheDocument()
+  })
+
+  it('shows bucket summary, disclaimer, and scout button for masked defenders', async () => {
+    getCardInstancesAtTerritory.mockImplementation((id: number) =>
+      Promise.resolve({
+        data: id === territory.id
+          ? [
+              maskedDefenderUnit,
+              { ...maskedDefenderUnit, instance_id: 'masked-def-2' },
+              { ...maskedDefenderUnit, instance_id: 'masked-def-3', card_templates: { ...maskedDefenderUnit.card_templates, rank: 'rare' } },
+              maskedDefenderBoost,
+            ]
+          : [myCard],
+        error: null,
+      })
+    )
+    getMyCardInstances.mockResolvedValue({ data: [myScoutCard], error: null })
+
+    render(<DeclareAttackModal territory={territory} myPlayerId="me" onClose={jest.fn()} />)
+
+    expect(await screen.findByText('1–5 common, 1–5 rare')).toBeInTheDocument()
+    expect(screen.getByText(/⚠ Odhad/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Vyslat zvěda \(1 ks\)/ })).toBeInTheDocument()
   })
 
   it('lists the caller\'s own territories in the multi-check dropdown, home first', async () => {

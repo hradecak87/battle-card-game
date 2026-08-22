@@ -1,7 +1,13 @@
 'use client'
 
-import { useState } from 'react'
-import { CardInstanceWithTemplate, Territory } from '@/lib/territories/api'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  CardInstanceWithTemplate,
+  getMyCardInstances,
+  getScoutTerritoryReport,
+  sendScout,
+  Territory,
+} from '@/lib/territories/api'
 import { TradingCard } from '@/components/cards/TradingCard'
 import { CastleIcon, VillageIcon, WallIcon } from '@/components/territories/icons/StructureIcons'
 import { CardZoomOverlay, useCardZoom } from '@/components/cards/CardZoomOverlay'
@@ -13,6 +19,7 @@ import { MaskedBoostSummaryTile, VisibleBoostCardTile } from '@/components/cards
 import { IncomingAttackInfo, ClaimInfo } from '@/lib/territories/api'
 import type { DiplomacyRelationState } from '@/lib/diplomacy/types'
 import Link from 'next/link'
+import { summarizeMaskedUnitBuckets } from '@/lib/territories/garrisonBuckets'
 
 export interface GarrisonModalOwnerInfo {
   id: string
@@ -170,6 +177,10 @@ export default function GarrisonModal({
   const [relocateHomeError, setRelocateHomeError] = useState<string | null>(null)
   const [declareWarLoading, setDeclareWarLoading] = useState(false)
   const [declareWarError, setDeclareWarError] = useState<string | null>(null)
+  const [availableScoutIds, setAvailableScoutIds] = useState<string[]>([])
+  const [scoutSending, setScoutSending] = useState(false)
+  const [scoutError, setScoutError] = useState<string | null>(null)
+  const [scoutReportMeta, setScoutReportMeta] = useState<{ captured_at: string; expires_at: string } | null>(null)
 
   const canAttack =
     Boolean(myPlayerId) &&
@@ -236,9 +247,10 @@ export default function GarrisonModal({
   const buildLabelIconStyle = { width: '28px', height: '28px' }
   const structureCardIconStyle = { width: '32px', height: '32px' }
   const unitInstances = (instances ?? []).filter((instance) => instance.card_templates?.category === 'unit')
+  const maskedUnitSummary = useMemo(() => summarizeMaskedUnitBuckets(instances ?? []), [instances])
   const structureInstances = (instances ?? []).filter((instance) => {
     const category = instance.card_templates?.category
-    return category === 'castle' || category === 'village'
+    return category === 'castle' || category === 'village' || category === 'wall'
   })
   const visibleBoostInstances = (instances ?? []).filter((instance) => {
     const row = instance.card_templates
@@ -250,6 +262,52 @@ export default function GarrisonModal({
     acc[row.rank] = (acc[row.rank] ?? 0) + 1
     return acc
   }, {})
+  const visibleUnitInstances = maskedUnitSummary ? [] : unitInstances
+
+  useEffect(() => {
+    if (!myPlayerId) {
+      setAvailableScoutIds([])
+      return
+    }
+    let cancelled = false
+    getMyCardInstances(myPlayerId).then(({ data }) => {
+      if (cancelled) return
+      const scoutIds = (data ?? [])
+        .filter((instance) => instance.status === 'stationed' && instance.card_templates?.category === 'scout')
+        .map((instance) => instance.instance_id)
+      setAvailableScoutIds(scoutIds)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [myPlayerId])
+
+  useEffect(() => {
+    if (!myPlayerId || territory.owner_id === myPlayerId) {
+      setScoutReportMeta(null)
+      return
+    }
+    let cancelled = false
+    getScoutTerritoryReport(territory.id).then(({ data }) => {
+      if (cancelled) return
+      setScoutReportMeta(data ? { captured_at: data.captured_at, expires_at: data.expires_at } : null)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [myPlayerId, territory.id, territory.owner_id])
+
+  async function handleSendScout() {
+    if (availableScoutIds.length === 0) return
+    setScoutSending(true)
+    setScoutError(null)
+    const { error } = await sendScout(territory.id, availableScoutIds[0])
+    setScoutSending(false)
+    if (error) {
+      setScoutError(error.message)
+      return
+    }
+  }
 
   return (
     <div
@@ -709,6 +767,7 @@ export default function GarrisonModal({
         </div>
 
         {error && <p className="text-red-400 text-sm">{error}</p>}
+        {scoutError && <p className="text-red-400 text-sm">{scoutError}</p>}
 
         {territory.claim_locked_by && territory.claim_occupation_completes_at && (
           <p className="mb-3 flex flex-wrap items-center gap-1 text-sm text-amber-400">
@@ -765,9 +824,35 @@ export default function GarrisonModal({
           </div>
         )}
 
-        {!error && instances !== null && (unitInstances.length > 0 || structureInstances.length > 0) && (
+        {!error && instances !== null && maskedUnitSummary && (
+          <div className="mb-4 rounded-xl border border-zinc-800 bg-zinc-900/60 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-semibold text-zinc-100">Odhad posádky podle ranku</p>
+                <p>{maskedUnitSummary}</p>
+              </div>
+              <button
+                type="button"
+                disabled={scoutSending || availableScoutIds.length === 0}
+                onClick={handleSendScout}
+                className="rounded bg-amber-700 px-3 py-1 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {scoutSending ? 'Vysílám…' : `Vyslat zvěda (${availableScoutIds.length} ks)`}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!error && !maskedUnitSummary && scoutReportMeta && (
+          <p data-testid="garrison-scout-report-meta" className="mb-3 text-xs text-zinc-400">
+            Zvěd hlásí od {new Date(scoutReportMeta.captured_at).toLocaleString('cs-CZ')} · platí do{' '}
+            {new Date(scoutReportMeta.expires_at).toLocaleString('cs-CZ')}
+          </p>
+        )}
+
+        {!error && instances !== null && (visibleUnitInstances.length > 0 || structureInstances.length > 0) && (
           <div className="grid grid-cols-3 gap-3 p-3 sm:grid-cols-4 md:grid-cols-5">
-            {[...unitInstances, ...structureInstances].map((instance) => {
+            {[...visibleUnitInstances, ...structureInstances].map((instance) => {
               const row = instance.card_templates
               const unitTemplate = row ? toUnitTemplate(row) : null
               return (
@@ -796,6 +881,8 @@ export default function GarrisonModal({
                           className="text-stone-300 drop-shadow"
                           style={structureCardIconStyle}
                         />
+                      ) : row?.category === 'wall' ? (
+                        <WallIcon title="Hradby" className="text-stone-300 drop-shadow" style={structureCardIconStyle} />
                       ) : (
                         <VillageIcon
                           variant="village-2"

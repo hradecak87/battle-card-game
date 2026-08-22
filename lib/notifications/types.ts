@@ -13,6 +13,9 @@ export type NotificationType =
   | 'loan_arrived'
   | 'loan_returned'
   | 'loan_auto_recalled'
+  | 'scout_killed'
+  | 'scout_detected'
+  | 'scout_returned'
 
 export interface AttackIncomingNotificationPayload {
   territory_id: number
@@ -82,6 +85,23 @@ export interface LoanNotificationPayload {
   other_display_name: string
 }
 
+export interface ScoutKilledNotificationPayload {
+  territory_id?: number
+  movement_id?: string
+}
+
+export interface ScoutDetectedNotificationPayload {
+  territory_id?: number
+  movement_id?: string
+  scout_player_id: string
+  scout_display_name: string
+}
+
+export interface ScoutReturnedNotificationPayload {
+  territory_id?: number
+  movement_id?: string
+}
+
 export interface NotificationPayloadByType {
   attack_incoming: AttackIncomingNotificationPayload
   war_declared: WarDeclaredNotificationPayload
@@ -97,6 +117,9 @@ export interface NotificationPayloadByType {
   loan_arrived: LoanNotificationPayload
   loan_returned: LoanNotificationPayload
   loan_auto_recalled: LoanNotificationPayload
+  scout_killed: ScoutKilledNotificationPayload
+  scout_detected: ScoutDetectedNotificationPayload
+  scout_returned: ScoutReturnedNotificationPayload
 }
 
 interface NotificationRowBase<TType extends NotificationType> {

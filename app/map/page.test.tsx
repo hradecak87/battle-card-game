@@ -51,6 +51,11 @@ const buildStructure = jest.fn().mockResolvedValue({ data: null, error: null })
 const relocateHome = jest.fn().mockResolvedValue({ data: null, error: null })
 const getRelation = jest.fn().mockResolvedValue({ data: null, error: null })
 const getMyCoalition = jest.fn().mockResolvedValue({ data: [], error: null })
+const getMyCardInstances = jest.fn().mockResolvedValue({ data: [], error: null })
+const getScoutTerritoryReport = jest.fn().mockResolvedValue({ data: null, error: null })
+const getScoutMovementReport = jest.fn().mockResolvedValue({ data: null, error: null })
+const sendScout = jest.fn().mockResolvedValue({ data: null, error: null })
+const sendScoutPeek = jest.fn().mockResolvedValue({ data: null, error: null })
 const mapMovementArrowsMock = jest.fn(({ visible }: { visible?: boolean }) => (
   <div data-testid="map-movement-arrows">{visible ? 'visible' : 'hidden'}</div>
 ))
@@ -76,6 +81,11 @@ jest.mock('@/lib/territories/api', () => ({
   getMyStructureCardInstances: (...args: unknown[]) => getMyStructureCardInstances(...args),
   buildStructure: (...args: unknown[]) => buildStructure(...args),
   relocateHome: (...args: unknown[]) => relocateHome(...args),
+  getMyCardInstances: (...args: unknown[]) => getMyCardInstances(...args),
+  getScoutTerritoryReport: (...args: unknown[]) => getScoutTerritoryReport(...args),
+  getScoutMovementReport: (...args: unknown[]) => getScoutMovementReport(...args),
+  sendScout: (...args: unknown[]) => sendScout(...args),
+  sendScoutPeek: (...args: unknown[]) => sendScoutPeek(...args),
 }))
 
 let sessionUser: { id: string } | null = null
@@ -131,6 +141,16 @@ describe('MapPage', () => {
     getPlayerPublicInfo.mockClear()
     getMyTerritories.mockReset()
     getMyTerritories.mockResolvedValue({ data: [], error: null })
+    getMyCardInstances.mockReset()
+    getMyCardInstances.mockResolvedValue({ data: [], error: null })
+    getScoutTerritoryReport.mockReset()
+    getScoutTerritoryReport.mockResolvedValue({ data: null, error: null })
+    getScoutMovementReport.mockReset()
+    getScoutMovementReport.mockResolvedValue({ data: null, error: null })
+    sendScout.mockReset()
+    sendScout.mockResolvedValue({ data: null, error: null })
+    sendScoutPeek.mockReset()
+    sendScoutPeek.mockResolvedValue({ data: null, error: null })
     startTransfer.mockReset()
     startTransfer.mockResolvedValue({ data: null, error: null })
     lendTroops.mockReset()
