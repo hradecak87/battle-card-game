@@ -308,7 +308,9 @@ describe('MyCollectionPage', () => {
     expect(screen.getAllByText('+27%').length).toBeGreaterThan(0)
     expect(screen.getByText('+20%')).toBeInTheDocument()
     expect(screen.getByText('+15%')).toBeInTheDocument()
-    expect(screen.queryByAltText('Hradby')).not.toBeInTheDocument()
+    // Structure cards reuse the same map illustration as their territory icon.
+    expect(screen.getByAltText('Hradby')).toBeInTheDocument()
+    expect(screen.getByAltText('Hrad')).toBeInTheDocument()
   })
 
   it('shows rank-specific return confirmation copy and calls returnCardToPool', async () => {

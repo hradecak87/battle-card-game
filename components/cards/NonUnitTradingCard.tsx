@@ -1,6 +1,8 @@
 import { BoostCardTemplate, Rank, StructureCardTemplate } from '@/lib/cards/types'
 import { boostEffectSummary, boostTypeLabel } from '@/lib/cards/boosts'
+import { hasIllustratedBoostArt, illustratedBoostArtSrc } from '@/lib/cards/illustrated-boost-art'
 import { RANK_FRAME } from './TradingCard'
+import { pickVariant, CASTLE_VARIANTS, VILLAGE_VARIANTS } from '@/components/territories/icons/StructureIcons'
 
 const RANK_LABELS: Record<Rank, string> = {
   common: 'Common',
@@ -16,17 +18,40 @@ const STRUCTURE_LABELS: Record<StructureCardTemplate['category'], string> = {
   wall: 'Hradby',
 }
 
-// Emoji placeholders standing in for real illustrated artwork (to be
-// generated later, per the user's request) — one per card "flavor" so the
-// art panel isn't a blank rectangle in the meantime.
-const STRUCTURE_ART_ICON: Record<StructureCardTemplate['category'], string> = {
-  castle: '🏰',
-  village: '🏘️',
-  wall: '🧱',
-}
-
+// Emoji placeholder standing in for real illustrated boost artwork (to be
+// generated later, per the user's request) — one per boost "flavor" so the
+// art panel isn't a blank rectangle in the meantime. Castle/Village/Wall
+// cards instead reuse the same hand-drawn illustrations shown for that
+// structure on the territory map (components/territories/icons), since
+// those already exist and look identical either way.
 function boostArtIcon(boostType: BoostCardTemplate['boostType']) {
   return boostType === 'territorial' ? '🛡️' : '⚔️'
+}
+
+/**
+ * Renders the same hand-drawn illustration used for this structure on the
+ * territory map (public/icons/structures/*.png) — a plain <img> rather
+ * than the next/image-based map icon components, since those require a
+ * fixed width/height that wouldn't scale with this card's cqw-based
+ * responsive sizing (same rationale as TradingCard's illustrated unit
+ * art). Castle/Village have 3 variants each — picked deterministically
+ * from the template id (stable across renders/reloads, mirroring how the
+ * map picks a variant per territory id) since a card template has no
+ * per-instance territory id of its own. Wall has a single illustration.
+ */
+function StructureArt({ category, id }: { category: StructureCardTemplate['category']; id: string }) {
+  const variant =
+    category === 'castle'
+      ? pickVariant(id, CASTLE_VARIANTS)
+      : category === 'village'
+        ? pickVariant(id, VILLAGE_VARIANTS)
+        : 'wall'
+  const title = STRUCTURE_LABELS[category]
+
+  // eslint-disable-next-line @next/next/no-img-element -- many cards render
+  // at once in grids; plain <img> avoids next/image's per-instance
+  // lazy-load/placeholder overhead (same rationale as TradingCard).
+  return <img src={`/icons/structures/${variant}.png`} alt={title} className="h-full w-full object-contain" />
 }
 
 interface StatColumn {
@@ -74,7 +99,6 @@ export function NonUnitTradingCard({ template, compact = false }: NonUnitTrading
   const isBoost = template.category === 'boost'
 
   const typeLabel = isBoost ? boostTypeLabel(template.boostType) : STRUCTURE_LABELS[template.category]
-  const artIcon = isBoost ? boostArtIcon(template.boostType) : STRUCTURE_ART_ICON[template.category]
 
   const stats: StatColumn[] = isBoost
     ? [
@@ -105,9 +129,27 @@ export function NonUnitTradingCard({ template, compact = false }: NonUnitTrading
           background: `radial-gradient(ellipse at 50% 45%, ${frame.fadeColor} 0%, rgba(24,24,27,1) 100%)`,
         }}
       >
-        <span aria-hidden="true" className="text-[16cqw] leading-none opacity-80">
-          {artIcon}
-        </span>
+        {isBoost ? (
+          hasIllustratedBoostArt(template.id) ? (
+            // eslint-disable-next-line @next/next/no-img-element -- many cards
+            // render at once in grids; plain <img> avoids next/image's
+            // per-instance lazy-load/placeholder overhead (same rationale as
+            // TradingCard's illustrated unit art).
+            <img
+              src={illustratedBoostArtSrc(template.id)}
+              alt={template.name}
+              className="h-full w-full object-contain p-[6%]"
+            />
+          ) : (
+            <span aria-hidden="true" className="text-[16cqw] leading-none opacity-80">
+              {boostArtIcon(template.boostType)}
+            </span>
+          )
+        ) : (
+          <div className="relative h-full w-full p-[12%]">
+            <StructureArt category={template.category} id={template.id} />
+          </div>
+        )}
         <span
           className={`absolute top-1 right-1 text-[5.4cqw] font-bold px-[1.8cqw] py-[0.6cqw] rounded-full ${frame.badgeBg} ${frame.badgeText}`}
         >

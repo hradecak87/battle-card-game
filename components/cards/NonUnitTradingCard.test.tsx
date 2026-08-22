@@ -94,6 +94,17 @@ describe('NonUnitTradingCard', () => {
     expect(screen.getByText('DEF')).toBeInTheDocument()
     expect(screen.getByText('+18%')).toBeInTheDocument()
     expect(screen.getByText('Neomezeno')).toBeInTheDocument()
+    // Structure art reuses the same illustration shown for this structure
+    // category on the territory map, instead of an emoji placeholder.
+    expect(screen.getByAltText('Hrad')).toBeInTheDocument()
+  })
+
+  it('renders illustrated art for a boost card whose id has real artwork', () => {
+    render(<NonUnitTradingCard template={makeBoostTemplate({ id: 'boost-territorial-common-01' })} />)
+    expect(screen.getByAltText('Bojový prapor')).toHaveAttribute(
+      'src',
+      '/cards/boosts/boost-territorial-common-01.png'
+    )
   })
 
   it('blanks the ATK value (but keeps the label) for a village, which has no attack bonus', () => {
