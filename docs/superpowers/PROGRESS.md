@@ -14,6 +14,42 @@
   `--ci`) rather than reading raw logs, to keep token cost low regardless
   of how long the command actually runs.
 
+## Latest update — 2026-08-22a (NPC imperial war declaration + war-focus state fix)
+
+- **Added `supabase/migrations/0074_npc_imperial_war_declaration.sql` and live-applied it successfully.**
+  `resolve_due_npc_actions()` now fixes the real war-focus bug from
+  `0067_npc_attack_cancellation.sql`: the `v_focus_enemy_id` subquery now
+  filters `diplomacy_relations.state = 'war'`, so NPCs no longer treat
+  `non_aggression` partners as war enemies.
+- **Added `_maybe_declare_npc_imperial_war(p_npc_id uuid, p_roll numeric default null)`**
+  as the deterministic/testable helper for Task 1 from
+  `docs/superpowers/plans/2026-08-22-npc-ai-improvements.md`. It enforces:
+  NPC owns at least 16 territories, roll < 10%, target is a human player
+  with no existing relation, not in the same active coalition, and whose
+  `_npc_diplomacy_power()` is at most 2/3 of the NPC's (i.e. NPC has at
+  least 1.5× power). Candidate selection prefers bordering humans and only
+  falls back to a non-bordering eligible human if no bordering pool exists.
+  On success it calls `_diplomacy_declare_war_core(npc_id, candidate_id)`
+  directly; it does **not** launch an attack on the same tick.
+- `resolve_due_npc_actions()` now calls that helper before the existing
+  expansion/attack `v_pick_roll` branch, while preserving the separate
+  existing war-focus attack branch and the post-attack `npc_reeval_at`
+  scheduling behavior.
+- **Added `supabase/migrations/0074_npc_imperial_war_declaration.verification.sql`**
+  (rollback-wrapped). It proves: (1) a `non_aggression` relation alone does
+  not produce a war-focus enemy, (2) an eligible 16+-territory NPC forced
+  through the helper with `p_roll = 0.05` creates a `state = 'war'`
+  relation against a bordering human, (3) if the only bordering human is in
+  the same coalition, the helper falls back to an eligible non-bordering
+  human, and (4) an ineligible NPC (<16 territories) returns null and
+  creates no diplomacy relation.
+- **Live verification passed** using the established project-local Node +
+  `pg` technique reading `SUPABASE_DB_URL` from `.env.local`, then running
+  the raw migration SQL followed by the rollback-wrapped verification SQL.
+  Temporary helper scripts were deleted afterward.
+- Pure SQL change only — **skipped `npx tsc --noEmit` and Jest** per repo
+  guidance because no TS/JS files changed.
+
 ## Latest update — 2026-08-21l (recall_loan now returns troops to origin, not home)
 
 - **Bug fix: `recall_loan` sent troops back to the lender's HOME territory
