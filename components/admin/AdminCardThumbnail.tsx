@@ -1,6 +1,6 @@
 import { RANK_FRAME } from '@/components/cards/TradingCard'
 
-type Category = 'unit' | 'castle' | 'village' | 'wall' | 'boost'
+type Category = 'unit' | 'castle' | 'village' | 'wall' | 'boost' | 'scout'
 
 const CATEGORY_LABELS: Record<Category, string> = {
   unit: 'Jednotky',
@@ -8,6 +8,7 @@ const CATEGORY_LABELS: Record<Category, string> = {
   village: 'Vesnice',
   wall: 'Hradby',
   boost: 'Boost',
+  scout: 'Zvěd',
 }
 
 const RANK_LABELS: Record<string, string> = {

@@ -1,0 +1,50 @@
+-- Manual verification for 0082_deposit_or_grant_card_home_default.sql
+--
+-- 1. Confirm the backfill fixed already-broken rows: no card should be
+--    'stationed' with a null stationed_territory_id while still having
+--    an owner with a home territory.
+--
+--    select count(*) from card_instances ci
+--    join territories t on t.owner_id = ci.owner_id and t.is_home
+--    where ci.status = 'stationed' and ci.stationed_territory_id is null;
+--    -- expect 0
+--
+-- 2. Confirm _deposit_or_grant_card() now defaults to home territory for
+--    a fresh grant under the deck limit (run as a player with room in
+--    their deck and an existing home territory):
+--
+--    do $$
+--    declare
+--      v_player_id uuid := <some player id with room in their deck>;
+--      v_instance_id uuid;
+--      v_home_id integer;
+--      v_result_territory_id integer;
+--    begin
+--      select id into v_home_id from territories where owner_id = v_player_id and is_home;
+--
+--      insert into card_instances (template_id, owner_id, stationed_territory_id, status)
+--      values ('scout', null, null, 'stationed')
+--      returning instance_id into v_instance_id;
+--
+--      perform _deposit_or_grant_card(v_player_id, v_instance_id);
+--
+--      select stationed_territory_id into v_result_territory_id
+--      from card_instances where instance_id = v_instance_id;
+--
+--      assert v_result_territory_id = v_home_id, 'expected card to be stationed at home territory';
+--      raise notice 'OK: card stationed at home territory %', v_result_territory_id;
+--
+--      -- cleanup
+--      delete from card_instances where instance_id = v_instance_id;
+--    end;
+--    $$;
+--
+-- 3. Confirm the 'deposit' branch is unaffected (still null territory,
+--    still status = 'deposit') -- e.g. by temporarily granting cards
+--    past a player's deck limit and checking the resulting row's
+--    stationed_territory_id is still null and status = 'deposit'.
+--
+-- 4. Confirm a player with NO home territory yet (e.g. mid-onboarding)
+--    doesn't error -- v_home_territory_id resolves to null via the
+--    select ... into, and stationed_territory_id is simply set to null
+--    (same as before this fix), no exception raised.
