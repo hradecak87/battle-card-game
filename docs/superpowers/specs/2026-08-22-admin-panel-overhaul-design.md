@@ -63,31 +63,50 @@ can be expanded/collapsed independently of each other).
 ## 2. Card thumbnail grid ("Karty vybraného hráče")
 
 Replace the current `<ul>` of full-width rows with a responsive grid of
-small `TradingCard` thumbnails, 3 per row, inside a height-capped,
+small card thumbnails, 3 per row, inside a height-capped,
 independently-scrollable container.
 
+**Note on `TradingCard` reuse:** `components/cards/TradingCard.tsx`
+requires a full `UnitCardTemplate` + `EffectiveCard` (combat stats,
+nation-adjusted) and only renders unit cards — it cannot render
+castle/village/wall/boost cards, and `admin_list_player_cards`/
+`AdminPlayerCardRow` (`lib/admin/api.ts`) don't carry the stats needed to
+build those types — nor does `AdminPlayerCardRow.template_category`'s
+current type (`'unit' | 'castle' | 'village' | 'boost'`) even include
+`'wall'`, a real `card_templates.category` value added in
+`0047_wall_structure_card.sql`. Since the new thumbnail component must
+render every category correctly, this spec also extends
+`AdminPlayerCardRow.template_category` (and the admin card-grant form's
+`CATEGORY_LABELS` in `app/admin/page.tsx`) to include `'wall'` — a small,
+tightly-coupled fix so wall cards display correctly instead of falling
+through unlabelled. Rather than extending the RPC/stats further just for
+a management thumbnail, this section introduces a new lightweight
+component, `components/admin/AdminCardThumbnail.tsx`, that works for all
+five categories (`unit`, `castle`, `village`, `wall`, `boost`) using only
+the fields `AdminPlayerCardRow` already returns (`template_name`,
+`template_rank`, `template_category`). It reuses the existing
+`RANK_FRAME` rank-color map exported from `TradingCard.tsx` for the
+border color, but does not attempt to replicate `TradingCard`'s full
+combat-stat layout.
+
 - Grid: `grid grid-cols-3 gap-3`.
-- Container: capped to roughly 3 rows of card height (`max-h-[...]` sized
-  to 3× the thumbnail's rendered height at this grid width, e.g. using a
-  fixed `max-h-[560px]` tuned to look right at 3 columns) with
-  `overflow-y-auto` — only this box scrolls, not the whole page.
+- Container: capped to roughly 3 rows of thumbnail height (a fixed
+  `max-h-[...]` tuned to look right at 3 columns) with `overflow-y-auto`
+  — only this box scrolls, not the whole page.
 - Each grid cell renders:
-  - `TradingCard` (small/compact instance — reuse the existing `compact`
-    prop or an even smaller preset if needed) built from the card
-    instance's template + stats, matching how other parts of the app
-    (e.g. garrison views) already render owned cards.
+  - `AdminCardThumbnail` — a compact card-shaped box with the
+    rank-colored border (`RANK_FRAME[rank].border`), the category shown
+    as a small icon/label (unit/castle/village/wall/boost), and the card name.
   - A small **× button, top-left corner**, absolutely positioned over the
     card, `aria-label="Odebrat kartu {name}"`. Clicking it triggers the
     same removal flow as today (`handleRemoveCard`, including its
     existing confirmation behavior) — no behavior change, only a new
     trigger location/visual.
   - A small **🔍 (magnifying glass) button, top-right corner**, absolutely
-    positioned. Clicking it opens a modal showing the same `TradingCard`
-    at full size (reuse an existing modal pattern from the codebase,
-    e.g. similar structure to other card-preview modals if one exists;
-    otherwise a simple centered `Dialog`-style overlay with a close
-    button). No other actions live in this modal — just a bigger, more
-    detailed look at the card.
+    positioned. Clicking it opens a modal showing the same
+    `AdminCardThumbnail` enlarged (larger font/border, same data) — a
+    simple centered overlay with a close button. No other actions live
+    in this modal, just a bigger look at the card's identifying info.
   - A short text caption below the thumbnail: name, rank, and current
     location (reusing the existing `territoryLabel()` helper output —
     "Inventář" or `(x, y) · #id`), so the card is identifiable even
@@ -99,35 +118,47 @@ independently-scrollable container.
 
 ### Data source
 
-New read-only RPC, `admin_list_movements()`:
+New read-only RPC, `admin_list_movements(p_include_history boolean default false)`:
 
-- `security definer`, restricted to `is_admin = true` callers (same
-  guard pattern as the other `admin_*` RPCs — raise an exception
-  otherwise).
-- Calls `resolve_due_movements()` first (same convention as every other
-  admin/gameplay RPC) so the list reflects up-to-date state before
-  reading.
+- `security definer`, guarded by `admin_require_admin()` (same guard
+  helper used by the existing `admin_*` RPCs, e.g.
+  `admin_list_online_players()`).
+- Calls `resolve_due_movements()` first — the existing `admin_*` RPCs do
+  *not* call this today (they only guard via `admin_require_admin()`),
+  but gameplay read RPCs like `get_viewport()`/`get_my_movements()` do.
+  This RPC follows the gameplay-read convention instead, since its whole
+  purpose is showing up-to-date in-flight state.
 - Returns one row per `troop_movements` record, joined to `players` for
   `player_id` (display name + `is_npc`) and to `territories` twice (for
-  origin and destination x/y), plus a units count via
+  origin and destination x/y plus, for claims, the destination's
+  `claim_occupation_completes_at`), plus a units count via
   `troop_movement_units`:
 
   ```sql
   id, player_id, player_display_name, player_is_npc,
-  kind,                       -- 'transfer' | 'claim'
+  kind,                       -- 'transfer' | 'claim' | 'attack' | 'loan' | 'loan_return'
   origin_territory_id, origin_x, origin_y,
   destination_territory_id, destination_x, destination_y,
   started_at, transfer_arrives_at, status,
+  claim_occupation_completes_at,   -- only meaningful when kind = 'claim' and status = 'occupying'
   cancelled_at,
   unit_count
   ```
 
-- Ordering: active statuses (`in_transit`, `occupying`) first (by
-  soonest `transfer_arrives_at`), then, only if history is requested,
-  `completed`/`cancelled` ordered by `started_at desc`, capped at the
-  most recent 200 rows total returned by the function (an `order by
-  status = 'in_transit' or status = 'occupying' desc, ...` plus a
-  `limit 200` is sufficient — no separate pagination UI needed for v1).
+  `troop_movements.kind` actually allows `'transfer'`, `'claim'`,
+  `'attack'`, `'loan'`, and `'loan_return'` (see `0003_battles.sql`,
+  `0068_troop_lending.sql`) — this admin view surfaces all of them
+  (labelled Přesun/Zabírání/Útok/Půjčka/Vrácení půjčky) rather than
+  filtering to just transfer/claim, since it's meant as a general
+  monitoring tool; the "Přesuny a zabírání území" section title reflects
+  the two kinds the user most cares about but the table isn't restricted
+  to only those two.
+- `p_include_history` controls the SQL itself (not just client-side
+  filtering): when `false` (default), only `in_transit`/`occupying` rows
+  are returned; when `true`, `completed`/`cancelled` rows are also
+  included, ordered `started_at desc`, and the whole result is capped at
+  200 rows. This avoids pulling potentially large historical data on
+  every load when the checkbox is off.
 
 ### Frontend
 
@@ -136,32 +167,41 @@ inside a `CollapsibleSection` on `/admin` titled "Přesuny a zabírání
 území":
 
 - Table columns: Hráč (name + a small "NPC" badge when
-  `player_is_npc`), Typ (Přesun/Zabírání), Odkud → Kam (`(x,y) → (x,y)`),
-  Stav, Zbývající čas / ETA (reuse existing relative-time formatting
-  patterns from `MyMovementsPanel.tsx` if present), Počet jednotek,
-  and an Akce column with the speed-up button (active rows only).
+  `player_is_npc`), Typ (Přesun/Zabírání/Útok/Půjčka/Vrácení půjčky),
+  Odkud → Kam (`(x,y) → (x,y)`), Stav, Zbývající čas / ETA (reuse
+  existing relative-time formatting patterns from `MyMovementsPanel.tsx`
+  if present — for `occupying` claims this is based on
+  `claim_occupation_completes_at`, not `transfer_arrives_at`), Počet
+  jednotek, and an Akce column with the speed-up icon button (active
+  rows only).
 - Filter controls above the table:
   - A 3-way toggle: **Vše / Jen NPC / Jen hráči** (client-side filter on
     the already-fetched rows — no need for a server-side parameter given
     the modest expected row count).
   - A text input to search by player display name (case-insensitive
     substring match, client-side).
-  - A checkbox "Zobrazit i dokončené/zrušené" — unchecked by default,
-    which filters the already-fetched list down to `in_transit`/
-    `occupying` only; checked shows everything the RPC returned
-    (including the historical rows, up to the 200-row cap).
+  - A checkbox "Zobrazit i dokončené/zrušené" — unchecked by default.
+    Unlike the two filters above, this one drives the `p_include_history`
+    RPC argument directly (toggling it triggers a refetch), since
+    including history changes what SQL actually runs/returns rather than
+    just hiding already-fetched rows.
 - Speed-up action: new RPC `admin_speed_up_movement(p_movement_id uuid)`,
-  `security definer`, guarded by `is_admin = true` (no ownership check,
-  unlike the existing player-facing RPC) — otherwise same effect as
-  today's `debug_speed_up_movement`: shrinks `transfer_arrives_at` (and,
-  for claims, the associated territory's `claim_transfer_arrives_at`/
-  `claim_occupation_completes_at`) to ~10s/20s out, then calls
+  `security definer`, guarded by `admin_require_admin()` (no ownership
+  check, unlike the existing player-facing RPC) — otherwise identical
+  logic to `debug_speed_up_movement` (`0006_debug_speed_up_movement.sql`),
+  which works on **any** `troop_movements.kind`, not just transfer/claim:
+  if `status = 'in_transit'`, shrinks `transfer_arrives_at` to `now() +
+  10s` (and, only when `kind = 'claim'`, also shrinks the destination
+  territory's `claim_transfer_arrives_at`/`claim_occupation_completes_at`
+  to `+10s`/`+20s`); if `status = 'occupying'` and `kind = 'claim'`,
+  shrinks just `claim_occupation_completes_at` to `+10s`; any other
+  state raises (matching the existing function's behavior). Then calls
   `resolve_due_movements()`. In the Akce column this is a single small
   icon-only button (⏩, `aria-label="Urychlit na 10s"`, no visible text
   label, to keep the column narrow) that appears only for `in_transit`/
   `occupying` rows, disables itself while in flight, and triggers a
   refetch of the list on success.
-- `lib/admin/api.ts` gains `getAdminMovements()` and
+- `lib/admin/api.ts` gains `getAdminMovements(includeHistory)` and
   `adminSpeedUpMovement(movementId)` wrappers, following the existing
   file's typed-wrapper conventions.
 
